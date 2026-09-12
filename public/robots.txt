@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Disallow: /_next/
+Disallow: /api/
+
+# Prioritize crawling important pages
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 5
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 10
+
+# Sitemap
+Sitemap: https://ishatechnologies.in/sitemap.xml

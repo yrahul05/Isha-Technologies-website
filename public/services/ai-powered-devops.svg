@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Brain circuit shape -->
+  <circle cx="50" cy="50" r="28" stroke="#3B82F6" stroke-width="2.5" fill="#EFF6FF"/>
+  <!-- Neural nodes -->
+  <circle cx="50" cy="28" r="4" fill="#3B82F6"/>
+  <circle cx="50" cy="72" r="4" fill="#3B82F6"/>
+  <circle cx="28" cy="50" r="4" fill="#3B82F6"/>
+  <circle cx="72" cy="50" r="4" fill="#3B82F6"/>
+  <circle cx="35" cy="35" r="3.5" fill="#6366F1"/>
+  <circle cx="65" cy="35" r="3.5" fill="#6366F1"/>
+  <circle cx="35" cy="65" r="3.5" fill="#6366F1"/>
+  <circle cx="65" cy="65" r="3.5" fill="#6366F1"/>
+  <!-- Center node -->
+  <circle cx="50" cy="50" r="6" fill="#3B82F6"/>
+  <!-- Connecting lines -->
+  <line x1="50" y1="32" x2="50" y2="44" stroke="#3B82F6" stroke-width="1.5"/>
+  <line x1="50" y1="56" x2="50" y2="68" stroke="#3B82F6" stroke-width="1.5"/>
+  <line x1="32" y1="50" x2="44" y2="50" stroke="#3B82F6" stroke-width="1.5"/>
+  <line x1="56" y1="50" x2="68" y2="50" stroke="#3B82F6" stroke-width="1.5"/>
+  <line x1="37.5" y1="37.5" x2="45" y2="45" stroke="#6366F1" stroke-width="1.5"/>
+  <line x1="62.5" y1="37.5" x2="55" y2="45" stroke="#6366F1" stroke-width="1.5"/>
+  <line x1="37.5" y1="62.5" x2="45" y2="55" stroke="#6366F1" stroke-width="1.5"/>
+  <line x1="62.5" y1="62.5" x2="55" y2="55" stroke="#6366F1" stroke-width="1.5"/>
+  <!-- Outer ring -->
+  <circle cx="50" cy="50" r="42" stroke="#BFDBFE" stroke-width="1.5" stroke-dasharray="4 3"/>
+</svg>

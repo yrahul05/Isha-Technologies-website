@@ -1,0 +1,198 @@
+@import 'tailwindcss';
+@config "../../tailwind.config.ts";
+@import 'aos/dist/aos.css';
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --font-primary: var(--font-dm-sans);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand: #3478e4; /* primary */
+  --color-brand-light: #d6e6fb; /* secondary */
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-dm-sans);
+}
+
+@theme inline {
+  --animate-scroll: scroll var(--animation-duration, 40s)
+    var(--animation-direction, forwards) linear infinite;
+
+  @keyframes scroll {
+    to {
+      transform: translate(calc(-50% - 0.5rem));
+    }
+  }
+}
+
+/* ------------------------------------------------------------------
+   Shared card hover / focus interaction — applied site-wide via the
+   `card-hover` class on any reusable content card.
+   The blue accent matches --color-brand (#3478e4) from the @theme block.
+------------------------------------------------------------------ */
+.card-hover {
+  transition:
+    transform 280ms ease-out,
+    box-shadow 280ms ease-out,
+    border-color 280ms ease-out,
+    background-color 280ms ease-out;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-hover:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, #3478e4 45%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, #3478e4 35%, transparent),
+      0 14px 34px -14px color-mix(in srgb, #3478e4 55%, transparent),
+      0 6px 14px -8px color-mix(in srgb, #3478e4 32%, transparent),
+      inset 0 0 0 100vmax color-mix(in srgb, #3478e4 4%, transparent);
+  }
+}
+
+.card-hover:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, #3478e4 55%, transparent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, #3478e4 30%, transparent),
+    0 14px 34px -14px color-mix(in srgb, #3478e4 45%, transparent),
+    inset 0 0 0 100vmax color-mix(in srgb, #3478e4 4%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-hover {
+    transition:
+      box-shadow 280ms ease-out,
+      border-color 280ms ease-out;
+  }
+  .card-hover:hover,
+  .card-hover:focus-visible {
+    transform: none;
+  }
+}
+
+/* While a card-hover card is hovered/focused, an opted-in visual indicator
+   (number, icon, step marker) picks up the primary blue; an opted-in icon
+   background container tints toward a very light blue. Add `card-accent`
+   and/or `card-accent-bg` to the element — no per-card styles needed. */
+.card-hover .card-accent,
+.card-hover .card-accent * {
+  transition:
+    color 280ms ease-out,
+    fill 280ms ease-out,
+    stroke 280ms ease-out;
+}
+.card-hover .card-accent-bg {
+  transition: background-color 280ms ease-out;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-hover:hover .card-accent {
+    color: #3478e4;
+  }
+  .card-hover:hover .card-accent-bg {
+    background-image: none;
+    background-color: color-mix(in srgb, #3478e4 12%, transparent);
+  }
+}
+
+.card-hover:focus-visible .card-accent {
+  color: #3478e4;
+}
+.card-hover:focus-visible .card-accent-bg {
+  background-image: none;
+  background-color: color-mix(in srgb, #3478e4 12%, transparent);
+}
+
+.perspective {
+  perspective: 1000px;
+}
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+}
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+.scroll-bar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* ------------------------------------------------------------------
+   About Us infrastructure visual — subtle, premium motion for the
+   cloud/DevOps graphic. Every animation is applied only via Tailwind's
+   `motion-safe:` variant in the component, so prefers-reduced-motion
+   users simply see the static graphic with no transforms.
+------------------------------------------------------------------ */
+@theme inline {
+  /* Central infrastructure element: slow floating loop */
+  --animate-float-center: float-center 5s ease-in-out infinite;
+  @keyframes float-center {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  /* Orbit ring/nodes: slow rotation, and its inverse so node icons stay upright */
+  --animate-orbit-spin: orbit-spin 70s linear infinite;
+  --animate-orbit-spin-reverse: orbit-spin-reverse 70s linear infinite;
+  @keyframes orbit-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes orbit-spin-reverse {
+    to {
+      transform: rotate(-360deg);
+    }
+  }
+
+  /* Infrastructure nodes: gentle pulse (per-node timing set inline) */
+  --animate-node-pulse: node-pulse 3s ease-in-out infinite;
+  @keyframes node-pulse {
+    0%,
+    100% {
+      opacity: 0.75;
+      transform: scale(0.94);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.04);
+    }
+  }
+
+  /* Connection lines: subtle data-flow pulse along selected lines */
+  --animate-line-flow: line-flow 4s linear infinite;
+  @keyframes line-flow {
+    to {
+      stroke-dashoffset: -12;
+    }
+  }
+
+  /* Small technical blocks: gentle independent floating */
+  --animate-block-float: block-float 6s ease-in-out infinite;
+  --animate-block-float-slow: block-float 7s ease-in-out infinite reverse;
+  @keyframes block-float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-5px) rotate(2deg);
+    }
+  }
+}

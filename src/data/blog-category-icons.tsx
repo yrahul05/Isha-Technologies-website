@@ -1,0 +1,41 @@
+import {
+  Activity,
+  ArrowRightLeft,
+  Boxes,
+  Cloud,
+  FileCode2,
+  Gauge,
+  GitBranch,
+  Layers,
+  LayoutGrid,
+  LifeBuoy,
+  Lock,
+  Server,
+  ShieldCheck,
+  Terminal,
+  Waypoints,
+  Workflow,
+  type LucideIcon,
+} from 'lucide-react';
+import type { BlogCategory } from './blog-categories';
+
+// Compact category identity for blog cards — generic engineering icons,
+// never vendor logos or artwork.
+export const blogCategoryIcons: Record<BlogCategory, LucideIcon> = {
+  'Cloud Infrastructure': Cloud,
+  DevOps: Workflow,
+  AWS: Server,
+  'Microsoft Azure': Layers,
+  'Google Cloud': Waypoints,
+  Kubernetes: Boxes,
+  'Terraform & IaC': FileCode2,
+  'CI/CD': GitBranch,
+  DevSecOps: ShieldCheck,
+  'Cloud Security': Lock,
+  'Cloud Cost Optimization': Gauge,
+  'Cloud Migration': ArrowRightLeft,
+  Observability: Activity,
+  'Site Reliability': LifeBuoy,
+  'Platform Engineering': LayoutGrid,
+  'Linux & Infrastructure': Terminal,
+};
