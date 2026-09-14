@@ -110,39 +110,3 @@ export const contactTimelineOptions = [
   'Planning / Exploring',
 ] as const;
 
-type MailtoFields = {
-  fullName: string;
-  company?: string;
-  email: string;
-  phone?: string;
-  service: string;
-  platform?: string;
-  timeline?: string;
-  message: string;
-};
-
-const orNotProvided = (value?: string) => (value ? value : 'Not provided');
-
-/**
- * Builds a `mailto:` link pre-filled with an enquiry, addressed to
- * {@link CONTACT_EMAIL_ADDRESS}. Used by the contact form as a fallback
- * when the server-side email backend isn't configured (no
- * `EMAIL_API_KEY`) — the enquiry still reaches us via the visitor's own
- * email client rather than being silently lost. Requires no API key,
- * account or third-party service.
- */
-export function buildMailtoLink(data: MailtoFields): string {
-  const subject = `New Website Enquiry — ${data.service}`;
-  const body = `Name: ${data.fullName}
-Company: ${orNotProvided(data.company)}
-Email: ${data.email}
-Phone: ${orNotProvided(data.phone)}
-Service: ${data.service}
-Cloud Platform: ${orNotProvided(data.platform)}
-Timeline: ${orNotProvided(data.timeline)}
-
-Message:
-${data.message}`;
-
-  return `mailto:${CONTACT_EMAIL_ADDRESS}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}

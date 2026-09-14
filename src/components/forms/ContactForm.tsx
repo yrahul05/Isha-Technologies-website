@@ -3,7 +3,6 @@
 import { trackEvent } from '@/components/analytics/GoogleAnalytics';
 import { Button } from '@/components/ui/button';
 import {
-  buildMailtoLink,
   contactPlatformOptions,
   contactServiceOptions,
   contactTimelineOptions,
@@ -15,7 +14,6 @@ import { ChevronDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { FormError } from './FormError';
-import { FormMailtoFallback } from './FormMailtoFallback';
 import { FormSuccess } from './FormSuccess';
 
 const inputClasses =
@@ -35,8 +33,7 @@ export const ContactForm = () => {
     reset,
   } = useForm<ContactFormValues>();
 
-  const [status, setStatus] = useState<'idle' | 'success' | 'mailto' | 'error'>('idle');
-  const [mailtoUrl, setMailtoUrl] = useState('');
+  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   // Aggregate, non-identifying view event only — no form values are ever
   // sent to GA4 (see trackEvent's docs and CLAUDE brief on this).
@@ -58,17 +55,12 @@ export const ContactForm = () => {
       }
       throw new Error('API did not report success');
     } catch (error) {
-      // No email backend is configured on the server (or the request
-      // otherwise failed) — fall back to a `mailto:` link so the enquiry
-      // still reaches us via the visitor's own email client instead of
-      // being silently lost. Requires no API key or third-party service.
-      console.error('Contact form submission error, falling back to mailto:', error);
-      const url = buildMailtoLink(data);
-      setMailtoUrl(url);
-      window.location.href = url;
-      trackEvent('contact_form_mailto_fallback');
-      setStatus('mailto');
-      reset();
+      // The submission genuinely failed (server error, rate limit, network
+      // issue, etc). Stay on the site and let the visitor retry — never
+      // silently fall back to a mailto: redirect, and never lose what they
+      // typed.
+      console.error('Contact form submission error:', error);
+      setStatus('error');
     }
   };
 
@@ -88,16 +80,6 @@ export const ContactForm = () => {
               transition={{ duration: 0.35, ease: 'easeOut' }}
             >
               <FormSuccess />
-            </motion.div>
-          ) : status === 'mailto' ? (
-            <motion.div
-              key="mailto"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35, ease: 'easeOut' }}
-            >
-              <FormMailtoFallback mailtoUrl={mailtoUrl} />
             </motion.div>
           ) : status === 'error' ? (
             <motion.div
