@@ -2,13 +2,10 @@ import { NextResponse } from 'next/server';
 
 /**
  * GET /api/analytics/visitors — real, aggregate "Total Users" from GA4,
- * read server-side through the Google Analytics Data API. Runs on
- * Cloudflare Pages as an Edge Function (no Node-specific APIs needed —
- * just fetch and Web Crypto, both native to the edge runtime).
+ * read server-side through the Google Analytics Data API.
  *
  * Reads three SERVER-ONLY environment variables (never NEXT_PUBLIC_ — set
- * them in Cloudflare Pages: Settings -> Environment Variables, for
- * Production and Preview; see docs/analytics-visitor-count.md):
+ * them as Cloudflare Worker secrets; see docs/analytics-visitor-count.md):
  *
  *   GA4_PROPERTY_ID    — the GA4 property's numeric ID (553855156)
  *   GA4_CLIENT_EMAIL   — the service account's client_email
@@ -20,12 +17,23 @@ import { NextResponse } from 'next/server';
  * response never contains credentials, tokens, or anything beyond the
  * aggregate visitor count.
  *
- * `revalidate` caches the result at the edge so Google is not called on
- * every page load — every visitor sees the same cached number until the
- * next refresh.
+ * Deliberately NOT `runtime = 'edge'` — same reasoning as
+ * src/app/api/contact/route.ts. This app is deployed via OpenNext to a
+ * single Cloudflare Worker (wrangler.jsonc), not Cloudflare Pages
+ * Functions. Under OpenNext, `edge` runtime routes are compiled with
+ * Next.js's own Edge Runtime sandbox, whose `process.env` is frozen at
+ * build time — it never sees the Worker's real runtime secrets
+ * (GA4_PROPERTY_ID/GA4_CLIENT_EMAIL/GA4_PRIVATE_KEY), which only exist at
+ * deploy/runtime. This was the actual cause of the footer always showing
+ * "Analytics setup required" in production even when the secrets were
+ * set, exactly as it was for the contact form before that fix.
+ *
+ * `crypto.subtle` and `fetch` are used instead of any Node-only or
+ * Google-SDK dependency, so this still needs no extra package under the
+ * `nodejs` runtime either — it only relies on standard Web APIs.
  */
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const revalidate = 1800; // 30 minutes
 
 const GA4_SCOPE = 'https://www.googleapis.com/auth/analytics.readonly';

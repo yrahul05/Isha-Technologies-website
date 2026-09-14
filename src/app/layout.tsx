@@ -62,7 +62,7 @@ const jsonLd = {
       description,
       slogan: 'Managed Cloud & DevOps Solutions',
       email: 'hello.ishatechnologies@gmail.com',
-      telephone: '+91-9783959837',
+      telephone: '+91-9351267228',
       address: {
         '@type': 'PostalAddress',
         addressLocality: 'Jaipur',

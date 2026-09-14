@@ -289,8 +289,8 @@ export const socialLinks = [
 export const contactData = [
   {
     type: 'phone',
-    href: 'tel:+919783959837',
-    label: '+91 9783959837',
+    href: 'tel:+919351267228',
+    label: '+91 9351267228',
     icon: <FaPhoneAlt className="text-brand" />,
   },
   {

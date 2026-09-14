@@ -164,7 +164,7 @@ const content = `
   <p class="font-semibold text-gray-900 mb-1">Isha Technologies</p>
   <p>Jaipur, Rajasthan, India</p>
   <p>Email: <a href="mailto:hello.ishatechnologies@gmail.com" class="text-brand font-medium">hello.ishatechnologies@gmail.com</a></p>
-  <p>Phone / WhatsApp: <a href="tel:+919783959837" class="text-brand font-medium">+91 9783959837</a></p>
+  <p>Phone / WhatsApp: <a href="tel:+919351267228" class="text-brand font-medium">+91 9351267228</a></p>
   <p>Website: <a href="https://ishatechnologies.in" target="_blank" rel="noopener noreferrer" class="text-brand font-medium">https://ishatechnologies.in</a></p>
 </div>
 <p><a href="mailto:hello.ishatechnologies@gmail.com" class="not-prose inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-brand/90">Contact Privacy Team</a></p>

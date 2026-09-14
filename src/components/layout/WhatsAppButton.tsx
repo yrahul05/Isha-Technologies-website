@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { trackEvent } from '@/components/analytics/GoogleAnalytics';
 
-// International format per brand guidelines: 919783959837 (+91 9783959837).
+// International format per brand guidelines: 919351267228 (+91 9351267228).
 const WHATSAPP_MESSAGE = `Hello Isha Technologies 👋
 
 I’d like to discuss my cloud, DevOps or infrastructure requirements with your team.
@@ -13,7 +13,7 @@ Please let me know how we can get started.
 
 Thank you!`;
 
-const WHATSAPP_URL = `https://wa.me/919783959837?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+const WHATSAPP_URL = `https://wa.me/919351267228?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
 
 /**
  * Site-wide floating WhatsApp contact button. Rendered once in the root

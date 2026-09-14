@@ -2,13 +2,13 @@
 // OpsStation or any other company's information — see CLAUDE brief for
 // this migration's credibility rules.
 export const CONTACT_EMAIL_ADDRESS = 'hello.ishatechnologies@gmail.com';
-export const CONTACT_PHONE_DISPLAY = '+91 9783959837';
-export const CONTACT_PHONE_TEL = '+919783959837';
+export const CONTACT_PHONE_DISPLAY = '+91 9351267228';
+export const CONTACT_PHONE_TEL = '+919351267228';
 export const CONTACT_LOCATION = 'Jaipur, Rajasthan, India';
 export const CONTACT_WEBSITE_DISPLAY = 'ishatechnologies.in';
 export const CONTACT_WEBSITE_URL = 'https://ishatechnologies.in';
 
-export const WHATSAPP_NUMBER = '919783959837';
+export const WHATSAPP_NUMBER = '919351267228';
 
 /**
  * Public Calendly scheduling link for the "Schedule a Meeting" CTA, used
@@ -33,9 +33,9 @@ Please let me know how we can get started.
 Thank you!`;
 
 /** Hero / quick-contact CTA with the pre-filled enquiry message above. */
-export const WHATSAPP_URL_PREFILLED = `https://wa.me/919783959837?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+export const WHATSAPP_URL_PREFILLED = `https://wa.me/919351267228?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
 /** Plain link used from the success/error form states and quick contact cards. */
-export const WHATSAPP_URL_PLAIN = 'https://wa.me/919783959837';
+export const WHATSAPP_URL_PLAIN = 'https://wa.me/919351267228';
 
 export const GOOGLE_MAPS_URL = 'https://maps.app.goo.gl/5FKZubx7zrYGpSEt9';
 
