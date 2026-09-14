@@ -84,6 +84,15 @@ export async function POST(req: Request) {
     const EMAIL_FROM = process.env.EMAIL_FROM;
     const EMAIL_API_KEY = process.env.EMAIL_API_KEY;
 
+    // Diagnostic only — booleans, never the actual values. Safe to leave in
+    // `wrangler tail` output; confirms whether the Worker runtime actually
+    // has these bindings, without revealing any secret.
+    console.log('Contact form env check:', {
+      emailApiKeyPresent: Boolean(EMAIL_API_KEY),
+      emailFromPresent: Boolean(EMAIL_FROM),
+      contactEmailPresent: Boolean(CONTACT_EMAIL),
+    });
+
     if (!CONTACT_EMAIL || !EMAIL_FROM || !EMAIL_API_KEY) {
       console.error(
         'Contact form email is not configured — set CONTACT_EMAIL, EMAIL_FROM and EMAIL_API_KEY.'
