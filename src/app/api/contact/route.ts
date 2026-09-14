@@ -9,7 +9,18 @@ import {
 import { checkRateLimit } from '@/lib/rate-limit';
 import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// Deliberately NOT `runtime = 'edge'`. This app is deployed via OpenNext to
+// a single Cloudflare Worker (wrangler.jsonc), not Cloudflare Pages
+// Functions. Under OpenNext, `edge` runtime routes are compiled with
+// Next.js's own Edge Runtime sandbox, whose `process.env` is frozen at
+// build time from the middleware manifest — it never sees the Worker's
+// real runtime bindings (CONTACT_EMAIL/EMAIL_FROM/EMAIL_API_KEY), which
+// only exist at deploy/runtime. The default (nodejs) runtime is bundled
+// into OpenNext's normal server function, which runs in the Worker's main
+// scope where `process.env` is populated from the actual Cloudflare
+// bindings on every request — see runWithCloudflareRequestContext /
+// populateProcessEnv in @opennextjs/cloudflare.
+export const runtime = 'nodejs';
 
 // Guards against excessively large requests before we even attempt to parse them.
 const MAX_BODY_BYTES = 20_000;

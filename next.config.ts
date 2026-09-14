@@ -1,12 +1,10 @@
 import type { NextConfig } from 'next';
 
-// Deployed on Cloudflare Pages via `@cloudflare/next-on-pages` (GitHub
-// integration — Cloudflare runs `npm run pages:build` on every push).
+// Deployed to a single Cloudflare Worker via OpenNext (`@opennextjs/cloudflare`,
+// see wrangler.jsonc / open-next.config.ts), not Cloudflare Pages.
 // `output: 'export'` must stay OFF because it disables the Next.js server
 // entirely, which would make the /api/analytics/visitors and /api/contact
-// Route Handlers unable to run in production. Both already declare
-// `runtime = 'edge'` and use only `fetch`/Web Crypto, so they run fine as
-// Cloudflare Pages Functions once built through next-on-pages.
+// Route Handlers unable to run in production.
 const nextConfig: NextConfig = {
   images: {
     // Cloudflare Pages does not run Vercel's built-in image optimizer, so
