@@ -12,7 +12,7 @@ export const WHATSAPP_NUMBER = '919783959837';
 
 /**
  * Public Calendly scheduling link for the "Schedule a Meeting" CTA, used
- * alongside WhatsApp, Signal, Slack, email and phone as an additional,
+ * alongside WhatsApp, Signal, email and phone as an additional,
  * independent contact option. This is a public link, not a secret, so it
  * is a plain constant rather than an environment variable. Do not modify —
  * use exactly as provided.
@@ -40,23 +40,27 @@ export const WHATSAPP_URL_PLAIN = 'https://wa.me/919783959837';
 export const GOOGLE_MAPS_URL = 'https://maps.app.goo.gl/5FKZubx7zrYGpSEt9';
 
 /**
- * Public Slack invite/channel link for the Contact page's "Join Us on
- * Slack" option. Intentionally left unset until a real link is provided —
- * never fabricate one. `NEXT_PUBLIC_SLACK_URL` is safe to expose to the
- * client because it is a public join link, not a webhook or secret.
+ * Public Signal contact link (a signal.me profile URL) for the "Contact
+ * Us on Signal" option, shown alongside WhatsApp. This is a public link,
+ * not a secret, so it is a plain constant rather than an environment
+ * variable. Do not modify — use exactly as provided.
  */
-export const SLACK_URL = process.env.NEXT_PUBLIC_SLACK_URL?.trim() || '';
+export const SIGNAL_URL =
+  'https://signal.me/#eu/O_kLyzGyVfdcVckYkPPz2aYtx9J0BdqsRnBEHrAL-QOMIWIA-bVO_on-THKcDamB';
 
 /**
- * Public Signal contact link (e.g. a signal.me profile URL) for the
- * "Contact Us on Signal" option, shown alongside WhatsApp. Intentionally
- * left unset until a real link is provided — never fabricate a username,
- * phone number or invite link. `NEXT_PUBLIC_SIGNAL_URL` is safe to expose
- * to the client because it is a public contact link, not a secret. While
- * unset, every "Contact Us on Signal" UI renders in its disabled "Coming
- * soon" state (same treatment as Slack above) rather than a broken link.
+ * Public GitHub organization URL for the social icon row. This is a
+ * public link, not a secret, so it is a plain constant rather than an
+ * environment variable. Do not modify — use exactly as provided.
  */
-export const SIGNAL_URL = process.env.NEXT_PUBLIC_SIGNAL_URL?.trim() || '';
+export const GITHUB_URL = 'https://github.com/IshaTechnologies';
+
+/**
+ * Public Upwork profile URL for the social icon row. This is a public
+ * link, not a secret, so it is a plain constant rather than an
+ * environment variable. Do not modify — use exactly as provided.
+ */
+export const UPWORK_URL = 'https://www.upwork.com/freelancers/~0183ad8a41e8284283?mp_source=share';
 
 /** Compact "what we help with" checklist shown next to the contact intro copy. */
 export const contactIntroServices = [

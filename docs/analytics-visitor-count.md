@@ -9,8 +9,8 @@
   including client-side navigation, and is unaffected by anything below.
 - GA4 Property: `553855156` (`GA4_PROPERTY_ID`).
 - The global footer has a compact "Website Visitors" stat, in the Connect
-  column below the Slack row, showing GA4's real, all-time "Total Users"
-  figure — never a fake, random, or client-side-counted number.
+  column below the social icon row, showing GA4's real, all-time "Total
+  Users" figure — never a fake, random, or client-side-counted number.
 
 ## Current limitation
 

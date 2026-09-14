@@ -2,7 +2,6 @@ import { ContactFinalCTA } from '@/components/contact/ContactFinalCTA';
 import { ContactHero } from '@/components/contact/ContactHero';
 import { ContactInfoPanel } from '@/components/contact/ContactInfoPanel';
 import { ContactLocation } from '@/components/contact/ContactLocation';
-import { ContactQuickCards } from '@/components/contact/ContactQuickCards';
 import { ContactServicesArea } from '@/components/contact/ContactServicesArea';
 import { ContactForm } from '@/components/forms/ContactForm';
 import type { Metadata } from 'next';
@@ -57,7 +56,6 @@ export default function Page() {
         </div>
       </section>
 
-      <ContactQuickCards />
       <ContactLocation />
       <ContactFinalCTA />
     </>

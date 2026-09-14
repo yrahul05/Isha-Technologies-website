@@ -1,10 +1,11 @@
 import { Flag } from 'lucide-react';
-import { BsEmojiSmile, BsInstagram, BsMedium, BsTwitterX } from 'react-icons/bs';
+import { BsEmojiSmile, BsInstagram, BsMedium } from 'react-icons/bs';
 import {
   FaChartLine,
   FaCloud,
   FaCogs,
   FaEnvelope,
+  FaGithub,
   FaLightbulb,
   FaLinkedin,
   FaMapMarkerAlt,
@@ -13,6 +14,8 @@ import {
   FaRoad,
   FaShieldAlt,
 } from 'react-icons/fa';
+import { SiUpwork } from 'react-icons/si';
+import { GITHUB_URL, UPWORK_URL } from '@/data/contact';
 
 // process of steps
 export const steps = [
@@ -252,28 +255,33 @@ export const resourceLinks = [
   { label: 'Our Journey', href: '/our-journey' },
 ];
 
-// social links — placeholder handle-based URLs, to be swapped for the real
-// verified profile links; update the four hrefs below when available.
+// social links — verified Isha Technologies profile URLs. GitHub and
+// Upwork read from src/data/contact.ts.
 export const socialLinks = [
   {
     title: 'LinkedIn',
-    href: 'https://www.linkedin.com/company/ishatechnologies',
+    href: 'https://www.linkedin.com/company/isha-technologies-official',
     icon: <FaLinkedin className="text-xl" />,
   },
   {
     title: 'Instagram',
-    href: 'https://www.instagram.com/ishatechnologies',
+    href: 'https://www.instagram.com/isha_technologies_official/',
     icon: <BsInstagram className="text-xl" />,
-  },
-  {
-    title: 'X',
-    href: 'https://x.com/ishatechnologies',
-    icon: <BsTwitterX className="text-xl" />,
   },
   {
     title: 'Medium',
     href: 'https://medium.com/@ishatechnologies',
     icon: <BsMedium className="text-xl" />,
+  },
+  {
+    title: 'GitHub',
+    href: GITHUB_URL,
+    icon: <FaGithub className="text-xl" />,
+  },
+  {
+    title: 'Upwork',
+    href: UPWORK_URL,
+    icon: <SiUpwork className="text-xl" />,
   },
 ];
 

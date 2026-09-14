@@ -70,7 +70,6 @@ run on Cloudflare.
    only for local dev and are never committed:
    - `CONTACT_EMAIL`, `EMAIL_FROM`, `EMAIL_API_KEY` (contact form email —
      see [Contact form](#contact-form) below)
-   - `SLACK_WEBHOOK_URL`, `NEXT_PUBLIC_SLACK_URL` (optional)
    - `NEXT_PUBLIC_GA_MEASUREMENT_ID`, `GA4_PROPERTY_ID`, `GA4_CLIENT_EMAIL`,
      `GA4_PRIVATE_KEY` (analytics — see `docs/analytics-visitor-count.md`)
 5. Every push to the connected branch rebuilds and redeploys automatically.
@@ -100,10 +99,5 @@ both via the transactional email provider configured through `EMAIL_FROM` and
 `EMAIL_API_KEY` (Resend's HTTP API by default — see `src/lib/email.ts`). It
 also includes a hidden honeypot field and basic per-IP rate limiting.
 
-If `SLACK_WEBHOOK_URL` is set, the route additionally sends a best-effort
-Slack notification (non-blocking; failures there never affect the visitor).
-
 Copy `.env.example` to `.env.local` and fill in the values to run this
-locally. See that file for the full list of variables, including the
-optional public `NEXT_PUBLIC_SLACK_URL` used by the "Connect on Slack" button
-on the Contact page.
+locally. See that file for the full list of variables.

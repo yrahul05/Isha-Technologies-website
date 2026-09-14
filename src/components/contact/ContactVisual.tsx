@@ -1,9 +1,9 @@
 'use client';
 
-import { CalendarDays, Mail, MessageCircle, MessagesSquare, Phone, Send, Headphones } from 'lucide-react';
+import { CalendarDays, Mail, MessageCircle, MessagesSquare, Phone, Send, Headphones, ServerCog } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { ElementType } from 'react';
-import { FaSlack, FaWhatsapp } from 'react-icons/fa';
+import { FaWhatsapp } from 'react-icons/fa';
 import { SiSignal } from 'react-icons/si';
 
 type OrbitNode = {
@@ -14,22 +14,37 @@ type OrbitNode = {
   delay: number;
   /** Trimmed from 8 nodes to 5 on small screens to avoid crowding. */
   hideOnMobile?: boolean;
-  /** The two genuinely long labels need extra label width and permission
-   *  to wrap onto a second line — everything else stays on one line. */
+  /** The genuinely long labels need extra label width and permission to
+   *  wrap onto a second line — everything else stays on one line. */
   wideLabel?: boolean;
+  /** Per-node override of the wrapped label's width, for a label whose
+   *  longest word doesn't fit the shared `wideLabel` width (e.g.
+   *  "Infrastructure" is longer than "Technical" or "Schedule"). */
+  labelWidthClass?: string;
 };
 
-// Eight real ways to reach Isha Technologies, evenly spaced around the ring
-// (45° apart) — the same brand icons used for these channels elsewhere on
-// the site (Footer, Contact page CTAs), not a generic cloud/architecture
-// diagram. The four always-visible channels that work today (Email, Phone,
-// WhatsApp, Schedule a Meeting) sit on cardinal/SW points; Signal and Slack
-// (not yet configured) sit on the diagonal points already hidden on mobile.
+// Eight real ways to reach Isha Technologies, spaced around the ring — the
+// same brand icons used for these channels elsewhere on the site (Footer,
+// Contact page CTAs), not a generic cloud/architecture diagram. The four
+// always-visible channels (Email, Phone, WhatsApp, Schedule a Meeting) sit
+// on cardinal/SW points; Signal sits on a diagonal point already hidden on
+// mobile. Infrastructure Support fills the diagonal point between Phone and
+// WhatsApp (a `ServerCog` icon, kept distinct from the `Headphones` icon
+// already used by Expert Support).
 const ORBIT_NODES: OrbitNode[] = [
   { icon: Mail, label: 'Email', top: '8%', left: '50%', delay: 0 },
   { icon: SiSignal, label: 'Signal', top: '20%', left: '80%', delay: 0.15, hideOnMobile: true },
   { icon: Phone, label: 'Phone', top: '50%', left: '92%', delay: 0.3 },
-  { icon: FaSlack, label: 'Slack', top: '80%', left: '80%', delay: 0.45, hideOnMobile: true },
+  {
+    icon: ServerCog,
+    label: 'Infrastructure Support',
+    top: '80%',
+    left: '80%',
+    delay: 0.45,
+    hideOnMobile: true,
+    wideLabel: true,
+    labelWidthClass: 'w-24 sm:w-[108px]',
+  },
   { icon: FaWhatsapp, label: 'WhatsApp', top: '92%', left: '50%', delay: 0.6 },
   { icon: CalendarDays, label: 'Schedule a Meeting', top: '80%', left: '20%', delay: 0.75, wideLabel: true },
   { icon: MessagesSquare, label: 'Technical Consultation', top: '50%', left: '8%', delay: 0.9, wideLabel: true },
@@ -131,8 +146,10 @@ export function ContactVisual() {
                       point as before. Moves, pulses and scales together
                       with the icon since it's a child of the same card. */}
                   <span
-                    className={`pointer-events-none absolute left-1/2 top-full z-10 mt-1.5 -translate-x-1/2 text-center text-[10px] font-medium leading-[1.2] text-slate-600 transition-colors duration-200 ease-out group-hover:text-brand sm:text-[11px] md:text-[12px] ${
-                      node.wideLabel ? 'w-20 sm:w-[92px]' : 'w-max whitespace-nowrap'
+                    className={`pointer-events-none absolute left-1/2 top-full z-10 mt-1.5 -translate-x-1/2 text-center text-[10px] font-medium leading-[1.2] text-slate-600 transition-colors duration-200 ease-out group-hover:text-brand sm:text-[11px] md:text-[12px] [writing-mode:horizontal-tb] ${
+                      node.wideLabel
+                        ? `break-words ${node.labelWidthClass ?? 'w-20 sm:w-[92px]'}`
+                        : 'w-max whitespace-nowrap'
                     }`}
                   >
                     {node.label}

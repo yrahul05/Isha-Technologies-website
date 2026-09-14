@@ -20,18 +20,17 @@ const sections: LegalSection[] = [
   { id: 'section-3', number: '3', title: 'Contact Form Information' },
   { id: 'section-4', number: '4', title: 'Email Communication' },
   { id: 'section-5', number: '5', title: 'WhatsApp' },
-  { id: 'section-6', number: '6', title: 'Slack' },
-  { id: 'section-7', number: '7', title: 'Cookies & Similar Technologies' },
-  { id: 'section-8', number: '8', title: 'Google Analytics' },
-  { id: 'section-9', number: '9', title: 'How We Share Information' },
-  { id: 'section-10', number: '10', title: 'Data Retention' },
-  { id: 'section-11', number: '11', title: 'Data Security' },
-  { id: 'section-12', number: '12', title: 'Your Privacy Rights' },
-  { id: 'section-13', number: '13', title: "Children's Privacy" },
-  { id: 'section-14', number: '14', title: 'Third-Party Websites' },
-  { id: 'section-15', number: '15', title: 'International Data Processing' },
-  { id: 'section-16', number: '16', title: 'Changes to This Privacy Policy' },
-  { id: 'section-17', number: '17', title: 'Contact Us' },
+  { id: 'section-6', number: '6', title: 'Cookies & Similar Technologies' },
+  { id: 'section-7', number: '7', title: 'Google Analytics' },
+  { id: 'section-8', number: '8', title: 'How We Share Information' },
+  { id: 'section-9', number: '9', title: 'Data Retention' },
+  { id: 'section-10', number: '10', title: 'Data Security' },
+  { id: 'section-11', number: '11', title: 'Your Privacy Rights' },
+  { id: 'section-12', number: '12', title: "Children's Privacy" },
+  { id: 'section-13', number: '13', title: 'Third-Party Websites' },
+  { id: 'section-14', number: '14', title: 'International Data Processing' },
+  { id: 'section-15', number: '15', title: 'Changes to This Privacy Policy' },
+  { id: 'section-16', number: '16', title: 'Contact Us' },
 ];
 
 const content = `
@@ -75,7 +74,7 @@ const content = `
 <p>We do not claim to collect any information beyond what is described in this Policy.</p>
 
 <h3>C. Analytics</h3>
-<p>Our website uses Google Analytics 4 to help us understand website usage, traffic and performance. Analytics may involve cookies or similar technologies placed in your browser. See <a href="#section-8">Section 8 — Google Analytics</a> for details.</p>
+<p>Our website uses Google Analytics 4 to help us understand website usage, traffic and performance. Analytics may involve cookies or similar technologies placed in your browser. See <a href="#section-7">Section 7 — Google Analytics</a> for details.</p>
 
 <h2 id="section-2" class="scroll-mt-28">2. How We Use Information</h2>
 <p>Information submitted or collected through the website may be used to:</p>
@@ -94,7 +93,7 @@ const content = `
 </ul>
 
 <h2 id="section-3" class="scroll-mt-28">3. Contact Form Information</h2>
-<p>When a visitor submits a contact or enquiry form, the information provided is used to respond to the enquiry and understand the requested requirements. Contact information may be accessible to authorized members of Isha Technologies who need it for business communication and enquiry handling. We do not claim that form submissions are automatically stored forever — information is kept only as described in <a href="#section-10">Section 10 — Data Retention</a>.</p>
+<p>When a visitor submits a contact or enquiry form, the information provided is used to respond to the enquiry and understand the requested requirements. Contact information may be accessible to authorized members of Isha Technologies who need it for business communication and enquiry handling. We do not claim that form submissions are automatically stored forever — information is kept only as described in <a href="#section-9">Section 9 — Data Retention</a>.</p>
 
 <h2 id="section-4" class="scroll-mt-28">4. Email Communication</h2>
 <p>You may contact Isha Technologies directly at <a href="mailto:hello.ishatechnologies@gmail.com">hello.ishatechnologies@gmail.com</a>. Information you send by email may be retained as reasonably necessary to respond to your enquiry, maintain business communication, document a potential or active engagement, or comply with applicable obligations.</p>
@@ -102,18 +101,15 @@ const content = `
 <h2 id="section-5" class="scroll-mt-28">5. WhatsApp</h2>
 <p>Our website provides a WhatsApp contact option for convenience. When you choose to contact us through WhatsApp, that conversation takes place on WhatsApp's platform and is subject to WhatsApp's own privacy practices and terms. Isha Technologies does not control how WhatsApp processes data on its platform.</p>
 
-<h2 id="section-6" class="scroll-mt-28">6. Slack</h2>
-<p>The website may provide a "Connect With Us on Slack" option. If you choose to contact us through Slack, that interaction takes place on Slack's platform and is subject to Slack's applicable terms and privacy practices. We do not store or control Slack data beyond what is available to us as an ordinary participant in that conversation.</p>
-
-<h2 id="section-7" class="scroll-mt-28">7. Cookies &amp; Similar Technologies</h2>
+<h2 id="section-6" class="scroll-mt-28">6. Cookies &amp; Similar Technologies</h2>
 <p>Cookies are small text files placed in your browser by a website you visit. Websites use them to remember preferences, support essential functionality, and understand how visitors use a site. On our website, cookies or similar technologies may be used for:</p>
 <ul>
   <li>Essential website functionality</li>
-  <li>Analytics, as described in <a href="#section-8">Section 8</a></li>
+  <li>Analytics, as described in <a href="#section-7">Section 7</a></li>
 </ul>
 <p>You can control or disable cookies through your browser settings at any time. Disabling cookies may affect certain website features. We do not operate a separate cookie-consent system beyond your browser's own controls.</p>
 
-<h2 id="section-8" class="scroll-mt-28">8. Google Analytics</h2>
+<h2 id="section-7" class="scroll-mt-28">7. Google Analytics</h2>
 <p>We use Google Analytics 4 to help us understand:</p>
 <ul>
   <li>Website traffic</li>
@@ -124,7 +120,7 @@ const content = `
 </ul>
 <p>Google Analytics may use cookies or similar technologies to generate this information. We do not use Google Analytics to sell your data, and we do not claim it collects specific personal information beyond what Google's platform is configured to process. For more information on how Google handles data, see <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's Privacy &amp; Terms</a>.</p>
 
-<h2 id="section-9" class="scroll-mt-28">9. How We Share Information</h2>
+<h2 id="section-8" class="scroll-mt-28">8. How We Share Information</h2>
 <p>Isha Technologies does not sell personal information as a business practice. Information may be shared only when reasonably necessary, with:</p>
 <ul>
   <li>Service providers supporting website hosting, analytics, email, communications or security</li>
@@ -133,13 +129,13 @@ const content = `
   <li>Relevant parties in connection with a business transaction, where legally appropriate</li>
 </ul>
 
-<h2 id="section-10" class="scroll-mt-28">10. Data Retention</h2>
+<h2 id="section-9" class="scroll-mt-28">9. Data Retention</h2>
 <p>Information is retained only for as long as reasonably necessary for the purpose it was collected — including responding to enquiries, business communication, contractual or legal requirements, and legitimate security or operational purposes. We do not commit to a fixed retention period, as this depends on the nature of the information and the purpose it serves.</p>
 
-<h2 id="section-11" class="scroll-mt-28">11. Data Security</h2>
+<h2 id="section-10" class="scroll-mt-28">10. Data Security</h2>
 <p>We use reasonable technical and organizational measures to help protect information, including access control, secure application practices, protection against unauthorized access, and secure handling of credentials and system access. However, <strong>no method of transmission or storage can be guaranteed to be completely secure</strong>, and we cannot promise absolute security.</p>
 
-<h2 id="section-12" class="scroll-mt-28">12. Your Privacy Rights</h2>
+<h2 id="section-11" class="scroll-mt-28">11. Your Privacy Rights</h2>
 <p>Depending on applicable law, you may have rights relating to your personal information, including the right to:</p>
 <ul>
   <li>Access the personal information we hold about you</li>
@@ -150,19 +146,19 @@ const content = `
 </ul>
 <p>To exercise any of these rights, contact us at <a href="mailto:hello.ishatechnologies@gmail.com">hello.ishatechnologies@gmail.com</a>. We will respond consistent with applicable law — we do not promise rights beyond what the relevant law provides.</p>
 
-<h2 id="section-13" class="scroll-mt-28">13. Children's Privacy</h2>
+<h2 id="section-12" class="scroll-mt-28">12. Children's Privacy</h2>
 <p>Our website is intended for business and professional audiences and is not directed toward children. We do not knowingly solicit personal information from children through the website.</p>
 
-<h2 id="section-14" class="scroll-mt-28">14. Third-Party Websites</h2>
-<p>Our website may link to third-party services, including WhatsApp, Slack, LinkedIn, Instagram, X, Google Maps and Google Analytics. Isha Technologies does not control the privacy practices of these third parties. We encourage you to review the privacy policy of any third-party service before using it.</p>
+<h2 id="section-13" class="scroll-mt-28">13. Third-Party Websites</h2>
+<p>Our website may link to third-party services, including WhatsApp, LinkedIn, Instagram, X, Google Maps and Google Analytics. Isha Technologies does not control the privacy practices of these third parties. We encourage you to review the privacy policy of any third-party service before using it.</p>
 
-<h2 id="section-15" class="scroll-mt-28">15. International Data Processing</h2>
+<h2 id="section-14" class="scroll-mt-28">14. International Data Processing</h2>
 <p>Some of the technology and service providers used to operate our website — such as hosting, analytics or communication tools — may process information on servers located outside India. We do not claim specific storage locations beyond what our providers publicly disclose in their own documentation.</p>
 
-<h2 id="section-16" class="scroll-mt-28">16. Changes to This Privacy Policy</h2>
+<h2 id="section-15" class="scroll-mt-28">15. Changes to This Privacy Policy</h2>
 <p>We may update this Privacy Policy from time to time to reflect changes in our practices or for legal or operational reasons. Any update will be published on this page with a revised "Last Updated" date. This Privacy Policy should be read together with our <a href="/terms-and-conditions">Terms &amp; Conditions</a>.</p>
 
-<h2 id="section-17" class="scroll-mt-28">17. Contact Us</h2>
+<h2 id="section-16" class="scroll-mt-28">16. Contact Us</h2>
 <p>If you have questions about this Privacy Policy or how your information is handled, please reach out:</p>
 <div class="not-prose rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 mb-6">
   <p class="font-semibold text-gray-900 mb-1">Isha Technologies</p>

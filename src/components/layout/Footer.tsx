@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { CalendarDays } from 'lucide-react';
-import { FaEnvelope, FaPhone, FaSlack, FaWhatsapp } from 'react-icons/fa';
+import { FaEnvelope, FaPhone, FaWhatsapp } from 'react-icons/fa';
 import { SiSignal } from 'react-icons/si';
 import { FooterVisitorStat } from './FooterVisitorStat';
 import { Logo } from '../ui/logo';
@@ -10,7 +10,6 @@ import {
   CONTACT_PHONE_DISPLAY,
   CONTACT_PHONE_TEL,
   SIGNAL_URL,
-  SLACK_URL,
   WHATSAPP_URL_PREFILLED,
 } from '@/data/contact';
 import {
@@ -148,7 +147,7 @@ export const Footer = () => {
             <div className="md:order-5 md:col-span-2 lg:order-5 lg:col-span-1">
               <h3 className={columnLabelClass}>Connect</h3>
               {/* One consistent list, one consistent rhythm — Email, Phone,
-                  WhatsApp, Signal, Schedule a Meeting, Slack. Every row uses
+                  WhatsApp, Signal, Schedule a Meeting. Every row uses
                   the same fixed-width icon slot so icons and labels align
                   on the same X coordinate; labels truncate rather than wrap
                   mid-word if the column is ever genuinely too narrow. */}
@@ -227,35 +226,9 @@ export const Footer = () => {
                     <span className={`${connectLabelClass} whitespace-nowrap`}>Schedule a Meeting</span>
                   </a>
                 </li>
-                <li>
-                  {SLACK_URL ? (
-                    <a
-                      href={SLACK_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Join Us on Slack"
-                      className={connectRowClass}
-                    >
-                      <span className={connectIconWrapClass}>
-                        <FaSlack className="h-[15px] w-[15px]" />
-                      </span>
-                      <span className={`${connectLabelClass} whitespace-nowrap`}>Join Us on Slack</span>
-                    </a>
-                  ) : (
-                    <span aria-disabled="true" title="Slack link coming soon" className={connectComingSoonClass}>
-                      <span className={connectIconWrapClass}>
-                        <FaSlack className="h-[15px] w-[15px]" />
-                      </span>
-                      <span className="min-w-0 flex-1 truncate whitespace-nowrap">Join Us on Slack</span>
-                      <span className={comingSoonBadgeClass}>Coming soon</span>
-                    </span>
-                  )}
-                </li>
               </ul>
 
-              <FooterVisitorStat />
-
-              <div className="mt-3 flex flex-wrap gap-2.5">
+              <div className="mt-4 flex flex-nowrap items-center justify-center gap-2 sm:gap-2.5">
                 {socialLinks.map((item, index) => {
                   const isConfigured = Boolean(item.href) && item.href !== '#';
                   return isConfigured ? (
@@ -282,6 +255,8 @@ export const Footer = () => {
                   );
                 })}
               </div>
+
+              <FooterVisitorStat />
             </div>
           </div>
         </nav>

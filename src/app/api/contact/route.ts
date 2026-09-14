@@ -111,20 +111,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Best-effort legacy Slack ping — reuses the existing SLACK_WEBHOOK_URL
-    // integration if configured. Never allowed to affect the response the
-    // visitor sees; the enquiry email above is already the source of truth.
-    const slackWebhook = process.env.SLACK_WEBHOOK_URL;
-    if (slackWebhook) {
-      fetch(slackWebhook, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: `📩 *New Website Enquiry*\n*Name:* ${fullName}\n*Service:* ${service}\n*Email:* ${email}`,
-        }),
-      }).catch((err) => console.error('Slack notification failed:', err));
-    }
-
     // Autoresponder to the visitor — only attempted after the internal
     // enquiry email above has already succeeded. A failure here is logged
     // but must not turn a successfully-received enquiry into an error for
