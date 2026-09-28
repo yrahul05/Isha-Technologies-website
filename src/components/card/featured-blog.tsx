@@ -1,10 +1,10 @@
 import { ServiceHeroVisual } from '@/components/services/visuals/ServiceHeroVisual';
 import { Button } from '@/components/ui/button';
-import type { BlogPost } from '@/types/blog';
+import type { BlogPostSummary } from '@/types/blog';
 import { Clock } from 'lucide-react';
 import Link from 'next/link';
 
-export function FeaturedBlog({ post }: { post: BlogPost }) {
+export function FeaturedBlog({ post }: { post: BlogPostSummary }) {
   return (
     <div className="card-hover mb-12 grid grid-cols-1 items-center gap-8 overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm md:grid-cols-2 md:p-10">
       <div>

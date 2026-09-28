@@ -27,3 +27,19 @@ export type BlogPost = {
   contentHtml: string;
   keyTakeaways: string[];
 };
+
+/** Fields needed to render a post teaser (BlogCard / FeaturedBlog on the
+ * listing page and the "Related Articles" section). Deliberately excludes
+ * `contentHtml`/`toc`/`keyTakeaways` — the full article body — so those
+ * views don't have to serialize every post's entire content just to show a
+ * title, excerpt and a couple of metadata fields. */
+export type BlogPostSummary = Pick<
+  BlogPost,
+  | 'slug'
+  | 'title'
+  | 'category'
+  | 'excerpt'
+  | 'readingTime'
+  | 'publishedLabel'
+  | 'visualSlug'
+>;

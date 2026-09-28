@@ -2,12 +2,12 @@
 
 import { blogCategories } from '@/data/blog-categories';
 import { blogCategoryIcons } from '@/data/blog-category-icons';
-import type { BlogPost } from '@/types/blog';
+import type { BlogPostSummary } from '@/types/blog';
 import { ArrowRight, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
-export function BlogCard({ post }: { post: BlogPost }) {
+export function BlogCard({ post }: { post: BlogPostSummary }) {
   const Icon = blogCategoryIcons[post.category as keyof typeof blogCategoryIcons];
   return (
     <Link
@@ -45,7 +45,7 @@ export function BlogCard({ post }: { post: BlogPost }) {
   );
 }
 
-export function BlogGrid({ posts }: { posts: BlogPost[] }) {
+export function BlogGrid({ posts }: { posts: BlogPostSummary[] }) {
   const [activeCategory, setActiveCategory] = useState<string>('All');
 
   const usedCategories = useMemo(

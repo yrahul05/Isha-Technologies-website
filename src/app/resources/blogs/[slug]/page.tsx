@@ -9,6 +9,7 @@ import {
   buildBlogPostMetadata,
   getBlogPostBySlug,
   getRelatedPosts,
+  toBlogPostSummary,
 } from '@/data/blog-posts';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -39,7 +40,7 @@ export default async function Page({
   const post = getBlogPostBySlug(slug);
   if (!post) notFound();
 
-  const related = getRelatedPosts(post, 3);
+  const related = getRelatedPosts(post, 3).map(toBlogPostSummary);
 
   const jsonLd = {
     '@context': 'https://schema.org',

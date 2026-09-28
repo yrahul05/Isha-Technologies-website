@@ -1,7 +1,7 @@
 import { BlogGrid } from '@/components/card/blog-cards';
 import { FeaturedBlog } from '@/components/card/featured-blog';
 import { HeroBanner } from '@/components/layout/HeroBanner';
-import { blogPosts } from '@/data/blog-posts';
+import { blogPosts, toBlogPostSummary } from '@/data/blog-posts';
 import { buildMetadata } from '@/lib/seo';
 import { Metadata } from 'next';
 
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  const [featured, ...rest] = blogPosts;
+  const [featured, ...rest] = blogPosts.map(toBlogPostSummary);
 
   return (
     <>

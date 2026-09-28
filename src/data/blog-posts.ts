@@ -1,4 +1,4 @@
-import type { BlogPost } from '@/types/blog';
+import type { BlogPost, BlogPostSummary } from '@/types/blog';
 import type { Metadata } from 'next';
 
 // Original Isha Technologies technical resources. These are educational
@@ -946,6 +946,21 @@ resource "aws_s3_bucket" "assets" {
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {
   return blogPosts.find((post) => post.slug === slug);
+}
+
+/** Projects a full post down to the teaser fields BlogCard/FeaturedBlog
+ * actually render, so passing posts to those (client) components doesn't
+ * serialize every post's full `contentHtml` article body and `toc`. */
+export function toBlogPostSummary(post: BlogPost): BlogPostSummary {
+  return {
+    slug: post.slug,
+    title: post.title,
+    category: post.category,
+    excerpt: post.excerpt,
+    readingTime: post.readingTime,
+    publishedLabel: post.publishedLabel,
+    visualSlug: post.visualSlug,
+  };
 }
 
 export function getRelatedPosts(post: BlogPost, limit = 3): BlogPost[] {
