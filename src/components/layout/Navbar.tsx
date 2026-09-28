@@ -51,6 +51,18 @@ const dropdownItemClass = (active: boolean) =>
     active ? 'bg-brand/10 text-brand font-semibold' : 'text-black hover:text-brand'
   );
 
+// Services mega-menu link style — deliberately NOT `text-nowrap` (that was
+// the root cause of the overlap bug: long titles like "Cloud Cost
+// Optimization & FinOps" were forced onto one line and overflowed past
+// their grid column, visually bleeding into the next one). `block` +
+// `min-w-0` + `break-words` let each link wrap naturally within its own
+// grid cell instead of escaping it.
+const megaMenuLinkClass = (active: boolean) =>
+  cn(
+    'block min-w-0 rounded-lg px-3 py-2.5 text-[17px] font-medium leading-[1.5] whitespace-normal break-words transition-colors duration-200 ease-out hover:bg-gray-50',
+    active ? 'bg-brand/10 text-brand font-semibold' : 'text-black hover:text-brand'
+  );
+
 const mobileLinkClass = (active: boolean) =>
   cn(
     'rounded text-base transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
@@ -116,14 +128,27 @@ export const Navbar = () => {
                 <NavigationMenuTrigger className={triggerLinkClass(isServicesActive)}>
                   Services
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="w-[640px] rounded-lg border-black/5 bg-white p-5 shadow-lg">
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+                {/*
+                  Positioned as `fixed`, centered between two symmetric
+                  viewport insets (`inset-x-4` + `mx-auto` + `max-w-*`)
+                  instead of `absolute` under the trigger. The trigger's own
+                  positioned ancestor (`NavigationMenuItem`, always
+                  `position: relative`) is far narrower than a 4-column
+                  mega-menu, so anchoring to it left-aligned the panel and
+                  let it run off the right edge of the viewport on anything
+                  but very wide screens — this keeps it centered and fully
+                  on-screen at every width, without a transform (which would
+                  otherwise fight Radix's own translate-based open/close
+                  animation).
+                */}
+                <NavigationMenuContent className="fixed inset-x-4 top-16 z-50 mx-auto max-w-[1100px] rounded-2xl border-black/5 bg-white p-6 shadow-xl sm:p-8">
+                  <div className="grid grid-cols-4 gap-x-10 gap-y-8">
                     {serviceCategories.map((group) => (
-                      <div key={group.category}>
-                        <span className="text-xs font-semibold uppercase tracking-wide text-brand">
+                      <div key={group.category} className="min-w-0">
+                        <span className="text-sm font-semibold uppercase tracking-wide text-brand">
                           {group.category}
                         </span>
-                        <div className="mt-2 grid gap-0.5">
+                        <div className="mt-3 flex flex-col gap-1">
                           {group.services.map((service) => {
                             const href = `/services/${service.slug}`;
                             const isActive = isRouteActive(pathname, href);
@@ -132,7 +157,7 @@ export const Navbar = () => {
                                 asChild
                                 key={service.slug}
                                 active={isActive}
-                                className={dropdownItemClass(isActive) + ' !px-2'}
+                                className={megaMenuLinkClass(isActive)}
                               >
                                 <Link href={href} aria-current={isActive ? 'page' : undefined}>
                                   {service.title}
@@ -144,10 +169,10 @@ export const Navbar = () => {
                       </div>
                     ))}
                   </div>
-                  <hr className="my-4 border-black/5" />
+                  <hr className="my-6 border-black/5" />
                   <NavigationMenuLink
                     asChild
-                    className="flex items-center justify-center gap-1.5 rounded px-6 py-2 text-center text-base text-nowrap bg-brand text-white transition-colors duration-200 ease-out hover:bg-gray-50 hover:text-brand"
+                    className="flex flex-row items-center justify-center gap-1.5 rounded-lg px-6 py-3 text-center text-base font-semibold text-nowrap bg-brand text-white transition-colors duration-200 ease-out hover:bg-gray-50 hover:text-brand"
                   >
                     <Link href="/services">
                       Explore All Services
