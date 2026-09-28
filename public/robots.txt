@@ -13,4 +13,4 @@ Allow: /
 Crawl-delay: 10
 
 # Sitemap
-Sitemap: https://ishatechnologies.in/sitemap.xml
+Sitemap: https://www.ishatechnologies.in/sitemap.xml
