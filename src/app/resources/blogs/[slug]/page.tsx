@@ -5,9 +5,10 @@ import { HeroBanner } from '@/components/layout/HeroBanner';
 import { MarkdownContainerNormal } from '@/components/markdown-container-normal';
 import { Badge } from '@/components/ui/badge';
 import {
-  blogPosts,
   buildBlogPostMetadata,
+  formatBlogDate,
   getBlogPostBySlug,
+  getPublishedBlogPosts,
   getRelatedPosts,
   toBlogPostSummary,
 } from '@/data/blog-posts';
@@ -16,8 +17,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Clock, User } from 'lucide-react';
 
+// Draft posts never get a static page generated for them, so a draft slug
+// 404s at build time — not just excluded from the listing.
 export function generateStaticParams() {
-  return blogPosts.map((post) => ({ slug: post.slug }));
+  return getPublishedBlogPosts().map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({
@@ -42,27 +45,36 @@ export default async function Page({
 
   const related = getRelatedPosts(post, 3).map(toBlogPostSummary);
 
+  const canonicalUrl = `https://www.ishatechnologies.in/resources/blogs/${post.slug}`;
+  const hasBeenUpdated = post.updatedAt !== post.publishedAt;
+
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'TechArticle',
+    '@type': 'BlogPosting',
     headline: post.title,
     description: post.excerpt,
+    image: `${canonicalUrl}/opengraph-image`,
+    url: canonicalUrl,
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt,
+    keywords: [post.primaryKeyword, ...post.secondaryKeywords].join(', '),
     articleSection: post.category,
     author: {
       '@type': 'Organization',
       name: 'Isha Technologies',
+      url: 'https://www.ishatechnologies.in',
     },
     publisher: {
       '@type': 'Organization',
       name: 'Isha Technologies',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://ishatechnologies.in/app-logo.png',
+        url: 'https://www.ishatechnologies.in/ISHA-TECHNO-LG.png',
       },
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://ishatechnologies.in/resources/blogs/${post.slug}`,
+      '@id': canonicalUrl,
     },
   };
 
@@ -84,7 +96,14 @@ export default async function Page({
           </Link>
 
           <div className="mx-auto max-w-3xl">
-            <Badge>{post.category}</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge>{post.category}</Badge>
+              {post.tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-gray-500">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
             <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tighter text-black md:text-4xl">
               {post.title}
             </h1>
@@ -95,7 +114,8 @@ export default async function Page({
                 <User className="h-4 w-4" />
                 {post.author}
               </span>
-              <span>{post.publishedLabel}</span>
+              <span>Published {formatBlogDate(post.publishedAt)}</span>
+              {hasBeenUpdated && <span>Updated {formatBlogDate(post.updatedAt)}</span>}
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="h-4 w-4" />
                 {post.readingTime}

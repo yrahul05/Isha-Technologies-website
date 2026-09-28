@@ -1,7 +1,7 @@
 import { BlogGrid } from '@/components/card/blog-cards';
 import { FeaturedBlog } from '@/components/card/featured-blog';
 import { HeroBanner } from '@/components/layout/HeroBanner';
-import { blogPosts, toBlogPostSummary } from '@/data/blog-posts';
+import { getSortedPublishedBlogPosts, toBlogPostSummary } from '@/data/blog-posts';
 import { buildMetadata } from '@/lib/seo';
 import { Metadata } from 'next';
 
@@ -17,7 +17,10 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  const [featured, ...rest] = blogPosts.map(toBlogPostSummary);
+  // Newest publishedAt first — the featured slot and grid order both follow
+  // from this automatically, so a new post always lands at the top with no
+  // manual reordering.
+  const [featured, ...rest] = getSortedPublishedBlogPosts().map(toBlogPostSummary);
 
   return (
     <>

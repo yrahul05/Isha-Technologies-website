@@ -3,23 +3,33 @@ import type { Metadata } from 'next';
 
 // Original Isha Technologies technical resources. These are educational
 // engineering articles, not client case studies — no client names, no
-// invented metrics, no fabricated history. Author and publish label are
-// intentionally generic (see AUTHOR/DATES rules in the content brief).
+// invented metrics, no fabricated history. `publishedAt`/`updatedAt` below
+// are real dates sourced from the git commit that introduced each post
+// (`git log -S'<slug>' -- src/data/blog-posts.ts`), not invented ones.
 const AUTHOR = 'Isha Technologies — Technical Engineering Team';
-const PUBLISHED_LABEL = 'Technical Resource';
 
 export const blogPosts: BlogPost[] = [
   {
     slug: 'production-ready-cloud-infrastructure',
     title: 'How to Build a Production-Ready Cloud Infrastructure',
     category: 'Cloud Infrastructure',
+    tags: ['Cloud Infrastructure', 'AWS', 'High Availability', 'Disaster Recovery', 'Cloud Security'],
+    primaryKeyword: 'production-ready cloud infrastructure',
+    secondaryKeywords: [
+      'cloud architecture best practices',
+      'high availability cloud infrastructure',
+      'cloud disaster recovery planning',
+      'cloud IAM security',
+    ],
     excerpt:
       'A practical guide to designing cloud infrastructure with the right balance of reliability, security, scalability and operational control.',
     introduction:
       'Production-ready infrastructure is not a specific tool or a single deployment step — it is a set of decisions made across networking, identity, compute, data and operations that hold up under real traffic, real failures and real change. This guide walks through those decisions in the order they usually need to be made.',
     readingTime: '11 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'cloud-solutions',
     ctaLabel: 'Explore Cloud Solutions',
     ctaHref: '/services/cloud-solutions',
@@ -87,7 +97,7 @@ export const blogPosts: BlogPost[] = [
 <p>Security controls for production infrastructure generally cover four areas: network boundaries (security groups, network ACLs, private subnets), identity (IAM, least privilege, MFA), data protection (encryption at rest and in transit, key management) and visibility (audit logging of API and console activity). None of these are optional extras — they are part of the baseline, not something bolted on after launch.</p>
 
 <h2 id="monitoring-and-iac">Monitoring and Infrastructure as Code</h2>
-<p>Production systems need monitoring that answers two questions quickly: is the system healthy right now, and what changed recently. That means metrics and dashboards for the first question, and infrastructure as code with a change history for the second. When infrastructure is defined in code (Terraform, CloudFormation, Bicep, or similar), every change is reviewable, repeatable across environments, and traceable to a specific commit — which turns "what changed before this incident started" into a five-minute question instead of a guessing exercise.</p>
+<p>Production systems need monitoring that answers two questions quickly: is the system healthy right now, and what changed recently. That means metrics and dashboards for the first question, and infrastructure as code with a change history for the second. When infrastructure is defined in code (<a href="/resources/blogs/terraform-cloud-operations">Terraform</a>, CloudFormation, Bicep, or similar), every change is reviewable, repeatable across environments, and traceable to a specific commit — which turns "what changed before this incident started" into a five-minute question instead of a guessing exercise.</p>
 
 <h2 id="environment-separation">Environment Separation</h2>
 <p>Development, staging and production should be genuinely separate — separate accounts or subscriptions where possible, separate networks, separate credentials. Sharing an environment across stages of the delivery pipeline is one of the most common causes of "it worked in staging" incidents, because staging quietly stops representing production's actual configuration.</p>
@@ -108,13 +118,23 @@ export const blogPosts: BlogPost[] = [
     slug: 'reliable-cicd-pipeline',
     title: 'From Code to Production: Building a Reliable CI/CD Pipeline',
     category: 'DevOps',
+    tags: ['CI/CD', 'DevOps', 'Deployment Automation', 'Pipeline Security'],
+    primaryKeyword: 'reliable CI/CD pipeline',
+    secondaryKeywords: [
+      'CI/CD best practices',
+      'deployment automation',
+      'blue-green deployment',
+      'CI/CD pipeline security',
+    ],
     excerpt:
       'How modern engineering teams can automate build, test, security and deployment workflows while keeping releases consistent and recoverable.',
     introduction:
       'A CI/CD pipeline is the automated path a change takes from a developer’s commit to running in production. A reliable pipeline is judged less by how fast it runs and more by whether every release it produces is consistent, verifiable and reversible.',
     readingTime: '10 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'devops-solutions',
     ctaLabel: 'Explore DevOps Solutions',
     ctaHref: '/services/devops-solutions',
@@ -160,7 +180,7 @@ export const blogPosts: BlogPost[] = [
 <p>The right choice depends on the workload's tolerance for risk and the cost of running duplicate infrastructure temporarily.</p>
 
 <h2 id="pipeline-security">Pipeline Security</h2>
-<p>The pipeline itself is part of the production attack surface — it holds credentials and has permission to change production systems. That means scoping pipeline permissions narrowly (a deployment job should only have access to the environment it deploys to), storing secrets in a dedicated secrets manager rather than in pipeline configuration files, and auditing who can modify the pipeline definition itself.</p>
+<p>The pipeline itself is part of the production attack surface — it holds credentials and has permission to change production systems. That means scoping pipeline permissions narrowly (a deployment job should only have access to the environment it deploys to), storing secrets in a dedicated secrets manager rather than in pipeline configuration files, and auditing who can modify the pipeline definition itself — one part of the broader <a href="/resources/blogs/devsecops-secure-delivery-pipeline">DevSecOps practice</a> of building security checks into every pipeline stage.</p>
 
 <h2 id="monitoring-deployments">Monitoring Deployments</h2>
 <p>A deployment isn't finished when the pipeline reports success — it's finished when the new version is confirmed healthy in production. That requires post-deployment checks (error rates, latency, key business metrics) tied back to the specific release, so a regression can be attributed to a deployment quickly rather than discovered hours later during unrelated investigation.</p>
@@ -178,13 +198,23 @@ export const blogPosts: BlogPost[] = [
     slug: 'kubernetes-production',
     title: 'Kubernetes in Production: What Teams Need to Get Right',
     category: 'Kubernetes',
+    tags: ['Kubernetes', 'Container Orchestration', 'Helm', 'Cloud Native'],
+    primaryKeyword: 'Kubernetes in production',
+    secondaryKeywords: [
+      'Kubernetes production best practices',
+      'Kubernetes autoscaling',
+      'Kubernetes RBAC and secrets',
+      'Kubernetes networking',
+    ],
     excerpt:
       'Running Kubernetes in production requires more than creating a cluster. Explore the architecture, security, networking, scaling and observability practices that matter.',
     introduction:
       'Creating a Kubernetes cluster takes minutes. Operating one reliably in production is a different exercise entirely — it depends on decisions about workload architecture, networking, resource management, security and observability that aren’t visible on day one but matter enormously by month three.',
     readingTime: '12 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'kubernetes',
     ctaLabel: 'Explore Kubernetes Solutions',
     ctaHref: '/services/kubernetes',
@@ -238,7 +268,7 @@ spec:
 <p>Kubernetes Secrets store sensitive values, but by default they're only base64-encoded, not encrypted — encryption at rest and integration with an external secrets manager (such as a cloud KMS-backed store) is what actually protects them. RBAC (Role-Based Access Control) governs who and what can act on cluster resources; service accounts used by applications should be scoped to only the permissions that specific workload needs, following the same least-privilege principle as cloud IAM.</p>
 
 <h2 id="monitoring-and-logging">Monitoring and Logging</h2>
-<p>Cluster and workload metrics are typically collected with Prometheus and visualized in Grafana, covering both infrastructure signals (node CPU, memory, disk pressure) and application-level metrics exposed by the workloads themselves. Logs from every pod should be shipped off-node to a central store, since pod filesystems — and often the pods themselves — are ephemeral and disappear on restart or rescheduling.</p>
+<p>Cluster and workload metrics are typically collected with <a href="/resources/blogs/observability-metrics-logs-traces">Prometheus and visualized in Grafana</a>, covering both infrastructure signals (node CPU, memory, disk pressure) and application-level metrics exposed by the workloads themselves. Logs from every pod should be shipped off-node to a central store, since pod filesystems — and often the pods themselves — are ephemeral and disappear on restart or rescheduling.</p>
 
 <h2 id="ha-backup-recovery">High Availability, Backup and Recovery</h2>
 <p>High availability at the workload level means running multiple replicas spread across nodes and zones, with Pod Disruption Budgets to prevent voluntary disruptions (like node drains) from taking down every replica at once. Cluster state itself — including persistent volumes and, if self-managed, etcd — needs its own backup strategy, since losing cluster state is a different and more severe failure than losing a single workload.</p>
@@ -259,13 +289,23 @@ spec:
     slug: 'terraform-cloud-operations',
     title: 'Infrastructure as Code: Why Terraform Changes Cloud Operations',
     category: 'Terraform & IaC',
+    tags: ['Terraform', 'Infrastructure as Code', 'DevOps', 'Cloud Automation'],
+    primaryKeyword: 'Terraform infrastructure as code',
+    secondaryKeywords: [
+      'infrastructure as code best practices',
+      'Terraform state management',
+      'Terraform modules',
+      'Terraform CI/CD integration',
+    ],
     excerpt:
       "Infrastructure as Code brings consistency, version control and repeatability to cloud infrastructure. Here's how teams can use Terraform effectively.",
     introduction:
       'Manually configured infrastructure works until it needs to be reproduced, audited, or changed under pressure. Infrastructure as Code (IaC) replaces manual configuration with declarative definitions that can be versioned, reviewed and applied consistently — and Terraform has become one of the most widely used ways to do it across cloud providers.',
     readingTime: '10 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'terraform',
     ctaLabel: 'Explore Platform Solutions',
     ctaHref: '/services/platform-solutions',
@@ -298,7 +338,7 @@ resource "aws_s3_bucket" "assets" {
 }</code></pre>
 
 <h2 id="modules">Modules and Reusable Infrastructure</h2>
-<p>A module is a self-contained, reusable Terraform configuration — for example, a "standard VPC" module that always creates the same subnet layout, route tables and NAT gateways, parameterized by CIDR range and environment name. Modules let a platform team encode organizational standards once and let application teams consume them with a handful of input variables, instead of every team reinventing networking from scratch.</p>
+<p>A module is a self-contained, reusable Terraform configuration — for example, a "standard VPC" module that always creates the same subnet layout, route tables and NAT gateways, parameterized by CIDR range and environment name. Modules let a <a href="/resources/blogs/platform-engineering-for-developers">platform team encode organizational standards</a> once and let application teams consume them with a handful of input variables, instead of every team reinventing networking from scratch.</p>
 
 <h2 id="state-management">State Management and Remote State</h2>
 <p>Terraform tracks what it has created in a state file, which maps your configuration to real resource IDs. For anything beyond a single person experimenting locally, that state needs to live somewhere shared and lockable — commonly an object storage bucket with a locking mechanism (like a database table or native locking support) so two people running <code>apply</code> at the same time don't corrupt each other's changes.</p>
@@ -325,13 +365,23 @@ resource "aws_s3_bucket" "assets" {
     slug: 'cloud-migration-assessment-to-optimization',
     title: 'Cloud Migration: A Practical Approach from Assessment to Optimization',
     category: 'Cloud Migration',
+    tags: ['Cloud Migration', 'Cloud Infrastructure', 'AWS', 'Cloud Strategy'],
+    primaryKeyword: 'cloud migration strategy',
+    secondaryKeywords: [
+      'cloud migration assessment',
+      'application dependency mapping',
+      'rehost replatform refactor',
+      'post-migration optimization',
+    ],
     excerpt:
       'A structured cloud migration starts with understanding applications, dependencies and infrastructure before moving workloads.',
     introduction:
       'Cloud migrations that run into trouble usually don’t fail because of the cloud platform — they fail because the applications, dependencies and data involved weren’t properly understood before the move started. A structured approach reduces that risk considerably.',
     readingTime: '10 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'cloud-migration',
     ctaLabel: 'Explore Cloud Migration',
     ctaHref: '/services/cloud-migration',
@@ -369,7 +419,7 @@ resource "aws_s3_bucket" "assets" {
 <p>Migration is a natural point to review security posture rather than simply replicate old, possibly outdated configurations. That includes revisiting network segmentation, IAM permissions, encryption settings and exposed endpoints in the new environment, rather than assuming the old environment's security decisions were still correct.</p>
 
 <h2 id="post-migration">Post-Migration Optimization</h2>
-<p>A migration is not complete the moment workloads are running in the new environment. Post-migration optimization — rightsizing instances based on actual observed usage, cleaning up temporary migration resources, and tuning autoscaling — is what turns "it's running in the cloud" into "it's running efficiently in the cloud."</p>
+<p>A migration is not complete the moment workloads are running in the new environment. <a href="/resources/blogs/reduce-cloud-waste-without-sacrificing-performance">Post-migration optimization</a> — rightsizing instances based on actual observed usage, cleaning up temporary migration resources, and tuning autoscaling — is what turns "it's running in the cloud" into "it's running efficiently in the cloud."</p>
 `,
     keyTakeaways: [
       'Accurate discovery often surfaces forgotten systems that still need an explicit migration decision.',
@@ -384,13 +434,23 @@ resource "aws_s3_bucket" "assets" {
     slug: 'reduce-cloud-waste-without-sacrificing-performance',
     title: 'How to Reduce Cloud Waste Without Sacrificing Performance',
     category: 'Cloud Cost Optimization',
+    tags: ['Cloud Cost Optimization', 'FinOps', 'AWS', 'Kubernetes'],
+    primaryKeyword: 'cloud cost optimization',
+    secondaryKeywords: [
+      'reduce cloud costs',
+      'AWS cost optimization',
+      'Kubernetes cost efficiency',
+      'cloud rightsizing',
+    ],
     excerpt:
       'Cloud optimization is more than deleting unused resources. Learn how rightsizing, architecture and workload visibility can improve efficiency.',
     introduction:
       'Cloud cost optimization is often reduced to "turn off what you don’t need," which catches the obvious waste but misses most of the actual spend. Real optimization comes from matching resources to workload behavior and having enough visibility to know where money is actually going.',
     readingTime: '9 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'cloud-cost-optimization',
     ctaLabel: 'Explore Cloud Cost Optimization',
     ctaHref: '/services/cloud-cost-optimization',
@@ -418,7 +478,7 @@ resource "aws_s3_bucket" "assets" {
 <p>Databases are frequently oversized "to be safe," but query optimization and indexing often reduce the actual resource requirement more effectively than adding capacity. Read replicas should be sized for actual read traffic, and connection pooling can reduce the load that drives oversized instance choices in the first place.</p>
 
 <h2 id="kubernetes-resource-usage">Kubernetes Resource Usage and Autoscaling</h2>
-<p>In Kubernetes, cost efficiency is closely tied to resource requests: over-requested pods reserve capacity they never use, while under-requested pods create false density that risks performance issues. Combining accurate requests with the Horizontal Pod Autoscaler (for workload replicas) and Cluster Autoscaler (for node count) lets capacity track actual demand instead of a static, worst-case estimate.</p>
+<p>In <a href="/resources/blogs/kubernetes-production">Kubernetes</a>, cost efficiency is closely tied to resource requests: over-requested pods reserve capacity they never use, while under-requested pods create false density that risks performance issues. Combining accurate requests with the Horizontal Pod Autoscaler (for workload replicas) and Cluster Autoscaler (for node count) lets capacity track actual demand instead of a static, worst-case estimate.</p>
 
 <h2 id="commitments">Reserved Capacity and Savings Plans</h2>
 <p>For workloads with predictable, steady-state usage, reserved instances or savings plans typically cost meaningfully less than on-demand pricing in exchange for a usage commitment. The key is applying commitments to the stable baseline of usage and leaving genuinely variable capacity on-demand or spot, rather than over-committing to a size that doesn't match real, sustained usage.</p>
@@ -442,13 +502,23 @@ resource "aws_s3_bucket" "assets" {
     slug: 'devsecops-secure-delivery-pipeline',
     title: 'DevSecOps: Integrating Security Into the Delivery Pipeline',
     category: 'DevSecOps',
+    tags: ['DevSecOps', 'CI/CD', 'Cloud Security', 'DevOps'],
+    primaryKeyword: 'DevSecOps pipeline security',
+    secondaryKeywords: [
+      'SAST and DAST',
+      'container image scanning',
+      'secret detection in CI/CD',
+      'secure CI/CD pipeline',
+    ],
     excerpt:
       'Security becomes more effective when it is integrated into development and deployment workflows instead of being treated as a final checkpoint.',
     introduction:
       "Treating security as a final review before release means problems are found late, when they're most expensive to fix and most likely to delay a launch. DevSecOps moves security checks earlier and spreads them across the pipeline, so issues surface while they're still cheap to address.",
     readingTime: '9 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'devsecops',
     ctaLabel: 'Explore DevSecOps',
     ctaHref: '/services/devsecops',
@@ -464,7 +534,7 @@ resource "aws_s3_bucket" "assets" {
     ],
     contentHtml: `
 <h2 id="security-in-cicd">Security as Part of CI/CD, Not a Final Gate</h2>
-<p>DevSecOps is the practice of running security checks at each stage of the pipeline — commit, build, test, deploy — instead of a single review before release. This spreads the cost of finding problems evenly across development instead of concentrating it right before a deadline, and gives developers feedback on security issues in roughly the same place and speed they get feedback on test failures.</p>
+<p>DevSecOps is the practice of running security checks at each stage of the <a href="/resources/blogs/reliable-cicd-pipeline">CI/CD pipeline</a> — commit, build, test, deploy — instead of a single review before release. This spreads the cost of finding problems evenly across development instead of concentrating it right before a deadline, and gives developers feedback on security issues in roughly the same place and speed they get feedback on test failures.</p>
 
 <h2 id="sast-and-dast">SAST and DAST</h2>
 <p>Static Application Security Testing (SAST) analyzes source code for known vulnerable patterns without running the application, and fits naturally into the build stage. Dynamic Application Security Testing (DAST) tests a running instance of the application for exploitable behavior, and typically runs against a deployed staging environment. The two are complementary: SAST catches issues early in code; DAST catches issues that only appear at runtime.</p>
@@ -500,13 +570,23 @@ resource "aws_s3_bucket" "assets" {
     slug: 'observability-metrics-logs-traces',
     title: 'Designing Observability With Metrics, Logs and Traces',
     category: 'Observability',
+    tags: ['Observability', 'Monitoring', 'AWS', 'Site Reliability'],
+    primaryKeyword: 'observability metrics logs traces',
+    secondaryKeywords: [
+      'distributed tracing',
+      'Prometheus and Grafana',
+      'AWS CloudWatch monitoring',
+      'incident signal correlation',
+    ],
     excerpt:
       'Modern systems need more than basic monitoring. Learn how metrics, logs and traces work together to provide useful operational visibility.',
     introduction:
       'Monitoring tells you something is wrong. Observability helps you figure out why. As systems become more distributed, the gap between those two grows, and closing it depends on combining three complementary signal types: metrics, logs and traces.',
     readingTime: '9 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'observability',
     ctaLabel: 'Explore Observability',
     ctaHref: '/services/observability',
@@ -539,7 +619,7 @@ resource "aws_s3_bucket" "assets" {
 <p>Beyond incidents, the same signals support ongoing performance analysis: identifying which endpoints are slow, which database queries dominate response time, and how performance trends as load grows. This turns performance work from guesswork into something based on actual measured behavior.</p>
 
 <h2 id="operational-visibility">What Good Operational Visibility Looks Like</h2>
-<p>Good observability means an on-call engineer can go from "something is wrong" to "here's the specific cause" without needing to guess or add new instrumentation in the middle of an incident. That requires the metrics, logs and traces to already be in place, connected, and reviewed regularly — not assembled for the first time under pressure.</p>
+<p>Good observability means an on-call engineer can go from "something is wrong" to "here's the specific cause" without needing to guess or add new instrumentation in the middle of an <a href="/resources/blogs/production-reliability-engineering">incident response</a>. That requires the metrics, logs and traces to already be in place, connected, and reviewed regularly — not assembled for the first time under pressure.</p>
 `,
     keyTakeaways: [
       'Metrics, logs and traces answer different questions — systems need all three, not just one.',
@@ -554,13 +634,23 @@ resource "aws_s3_bucket" "assets" {
     slug: 'production-reliability-engineering',
     title: 'Production Reliability: Designing Systems That Are Easier to Operate',
     category: 'Site Reliability',
+    tags: ['Site Reliability', 'SRE', 'Incident Response', 'Cloud Infrastructure'],
+    primaryKeyword: 'site reliability engineering',
+    secondaryKeywords: [
+      'SLIs SLOs and error budgets',
+      'incident response process',
+      'disaster recovery planning',
+      'system resilience patterns',
+    ],
     excerpt:
       'Reliability starts at architecture. Explore the practices that help teams build dependable systems and respond effectively when things fail.',
     introduction:
       'Reliability is not something added after a system is built — it’s a set of decisions made during design about how the system behaves under load, how it fails, and how quickly a team can understand and recover when something goes wrong.',
     readingTime: '10 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'site-reliability',
     ctaLabel: 'Explore Site Reliability',
     ctaHref: '/services/site-reliability',
@@ -594,7 +684,7 @@ resource "aws_s3_bucket" "assets" {
 <p>Disaster recovery planning defines how a system recovers from a large-scale failure — a full region outage, for example — including the recovery time and recovery point objectives discussed in infrastructure planning, and, critically, a tested procedure for actually executing that recovery rather than a document that has never been rehearsed.</p>
 
 <h2 id="performance-and-monitoring">Performance and Monitoring</h2>
-<p>Reliability and performance are closely linked: a system that's technically "up" but too slow to use is not meeting its users' actual needs. Monitoring needs to track both availability and performance against their respective targets, since either one degrading independently can represent a real reliability problem.</p>
+<p>Reliability and performance are closely linked: a system that's technically "up" but too slow to use is not meeting its users' actual needs. <a href="/resources/blogs/observability-metrics-logs-traces">Monitoring</a> needs to track both availability and performance against their respective targets, since either one degrading independently can represent a real reliability problem.</p>
 
 <h2 id="operational-readiness">Operational Readiness</h2>
 <p>Operational readiness pulls these practices together into a single question worth asking before any system goes into production: if this fails at 3 a.m., does the team have the monitoring, the runbooks, the ownership and the tested recovery procedure to handle it — or would they be improvising for the first time under pressure?</p>
@@ -612,13 +702,23 @@ resource "aws_s3_bucket" "assets" {
     slug: 'secure-scalable-aws-architecture',
     title: 'Building a Secure and Scalable AWS Architecture',
     category: 'AWS',
+    tags: ['AWS', 'Cloud Architecture', 'Cloud Security', 'Infrastructure as Code'],
+    primaryKeyword: 'secure scalable AWS architecture',
+    secondaryKeywords: [
+      'AWS VPC design',
+      'AWS IAM best practices',
+      'AWS high availability',
+      'AWS infrastructure as code',
+    ],
     excerpt:
       'A practical look at the core architecture decisions involved in building secure and scalable workloads on AWS.',
     introduction:
       'AWS offers a very large service catalog, but most production workloads are built from a consistent, well-understood set of core services. Understanding how they fit together is more valuable than knowing every service that exists.',
     readingTime: '11 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'cloud-solutions',
     ctaLabel: 'Explore Cloud Solutions',
     ctaHref: '/services/cloud-solutions',
@@ -634,7 +734,7 @@ resource "aws_s3_bucket" "assets" {
     ],
     contentHtml: `
 <h2 id="vpc-and-subnets">VPC and Subnet Design</h2>
-<p>A VPC defines an isolated network within AWS. Production designs typically span at least two Availability Zones, with public subnets for internet-facing load balancers and NAT gateways, and private subnets for application instances and databases. Route tables and security groups then control exactly what traffic can move where — the same pattern discussed in general cloud network design, applied to AWS's specific constructs.</p>
+<p>A VPC defines an isolated network within AWS. Production designs typically span at least two Availability Zones, with public subnets for internet-facing load balancers and NAT gateways, and private subnets for application instances and databases. Route tables and security groups then control exactly what traffic can move where — the same pattern discussed in <a href="/resources/blogs/production-ready-cloud-infrastructure">general cloud network design</a>, applied to AWS's specific constructs.</p>
 
 <h2 id="iam">IAM</h2>
 <p>AWS IAM controls who and what can call which APIs. Production accounts should use IAM roles for EC2 instances and Lambda functions (rather than long-lived access keys embedded in application code), scoped policies limited to specific resources and actions, and separate roles for humans versus automated pipelines. For organizations running multiple accounts, AWS Organizations and Service Control Policies add guardrails at the account level.</p>
@@ -670,13 +770,23 @@ resource "aws_s3_bucket" "assets" {
     slug: 'platform-engineering-for-developers',
     title: 'Platform Engineering: Making Infrastructure Easier for Developers',
     category: 'Platform Engineering',
+    tags: ['Platform Engineering', 'Kubernetes', 'DevOps', 'Developer Experience'],
+    primaryKeyword: 'platform engineering',
+    secondaryKeywords: [
+      'internal developer platform',
+      'golden paths',
+      'Kubernetes platform engineering',
+      'developer self-service infrastructure',
+    ],
     excerpt:
       'Internal platforms can reduce infrastructure complexity by giving development teams standardized and self-service workflows.',
     introduction:
       'As infrastructure grows more capable, it also grows more complex — and asking every application team to understand all of it directly doesn’t scale. Platform engineering addresses this by building an internal platform that gives developers standardized, self-service ways to get what they need without becoming infrastructure experts themselves.',
     readingTime: '9 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'platform-solutions',
     ctaLabel: 'Explore Platform Solutions',
     ctaHref: '/services/platform-solutions',
@@ -697,7 +807,7 @@ resource "aws_s3_bucket" "assets" {
 <p>A golden path is a supported, well-tested way to accomplish a common task — spinning up a new service, provisioning a database, setting up a CI/CD pipeline — that's deliberately easier to follow than building something custom. Golden paths don't have to be the only way to do something, but they should be the easiest, so teams choose them by default rather than out of obligation.</p>
 
 <h2 id="reusable-modules">Reusable Modules and Deployment Templates</h2>
-<p>Under the hood, golden paths are usually backed by reusable Terraform modules, Helm charts, or service templates that encode organizational standards — security defaults, tagging conventions, monitoring hooks — so every service created through the platform inherits them automatically, rather than depending on each team remembering to configure them individually.</p>
+<p>Under the hood, golden paths are usually backed by <a href="/resources/blogs/terraform-cloud-operations">reusable Terraform modules</a>, Helm charts, or service templates that encode organizational standards — security defaults, tagging conventions, monitoring hooks — so every service created through the platform inherits them automatically, rather than depending on each team remembering to configure them individually.</p>
 
 <h2 id="kubernetes-platforms">Kubernetes as a Platform Layer</h2>
 <p>Kubernetes is a common foundation for internal platforms because its API is extensible — custom resources and operators can expose higher-level, application-team-friendly abstractions ("deploy a web service with this template") on top of Kubernetes' lower-level primitives (Deployments, Services, ConfigMaps), without requiring every developer to understand the full breadth of the Kubernetes API.</p>
@@ -724,13 +834,23 @@ resource "aws_s3_bucket" "assets" {
     slug: 'what-production-ready-infrastructure-means',
     title: 'What Production-Ready Infrastructure Actually Means',
     category: 'Cloud Infrastructure',
+    tags: ['Cloud Infrastructure', 'DevOps', 'Site Reliability', 'Cloud Security'],
+    primaryKeyword: 'production-ready infrastructure checklist',
+    secondaryKeywords: [
+      'infrastructure operational readiness',
+      'cloud availability and backups',
+      'CI/CD and infrastructure as code',
+      'incident response documentation',
+    ],
     excerpt:
       'Production readiness is not a single checklist. It is the combination of reliability, security, observability, automation and operational discipline.',
     introduction:
       `Teams often ask what it takes for infrastructure to be "production-ready," expecting a short checklist. In practice it's a combination of several disciplines working together — and it's worth understanding how they connect, not just what each one covers individually.`,
     readingTime: '9 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'managed-cloud',
     ctaLabel: 'Talk to an Expert',
     ctaHref: '/contact',
@@ -746,7 +866,7 @@ resource "aws_s3_bucket" "assets" {
     ],
     contentHtml: `
 <h2 id="architecture-and-security">Architecture and Security</h2>
-<p>Production readiness starts with an architecture that was deliberately designed for its actual requirements — not a default template — and security controls built into that architecture from the start: network segmentation, least-privilege identity, and encryption for data at rest and in transit. Retrofitting security onto an existing architecture is possible, but it's slower and riskier than building it in from the beginning.</p>
+<p>Production readiness starts with an <a href="/resources/blogs/production-ready-cloud-infrastructure">architecture that was deliberately designed</a> for its actual requirements — not a default template — and security controls built into that architecture from the start: network segmentation, least-privilege identity, and encryption for data at rest and in transit. Retrofitting security onto an existing architecture is possible, but it's slower and riskier than building it in from the beginning.</p>
 
 <h2 id="availability-backups-dr">Availability, Backups and Disaster Recovery</h2>
 <p>A production system needs a defined availability target, backups that are actually tested by restoring them periodically, and a disaster recovery plan appropriate to how severe an outage the business is willing to tolerate. These three are related but distinct: high availability handles routine failures, backups handle data loss, and disaster recovery handles losing an entire environment or region.</p>
@@ -783,13 +903,23 @@ resource "aws_s3_bucket" "assets" {
     title:
       'Amazon CloudWatch Omni: AI-Powered Observability for Applications and AI Agents',
     category: 'Observability',
+    tags: ['AWS', 'Observability', 'AI Observability', 'CloudWatch'],
+    primaryKeyword: 'Amazon CloudWatch Omni',
+    secondaryKeywords: [
+      'AWS AI observability',
+      'AI agent observability',
+      'AWS DevOps Agent',
+      'OpenTelemetry AWS',
+    ],
     excerpt:
       "A complete guide to Amazon CloudWatch Omni, AWS's AI-powered observability platform for applications and AI agents, built on OpenTelemetry.",
     introduction:
       'CloudWatch has been the default place AWS customers look for metrics, logs and alarms for over a decade. Amazon CloudWatch Omni, announced by AWS in September 2026, is the newest evolution of that service — an AI-powered observability workspace that watches applications and AI agents together, discovers your architecture automatically, and brings an AI agent into the investigation alongside your team. This guide covers what it is, how it works end to end, and where it fits next to the CloudWatch you already run.',
     readingTime: '16 min read',
     author: AUTHOR,
-    publishedLabel: PUBLISHED_LABEL,
+    status: 'published',
+    publishedAt: '2026-09-28T05:30:34.000Z',
+    updatedAt: '2026-09-28T05:30:34.000Z',
     visualSlug: 'observability',
     ctaLabel: 'Explore Observability',
     ctaHref: '/services/observability',
@@ -944,8 +1074,39 @@ resource "aws_s3_bucket" "assets" {
   },
 ];
 
+/** Only 'published' posts are ever returned here — a 'draft' slug 404s via
+ * this lookup even if requested directly, not just hidden from listings. */
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {
-  return blogPosts.find((post) => post.slug === slug);
+  return blogPosts.find((post) => post.slug === slug && post.status === 'published');
+}
+
+export function getPublishedBlogPosts(): BlogPost[] {
+  return blogPosts.filter((post) => post.status === 'published');
+}
+
+function byPublishedAtDesc(a: BlogPost, b: BlogPost): number {
+  return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+}
+
+/** Published posts, newest `publishedAt` first. This is the single source
+ * of sort order for the blog system — the listing page (and its featured
+ * slot) reads this directly, so a new post appears at the top automatically
+ * the moment its `publishedAt` makes it the newest, with no manual
+ * reordering. Ties fall back to array order, which is stable. */
+export function getSortedPublishedBlogPosts(): BlogPost[] {
+  return getPublishedBlogPosts().sort(byPublishedAtDesc);
+}
+
+/** Formats an ISO timestamp as a human-readable date ("September 12,
+ * 2026") for display — the one place this formatting logic lives, so
+ * every component shows published/updated dates the same way. */
+export function formatBlogDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
 }
 
 /** Projects a full post down to the teaser fields BlogCard/FeaturedBlog
@@ -956,30 +1117,42 @@ export function toBlogPostSummary(post: BlogPost): BlogPostSummary {
     slug: post.slug,
     title: post.title,
     category: post.category,
+    tags: post.tags,
     excerpt: post.excerpt,
     readingTime: post.readingTime,
-    publishedLabel: post.publishedLabel,
+    publishedAt: post.publishedAt,
     visualSlug: post.visualSlug,
   };
 }
 
+/** Related posts for the bottom of a post page: same-category posts first,
+ * then others — each group newest-first — excluding drafts and the post
+ * itself. */
 export function getRelatedPosts(post: BlogPost, limit = 3): BlogPost[] {
-  const sameCategory = blogPosts.filter(
-    (candidate) => candidate.slug !== post.slug && candidate.category === post.category
-  );
-  const others = blogPosts.filter(
-    (candidate) => candidate.slug !== post.slug && candidate.category !== post.category
-  );
+  const published = getPublishedBlogPosts().filter((candidate) => candidate.slug !== post.slug);
+  const sameCategory = published
+    .filter((candidate) => candidate.category === post.category)
+    .sort(byPublishedAtDesc);
+  const others = published
+    .filter((candidate) => candidate.category !== post.category)
+    .sort(byPublishedAtDesc);
   return [...sameCategory, ...others].slice(0, limit);
 }
 
 export function buildBlogPostMetadata(post: BlogPost): Metadata {
   const path = `/resources/blogs/${post.slug}`;
   const title = `${post.title} | Isha Technologies`;
+  const keywords = [post.primaryKeyword, ...post.secondaryKeywords].join(', ');
   return {
     title,
     description: post.excerpt,
+    keywords,
     alternates: { canonical: path },
+    // No `images` here: opengraph-image.tsx in this route segment
+    // generates a unique per-post image, and Next.js applies it to both
+    // openGraph and (absent a separate twitter-image file) the Twitter
+    // card automatically — setting a static image here would conflict
+    // with it.
     openGraph: {
       type: 'article',
       url: path,
@@ -987,13 +1160,15 @@ export function buildBlogPostMetadata(post: BlogPost): Metadata {
       title,
       description: post.excerpt,
       authors: [post.author],
-      images: [{ url: '/og-image.png', width: 1200, height: 630, alt: post.title }],
+      tags: post.tags,
+      publishedTime: post.publishedAt,
+      modifiedTime: post.updatedAt,
+      section: post.category,
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description: post.excerpt,
-      images: ['/og-image.png'],
     },
   };
 }

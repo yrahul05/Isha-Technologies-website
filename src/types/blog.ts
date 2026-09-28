@@ -10,12 +10,31 @@ export type BlogPost = {
   slug: string;
   title: string;
   category: string;
+  /** Specific, reusable tags for this post (distinct from `category`,
+   * which is the single primary taxonomy bucket). Keep this short and
+   * genuinely relevant — not a dumping ground for every related term. */
+  tags: string[];
   excerpt: string;
   introduction: string;
+  /** The main search term this article targets. Used to inform the meta
+   * keywords tag; should already read naturally in the title/body — never
+   * stuffed in artificially. */
+  primaryKeyword: string;
+  /** A handful of related search terms, same rules as `primaryKeyword`. */
+  secondaryKeywords: string[];
   readingTime: string;
   author: string;
-  /** Shown instead of a fabricated historical publish date. */
-  publishedLabel: string;
+  /** Only 'published' posts are ever reachable publicly — via the listing
+   * page, sitemap, related-posts, or a direct slug URL. A 'draft' post
+   * stays in this file (so it's easy to review in a PR) but 404s and is
+   * invisible everywhere until flipped to 'published'. */
+  status: 'published' | 'draft';
+  /** Real ISO 8601 timestamps — never fabricated. Sourced from the git
+   * commit that actually introduced this post. `publishedAt` never
+   * changes after that; bump `updatedAt` only for a substantive content
+   * edit made after publication. */
+  publishedAt: string;
+  updatedAt: string;
   /** Key into the ServiceHeroVisual visual map — reuses the site's existing
    * custom SVG/Framer Motion visual system instead of stock imagery. */
   visualSlug: string;
@@ -38,8 +57,9 @@ export type BlogPostSummary = Pick<
   | 'slug'
   | 'title'
   | 'category'
+  | 'tags'
   | 'excerpt'
   | 'readingTime'
-  | 'publishedLabel'
+  | 'publishedAt'
   | 'visualSlug'
 >;

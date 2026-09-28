@@ -1,5 +1,6 @@
 import { ServiceHeroVisual } from '@/components/services/visuals/ServiceHeroVisual';
 import { Button } from '@/components/ui/button';
+import { formatBlogDate } from '@/data/blog-posts';
 import type { BlogPostSummary } from '@/types/blog';
 import { Clock } from 'lucide-react';
 import Link from 'next/link';
@@ -14,16 +15,13 @@ export function FeaturedBlog({ post }: { post: BlogPostSummary }) {
         <h2 className="mt-3 text-2xl font-bold leading-tight tracking-tight text-black md:text-3xl">
           {post.title}
         </h2>
-        <p className="mt-3 text-gray-600">
-          A practical guide to architecture, security, automation, reliability
-          and operational readiness.
-        </p>
+        <p className="mt-3 text-gray-600">{post.excerpt}</p>
         <div className="mt-4 flex items-center gap-3 text-xs text-gray-500">
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
             {post.readingTime}
           </span>
-          <span>{post.publishedLabel}</span>
+          <span>{formatBlogDate(post.publishedAt)}</span>
         </div>
         <Button asChild variant="primary" className="mt-6 h-11 rounded-lg px-5">
           <Link href={`/resources/blogs/${post.slug}`}>Read Technical Guide</Link>

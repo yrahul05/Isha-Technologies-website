@@ -16,7 +16,7 @@ const description =
   'Managed Cloud & DevOps Solutions from Isha Technologies — expert infrastructure support without building everything in-house. Cloud architecture, DevOps automation, Kubernetes, security, migration and observability.';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://ishatechnologies.in'),
+  metadataBase: new URL('https://www.ishatechnologies.in'),
   title: 'Isha Technologies | Managed Cloud & DevOps Solutions',
   description,
   robots: 'index, follow',

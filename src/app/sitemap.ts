@@ -1,4 +1,4 @@
-import { blogPosts } from '@/data/blog-posts';
+import { getSortedPublishedBlogPosts } from '@/data/blog-posts';
 import { caseStudies } from '@/data/case-studies';
 import { services } from '@/data/data';
 import type { MetadataRoute } from 'next';
@@ -55,9 +55,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+  // Draft posts are excluded automatically (getSortedPublishedBlogPosts
+  // filters on status), and each entry's lastModified is that post's real
+  // updatedAt — not the shared build timestamp — so the sitemap accurately
+  // reflects when each article actually last changed.
+  const blogEntries: MetadataRoute.Sitemap = getSortedPublishedBlogPosts().map((post) => ({
     url: `${SITE_URL}/resources/blogs/${post.slug}`,
-    lastModified: BUILD_TIME,
+    lastModified: new Date(post.updatedAt),
     changeFrequency: 'monthly',
     priority: 0.6,
   }));

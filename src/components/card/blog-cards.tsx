@@ -2,6 +2,7 @@
 
 import { blogCategories } from '@/data/blog-categories';
 import { blogCategoryIcons } from '@/data/blog-category-icons';
+import { formatBlogDate } from '@/data/blog-posts';
 import type { BlogPostSummary } from '@/types/blog';
 import { ArrowRight, Clock } from 'lucide-react';
 import Link from 'next/link';
@@ -34,7 +35,7 @@ export function BlogCard({ post }: { post: BlogPostSummary }) {
             <Clock className="h-3.5 w-3.5" />
             {post.readingTime}
           </span>
-          <span>{post.publishedLabel}</span>
+          <span>{formatBlogDate(post.publishedAt)}</span>
         </div>
         <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand">
           Read Article
