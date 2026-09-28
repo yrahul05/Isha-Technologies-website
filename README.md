@@ -65,8 +65,9 @@ a standard Next.js App Router project and handles the build and output.
    - `CONTACT_EMAIL`, `EMAIL_FROM`, `EMAIL_API_KEY` (contact form email —
      see [Contact form](#contact-form) below)
    - `NEXT_PUBLIC_GA_MEASUREMENT_ID` (analytics)
-   - `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID` (optional footer visitor
-     count — see `docs/analytics-visitor-count.md`)
+   - `GA4_PROPERTY_ID`, `GA4_CLIENT_EMAIL`, `GA4_PRIVATE_KEY`
+     (optional footer visitor count, read from the GA4 Data API — see
+     `docs/analytics-visitor-count.md`)
 4. Set the production domain (`www.ishatechnologies.in`) and an apex
    redirect under **Project → Settings → Domains**.
 5. Every push to `main` triggers a Production deployment; every pull

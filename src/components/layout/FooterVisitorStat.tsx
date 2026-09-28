@@ -14,34 +14,36 @@ const numberFormatter = new Intl.NumberFormat('en-US');
 
 /**
  * Optional, public dashboard link for the "Analytics unavailable" fallback
- * card below (e.g. a Cloudflare dashboard URL). Not a secret — just a URL —
- * so a plain NEXT_PUBLIC_ var is fine. Deliberately has no default: this
+ * card below (e.g. a GA4 dashboard URL). Not a secret — just a URL — so a
+ * plain NEXT_PUBLIC_ var is fine. Deliberately has no default: this
  * component never invents or guesses a dashboard link, so the "View
  * Analytics" link only renders once this is actually set.
  */
 const ANALYTICS_DASHBOARD_URL = process.env.NEXT_PUBLIC_ANALYTICS_DASHBOARD_URL;
 
 /**
- * Real "visits over the last 30 days" figure for ishatechnologies.in from
- * Cloudflare's GraphQL Analytics API, read through a secure server-side
- * Route Handler (src/app/api/analytics/visitors/route.ts). The Cloudflare
- * API token is never present in this component, in any client bundle, or
- * anywhere in the browser — this only ever displays what that route
- * reports.
+ * Real "sessions over the last 30 days" figure for ishatechnologies.in from
+ * the Google Analytics 4 Data API, read through a secure server-side Route
+ * Handler (src/app/api/analytics/visitors/route.ts). The GA4 service
+ * account's private key is never present in this component, in any client
+ * bundle, or anywhere in the browser — this only ever displays what that
+ * route reports.
  *
  * Renders one of two cards, chosen by what the endpoint reports:
  * - `ok` -> "WEBSITE VISITORS" with the real, cached count ("<n> Visits").
- * - `not_configured` (CLOUDFLARE_API_TOKEN / CLOUDFLARE_ZONE_ID not set
- *   yet), `error` (configured but the live Cloudflare call failed,
- *   timed out, or returned something invalid), or the endpoint being
- *   unreachable -> "WEBSITE VISITORS" / "Analytics unavailable". Never a
- *   fake or zero number — 0 is only ever shown if Cloudflare genuinely
- *   reports 0 visits for the window.
+ * - `not_configured` (GA4_PROPERTY_ID / GA4_CLIENT_EMAIL /
+ *   GA4_PRIVATE_KEY not set yet), `error` (configured but the live GA4
+ *   Data API call failed, timed out, or returned something invalid), or
+ *   the endpoint being unreachable -> "WEBSITE VISITORS" / "Analytics
+ *   unavailable". Never a fake or zero number — 0 is only ever shown if
+ *   GA4 genuinely reports 0 sessions for the window.
  *
  * Never uses localStorage/sessionStorage, a random counter, or any
  * client-side visit counting. This is independent of, and does not
- * change, GA4 page-view tracking or the Cloudflare Web Analytics beacon —
- * both keep running exactly as before regardless of what this card shows.
+ * change, GA4's own client-side page-view tracking
+ * (src/components/analytics/GoogleAnalytics.tsx) — that keeps running
+ * exactly as before regardless of what this card shows; this component
+ * only reads an aggregate back out of GA4, server-side.
  */
 export function FooterVisitorStat() {
   const [state, setState] = useState<VisitorStatState>({ status: 'loading' });

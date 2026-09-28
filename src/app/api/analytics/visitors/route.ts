@@ -1,183 +1,156 @@
+import { createSign } from 'crypto';
 import { NextResponse } from 'next/server';
 
 /**
- * GET /api/analytics/visitors — real zone-level "visits" count for
- * ishatechnologies.in from Cloudflare's GraphQL Analytics API, read
- * server-side.
+ * GET /api/analytics/visitors — real "sessions over the last 30 days" count
+ * for ishatechnologies.in from the Google Analytics 4 Data API, read
+ * server-side using a service account (not the Cloudflare GraphQL
+ * Analytics API this route used before the Vercel migration — that
+ * required Cloudflare Worker bindings that don't exist on Vercel).
  *
- * Reads two SERVER-ONLY environment variables (never NEXT_PUBLIC_ — set
+ * Reads three SERVER-ONLY environment variables (never NEXT_PUBLIC_ — set
  * them as Vercel Environment Variables; see docs/analytics-visitor-count.md):
  *
- *   CLOUDFLARE_API_TOKEN — a token scoped to Zone > Analytics > Read for
- *                           the ishatechnologies.in zone. MUST be set as a
- *                           Vercel "Sensitive" (encrypted) env var, never a
- *                           plain one.
- *   CLOUDFLARE_ZONE_ID   — the zone ID for ishatechnologies.in.
+ *   GA4_PROPERTY_ID  — the GA4 property ID (Admin -> Property Settings),
+ *                      e.g. "123456789". Not secret, but kept server-side.
+ *   GA4_CLIENT_EMAIL — the service account's client_email, granted Viewer
+ *                      access on the GA4 property.
+ *   GA4_PRIVATE_KEY  — the service account's private_key. MUST be set as a
+ *                      Vercel "Sensitive" (encrypted) env var, never a
+ *                      plain one. Literal `\n` sequences in the pasted
+ *                      value are normalized to real newlines below.
  *
- * If either is missing, this returns { status: 'not_configured' } — never a
- * fake or zero number. If the live Cloudflare call fails, times out, or
+ * If any is missing, this returns { status: 'not_configured' } — never a
+ * fake or zero number. If the live Google API call fails, times out, or
  * returns something that isn't a valid count, this returns
  * { status: 'error' } and logs the real error server-side only. The
- * response is always exactly { status, visits? } — never the API token,
- * headers, or any raw Cloudflare payload.
+ * response is always exactly { status, visits? } — never the private key,
+ * an access token, or any raw Google API payload.
  *
- * Node.js runtime (Vercel's default serverless function runtime) — this
- * route just needs reliable access to the server-side
- * CLOUDFLARE_API_TOKEN/CLOUDFLARE_ZONE_ID secrets (set as Vercel
- * environment variables) and has no need for edge-specific capabilities.
- * Note: these are Cloudflare Analytics API credentials, unrelated to where
- * the app itself is hosted — they're what let this route read traffic
- * stats for a domain that's proxied through Cloudflare (orange-clouded),
- * regardless of the origin server behind it.
- *
- * DATE RANGE — the last 30 complete UTC days (yesterday back through 30
- * days before that; today is excluded because its data is still
- * accumulating and would make the number jump around intra-day). This
- * sums Cloudflare's per-day `visits` metric (from `httpRequests1dGroups`,
- * the only granularity the GraphQL Analytics API exposes) across that
- * window. Cloudflare defines a "visit" as a session deduplicated *within*
- * a single day; a person visiting on multiple days is counted once per
- * day. So this is genuinely "visits over the last 30 days" — NOT an
- * all-time or cross-day-deduplicated unique-visitor figure — and is
- * labeled that way in the UI (FooterVisitorStat.tsx).
+ * Node.js runtime (Vercel's default serverless function runtime) — used
+ * here for the built-in `crypto` module (RS256-signing the service account
+ * JWT); no other Node-specific APIs are used.
  */
 
 export const runtime = 'nodejs';
-export const revalidate = 1800; // Cache for 30 minutes — stable number, Cloudflare not hit on every page load.
+export const revalidate = 1800; // Cache for 30 minutes — stable number, Google isn't called on every page load.
 
-const CLOUDFLARE_GRAPHQL_URL = 'https://api.cloudflare.com/client/v4/graphql';
+const TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const ANALYTICS_SCOPE = 'https://www.googleapis.com/auth/analytics.readonly';
 const FETCH_TIMEOUT_MS = 10_000;
-const WINDOW_DAYS = 30;
 
-// Standard Cloudflare GraphQL Analytics API query for zone-level `visits`,
-// grouped by day (https://developers.cloudflare.com/analytics/graphql-api/).
-const VISITS_QUERY = `
-  query WebsiteVisitsLast30Days($zoneTag: String!, $since: Date!, $until: Date!) {
-    viewer {
-      zones(filter: { zoneTag: $zoneTag }) {
-        httpRequests1dGroups(
-          filter: { date_geq: $since, date_leq: $until }
-          limit: 30
-          orderBy: [date_ASC]
-        ) {
-          dimensions {
-            date
-          }
-          sum {
-            visits
-          }
-        }
-      }
-    }
-  }
-`;
-
-/** Formats a Date as the UTC calendar date Cloudflare's `Date` scalar expects (YYYY-MM-DD). */
-function toUtcDateString(date: Date): string {
-  return date.toISOString().slice(0, 10);
+function base64url(input: string | Buffer): string {
+  return Buffer.from(input).toString('base64url');
 }
 
-/** [since, until] = the last 30 complete UTC days, both inclusive, ending yesterday. */
-function last30DayRange(): { since: string; until: string } {
-  const now = new Date();
-  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-
-  const until = new Date(todayUtc);
-  until.setUTCDate(until.getUTCDate() - 1);
-
-  const since = new Date(until);
-  since.setUTCDate(since.getUTCDate() - (WINDOW_DAYS - 1));
-
-  return { since: toUtcDateString(since), until: toUtcDateString(until) };
-}
-
-type GraphQlResponse = {
-  data?: {
-    viewer?: {
-      zones?: {
-        httpRequests1dGroups?: { sum?: { visits?: number } }[];
-      }[];
-    };
+/** Builds and signs a service-account JWT for the OAuth2 JWT-bearer flow
+ * (https://developers.google.com/identity/protocols/oauth2/service-account). */
+function createServiceAccountJwt(clientEmail: string, privateKey: string): string {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const claims = {
+    iss: clientEmail,
+    scope: ANALYTICS_SCOPE,
+    aud: TOKEN_URL,
+    iat: now,
+    exp: now + 3600,
   };
-  errors?: { message?: string }[];
+
+  const unsigned = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(claims))}`;
+  const signature = createSign('RSA-SHA256').update(unsigned).sign(privateKey);
+  return `${unsigned}.${base64url(signature)}`;
+}
+
+/** Exchanges a signed service-account JWT for a short-lived OAuth2 access token. */
+async function getAccessToken(clientEmail: string, privateKey: string): Promise<string> {
+  const jwt = createServiceAccountJwt(clientEmail, privateKey);
+
+  const res = await fetch(TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Google token exchange failed with status ${res.status}`);
+  }
+
+  const payload = (await res.json()) as { access_token?: string };
+  if (!payload.access_token) {
+    throw new Error('Google token exchange response missing access_token');
+  }
+
+  return payload.access_token;
+}
+
+type GA4RunReportResponse = {
+  rows?: { metricValues?: { value?: string }[] }[];
 };
 
-async function fetchVisitsLast30Days(apiToken: string, zoneTag: string): Promise<number> {
-  const { since, until } = last30DayRange();
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-  let res: Response;
-  try {
-    res = await fetch(CLOUDFLARE_GRAPHQL_URL, {
+/** Sessions over the last 30 complete days (GA4's relative date keywords
+ * handle the date math), via the GA4 Data API's runReport endpoint. */
+async function fetchSessionsLast30Days(propertyId: string, accessToken: string): Promise<number> {
+  const res = await fetch(
+    `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
+    {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${apiToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: VISITS_QUERY,
-        variables: { zoneTag, since, until },
+        dateRanges: [{ startDate: '30daysAgo', endDate: 'yesterday' }],
+        metrics: [{ name: 'sessions' }],
       }),
-      signal: controller.signal,
-    });
-  } catch (err) {
-    if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error(`Cloudflare GraphQL API request timed out after ${FETCH_TIMEOUT_MS}ms`);
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     }
-    throw err;
-  } finally {
-    clearTimeout(timeout);
-  }
+  );
 
   if (!res.ok) {
-    throw new Error(`Cloudflare GraphQL API request failed with status ${res.status}`);
+    throw new Error(`GA4 Data API request failed with status ${res.status}`);
   }
 
-  const payload = (await res.json()) as GraphQlResponse;
+  const payload = (await res.json()) as GA4RunReportResponse;
+  const value = payload.rows?.[0]?.metricValues?.[0]?.value;
+  const sessions = Number(value);
 
-  if (payload.errors?.length) {
-    throw new Error(
-      `Cloudflare GraphQL API returned errors: ${payload.errors.map((e) => e.message).join('; ')}`
-    );
+  if (!Number.isFinite(sessions) || sessions < 0) {
+    throw new Error('GA4 Data API returned an invalid sessions total');
   }
 
-  const groups = payload.data?.viewer?.zones?.[0]?.httpRequests1dGroups;
-  if (!Array.isArray(groups)) {
-    throw new Error('Cloudflare GraphQL API response missing httpRequests1dGroups');
-  }
-
-  const total = groups.reduce((sum, group) => {
-    const visits = group?.sum?.visits;
-    return sum + (typeof visits === 'number' && Number.isFinite(visits) ? visits : 0);
-  }, 0);
-
-  if (!Number.isFinite(total) || total < 0) {
-    throw new Error('Cloudflare GraphQL API returned an invalid visits total');
-  }
-
-  return total;
+  return sessions;
 }
 
 export async function GET() {
-  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
-  const zoneTag = process.env.CLOUDFLARE_ZONE_ID;
+  const propertyId = process.env.GA4_PROPERTY_ID;
+  const clientEmail = process.env.GA4_CLIENT_EMAIL;
+  const rawPrivateKey = process.env.GA4_PRIVATE_KEY;
 
-  if (!apiToken || !zoneTag) {
-    // Not configured yet — this is the expected state until the Cloudflare
-    // Worker secrets are set. Never fake a number.
+  if (!propertyId || !clientEmail || !rawPrivateKey) {
+    // Not configured yet — this is the expected state until the GA4 service
+    // account env vars are set in Vercel. Never fake a number.
     return NextResponse.json({ status: 'not_configured' });
   }
 
+  // Env vars are single-line, so a pasted PEM's newlines are usually escaped
+  // as literal "\n" — normalize them back to real newlines. A value that
+  // already has real newlines (e.g. pasted as-is into Vercel's multi-line
+  // input) passes through unchanged.
+  const privateKey = rawPrivateKey.replace(/\\n/g, '\n');
+
   try {
-    const visits = await fetchVisitsLast30Days(apiToken, zoneTag);
+    const accessToken = await getAccessToken(clientEmail, privateKey);
+    const visits = await fetchSessionsLast30Days(propertyId, accessToken);
     return NextResponse.json({ status: 'ok', visits });
   } catch (err) {
     // Real error detail stays in the server log — the client only ever
-    // sees a generic "error" status, never the token, headers, or a fake
-    // fallback number.
-    console.error('Cloudflare visits fetch failed:', err);
+    // sees a generic "error" status, never the private key, access token,
+    // or a fake fallback number.
+    console.error('GA4 visits fetch failed:', err);
     return NextResponse.json({ status: 'error' });
   }
 }

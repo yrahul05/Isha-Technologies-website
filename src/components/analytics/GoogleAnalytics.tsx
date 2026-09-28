@@ -24,10 +24,11 @@ declare global {
  * source of truth for page views, so client-side route changes (which don't
  * reload gtag.js) are tracked without ever double-firing on the initial load.
  *
- * Visitor statistics require an authenticated analytics reporting layer
- * (e.g. the GA4 Data API called server-side with a service account). This
- * file only ever sends events to Google — it never reads them back, and no
- * Google Analytics credentials or tokens are ever exposed in the browser.
+ * The footer's "Website Visitors" stat reads an aggregate back out of GA4
+ * via the Data API, server-side with a service account — see
+ * src/app/api/analytics/visitors/route.ts. This file only ever sends
+ * events to Google — it never reads them back, and no Google Analytics
+ * credentials or tokens are ever exposed in the browser.
  */
 export function GoogleAnalytics() {
   const pathname = usePathname();
