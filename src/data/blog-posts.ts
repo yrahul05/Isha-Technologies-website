@@ -777,6 +777,171 @@ resource "aws_s3_bucket" "assets" {
       'These disciplines need to be revisited as the system evolves, not treated as a one-time launch checklist.',
     ],
   },
+
+  {
+    slug: 'amazon-cloudwatch-omni-ai-observability',
+    title:
+      'Amazon CloudWatch Omni: AI-Powered Observability for Applications and AI Agents',
+    category: 'Observability',
+    excerpt:
+      "A complete guide to Amazon CloudWatch Omni, AWS's AI-powered observability platform for applications and AI agents, built on OpenTelemetry.",
+    introduction:
+      'CloudWatch has been the default place AWS customers look for metrics, logs and alarms for over a decade. Amazon CloudWatch Omni, announced by AWS in September 2026, is the newest evolution of that service — an AI-powered observability workspace that watches applications and AI agents together, discovers your architecture automatically, and brings an AI agent into the investigation alongside your team. This guide covers what it is, how it works end to end, and where it fits next to the CloudWatch you already run.',
+    readingTime: '16 min read',
+    author: AUTHOR,
+    publishedLabel: PUBLISHED_LABEL,
+    visualSlug: 'observability',
+    ctaLabel: 'Explore Observability',
+    ctaHref: '/services/observability',
+    toc: [
+      { id: 'what-is-cloudwatch-omni', heading: 'What Is Amazon CloudWatch Omni?' },
+      { id: 'why-aws-built-omni', heading: 'Why AWS Built It, and What Problem It Solves' },
+      { id: 'how-omni-works', heading: 'How CloudWatch Omni Works End to End' },
+      { id: 'application-observability', heading: 'AI-Powered Application Observability' },
+      { id: 'ai-agent-observability', heading: 'Observability for AI Agents' },
+      { id: 'opentelemetry-and-instrumentation', heading: 'OpenTelemetry and Instrumentation' },
+      { id: 'ide-experience', heading: 'The IDE Experience: VS Code, Cursor and Kiro' },
+      { id: 'multi-account-multi-region', heading: 'Multi-Account, Multi-Region and Cross-Cloud Observability' },
+      { id: 'sso-and-spaces', heading: 'SSO and Organizational Spaces' },
+      { id: 'getting-started', heading: 'Getting Started With CloudWatch Omni' },
+      { id: 'real-world-use-cases', heading: 'Real-World DevOps Use Cases' },
+      { id: 'benefits-startups-enterprises', heading: 'Benefits for Startups and Enterprises' },
+      { id: 'limitations', heading: 'Limitations and Considerations' },
+      { id: 'when-to-use', heading: 'When Should a Team Use CloudWatch Omni?' },
+      { id: 'practical-example', heading: 'Practical Example: Debugging a Quality Regression' },
+      { id: 'faq', heading: 'Frequently Asked Questions' },
+      { id: 'conclusion', heading: 'Conclusion' },
+    ],
+    contentHtml: `
+<h2 id="what-is-cloudwatch-omni">What Is Amazon CloudWatch Omni?</h2>
+<p>Amazon CloudWatch Omni is an AI-powered observability experience, built on top of Amazon CloudWatch, for monitoring applications and AI agents — separately or together — in one workspace. Instead of living inside the AWS Management Console, Omni is reached through a dedicated sign-in URL for your organization, using the identity provider your team already manages.</p>
+<p>Rather than replacing CloudWatch, Omni sits on top of it. Your existing metrics, logs, alarms, dashboards and Logs Insights queries keep working exactly as they do today. What Omni adds is a reimagined, AI-assisted way to explore that same telemetry: automatically discovered service topology, plain-language querying, and an AI agent that can join an investigation the moment something goes wrong.</p>
+<p>If you want the fundamentals of the underlying signal model first, our guide on <a href="/resources/blogs/observability-metrics-logs-traces">designing observability with metrics, logs and traces</a> is a useful primer before diving into Omni specifically.</p>
+
+<h2 id="why-aws-built-omni">Why AWS Built It, and What Problem It Solves</h2>
+<p>Two trends collided to make traditional CloudWatch feel incomplete for a growing number of teams:</p>
+<ul>
+  <li><strong>Manual dashboard and alarm curation doesn't scale.</strong> As systems grow into dozens or hundreds of services across multiple accounts and regions, hand-built dashboards and manually tuned alarm thresholds fall out of date the moment the architecture changes — and someone has to notice and fix them.</li>
+  <li><strong>AI agents fail in ways traditional monitoring can't see.</strong> An agent can return a well-formed, confident response that is simply wrong. Request rate, error rate and latency — the metrics that catch a failing web service — don't catch a "confidently incorrect" agent response at all.</li>
+</ul>
+<p>CloudWatch Omni addresses both by discovering topology and adjusting alarms automatically instead of requiring manual upkeep, and by scoring agent output quality with evaluators that run continuously in production, not just checking whether a request completed.</p>
+<p>The key difference from traditional CloudWatch is organizational as much as technical: CloudWatch is a set of console pages, APIs and data stores you query yourself; Omni is a standalone, AI-assisted workspace built on that same data, organized around your team's applications and agents rather than around individual metrics and log groups.</p>
+
+<h2 id="how-omni-works">How CloudWatch Omni Works End to End</h2>
+<p>Omni is organized around three concepts that determine where your telemetry lives and who can see it:</p>
+<ul>
+  <li><strong>Domain</strong> — your organization's entry point and sign-in URL, chosen once during setup. Your identity provider connects at the domain level.</li>
+  <li><strong>Space</strong> — where the work happens. A space is scoped to one AWS account and one region, and controls who on your team can see that telemetry. One domain can contain many spaces, which is how a single organization observes multiple accounts and regions side by side.</li>
+  <li><strong>CloudWatch Dataset</strong> — how Omni actually brings your telemetry together, making logs and traces queryable and correlated across signal types in one place. Enabling Omni for a space creates one Dataset for it; ingestion and retention are still managed through the CloudWatch resources you already configure.</li>
+</ul>
+<p>End to end, the flow looks like this: your applications and agents send telemetry the same way they do today (the CloudWatch agent, AWS SDKs, or an OpenTelemetry pipeline) → that telemetry lands in a Dataset scoped to a Space → Omni's discovery layer builds a topology and computes golden metrics from it automatically → engineers work with that topology through the Omni web UI or an IDE extension → when something needs investigating, the AWS DevOps Agent joins the session and correlates signals across the whole graph.</p>
+
+<h2 id="application-observability">AI-Powered Application Observability</h2>
+<h3>Automatic Service Discovery and Dependency Mapping</h3>
+<p>Omni discovers your services and the dependencies between them directly from telemetry, with no manual tagging or configuration. As you deploy new services, the topology and its alarms update automatically — a meaningful shift from the usual pattern of dashboards quietly drifting out of sync with the architecture they're supposed to represent.</p>
+<h3>Golden Metrics</h3>
+<p>For every discovered service, Omni reports the RED metrics — <strong>R</strong>equest rate, <strong>E</strong>rror rate and <strong>D</strong>uration — as its golden metrics, computed automatically rather than requiring you to build them into a dashboard by hand.</p>
+<h3>Natural-Language Investigation</h3>
+<p>You can ask a question about your applications in plain English, and Omni writes the underlying query for you — in SQL or PromQL — and answers from your own telemetry. This lowers the bar for exploring unfamiliar services: an engineer new to a system can ask "which service is driving the latency increase in checkout" without first learning that service's specific query syntax or dashboard layout.</p>
+<h3>AWS DevOps Agent Integration</h3>
+<p>The AWS DevOps Agent is enabled by default in every Omni investigation session. It correlates events across services, traces likely root-cause paths through the dependency graph, and suggests next steps alongside your team rather than replacing the team's judgment. Investigation history is captured automatically as a Thread, so when an incident escalates, the next responder joins with full context already in front of them instead of starting from a blank dashboard.</p>
+<h3>Logs, Metrics and Traces in One Place</h3>
+<p>Because a Space's Dataset correlates logs, metrics and traces together, an investigation doesn't require switching between separate tools for each signal type — you can move from a metric anomaly to the trace that explains it to the log line that names the exact error, inside one workspace.</p>
+
+<h2 id="ai-agent-observability">Observability for AI Agents</h2>
+<h3>Agent Traces: Prompts, Model Calls and Tool Invocations</h3>
+<p>For agentic workloads, Omni records every step of an agent's execution as a structured, hierarchical trace — LLM calls, tool invocations and reasoning steps — so you can see exactly where behavior diverged from what you expected. Each span in that trace exposes inputs, outputs, token usage and latency, and a <strong>Compare mode</strong> lets you place two traces side by side to see how a different prompt, model or configuration changed the outcome.</p>
+<p>Supporting tools built around these traces include a <strong>Session Explorer</strong> for reviewing full multi-turn conversation histories, and an <strong>Agent Topology</strong> view that visualizes an agent system's architecture — sub-agents, tools and how they connect.</p>
+<h3>Evaluation-Driven Development</h3>
+<p>Omni scores agent responses with evaluators — 17 built-in evaluators covering dimensions like coherence, helpfulness, faithfulness and routing correctness, plus support for bringing your own custom criteria scored by a judge model. Scoring runs both continuously against live production traffic and on demand against a curated dataset, and the scores sit alongside latency, errors and token usage on the same trace. This is what catches the failures that error rates miss entirely: a syntactically perfect, completely wrong answer.</p>
+<p>A <strong>Playground</strong> lets you test different system prompts and model configurations side by side, <strong>Prompt Management</strong> versions and tracks those configurations over time, and an <strong>Experiments</strong> view runs the same golden dataset against two agent variants to compare their evaluation scores, latency and token usage before you ship a change.</p>
+<h3>Supported AI Agent Frameworks</h3>
+<p>Omni supports agents built with LangChain, LangGraph, CrewAI, the OpenAI Agents SDK, Strands and the Vercel AI SDK, in both Python and TypeScript, plus native observability for agents built on Amazon Bedrock AgentCore.</p>
+
+<h2 id="opentelemetry-and-instrumentation">OpenTelemetry and Instrumentation</h2>
+<p>Omni is built on OpenTelemetry rather than a proprietary agent format. Telemetry you already send to CloudWatch appears in Omni with nothing to reconfigure, and any workload instrumented with OpenTelemetry — using OpenInference for AI-specific spans and the AWS Distro for OpenTelemetry (ADOT) — can send data straight to an OTLP endpoint. In practice, this means no re-instrumentation for existing CloudWatch or OpenTelemetry users, and it means Omni works the same way whether a workload runs on Lambda, ECS, EKS, or infrastructure outside AWS entirely.</p>
+
+<h2 id="ide-experience">The IDE Experience: VS Code, Cursor and Kiro</h2>
+<p>A meaningful part of Omni's design is that agent debugging doesn't require leaving the editor. IDE extensions are available for VS Code, Cursor and Kiro, and the extension is free to use — an agent developer can start sending telemetry and inspecting traces without an AWS account at all. Kiro adds auto-instrumentation that detects the agent framework in use and configures tracing automatically, while a <strong>Cloud Login</strong> flow connects the local IDE session to an AWS account when a developer is ready to move from local traces to the full Omni workspace, with a playground and evaluators a click away from any trace.</p>
+
+<h2 id="multi-account-multi-region">Multi-Account, Multi-Region and Cross-Cloud Observability</h2>
+<p>Because a Space maps to exactly one account and region, that boundary — rather than a filter applied at query time — is what separates one team's telemetry from another's. An organization observes multiple accounts and regions by creating multiple Spaces inside the same Domain, and Omni maps topology and golden metrics across a single account or hundreds of them, across multiple regions, without manual configuration or tagging. Where you already centralize telemetry across accounts and regions using CloudWatch's own centralization rules, that centralized data appears in a Space like any other telemetry — Omni doesn't aggregate across accounts and regions on its own.</p>
+<p>Omni also extends beyond AWS: connectors bring in telemetry from other environments, and AWS specifically highlights cross-cloud visibility that includes Azure workloads — useful for organizations running a genuinely mixed AWS/Azure estate that want one topology view instead of two separate monitoring stacks.</p>
+
+<h2 id="sso-and-spaces">SSO and Organizational Spaces</h2>
+<p>Every engineer reaches Omni through a single URL for the organization's Domain, authenticated through enterprise SSO via IAM Identity Center — including providers like Okta and Microsoft Entra ID — rather than through individual AWS Console credentials. A Space then groups the applications a specific team owns along with the telemetry associated with them, so access control follows team and application boundaries rather than raw account permissions. Combined with Threads for shared investigation history, this is what lets an investigation hand off cleanly between engineers, or between an on-call shift and the next one, without losing context.</p>
+
+<h2 id="getting-started">Getting Started With CloudWatch Omni</h2>
+<p>At general availability (announced September 23, 2026), CloudWatch Omni is available in three AWS Regions: US East (N. Virginia), US West (Oregon) and Europe (Ireland). Getting started follows three steps:</p>
+<ol>
+  <li><strong>Set up a Domain and Space</strong> from the CloudWatch console, connecting your identity provider for SSO.</li>
+  <li><strong>Send telemetry</strong> — existing CloudWatch users need no changes; OpenTelemetry users point their pipeline at Omni's OTLP endpoint; agent developers can start immediately with the free VS Code, Cursor or Kiro extension.</li>
+  <li><strong>Follow an end-to-end tutorial</strong> — AWS provides one for fixing a production quality regression in an AI agent, and a separate one for monitoring an application.</li>
+</ol>
+<p>Pricing is metered and detailed on the CloudWatch pricing page — worth modeling the same way you would evaluate any new telemetry or observability spend before rolling it out broadly.</p>
+
+<h2 id="real-world-use-cases">Real-World DevOps Use Cases</h2>
+<ul>
+  <li><strong>Latency regression triage.</strong> An SRE gets paged for elevated checkout latency, opens an Omni investigation, and the AWS DevOps Agent has already correlated the spike with a downstream dependency's deploy — cutting triage from a multi-service hunt to a pointed hypothesis in minutes.</li>
+  <li><strong>Catching a confidently wrong agent.</strong> An AI product team's support agent starts giving plausible but incorrect refund policy answers after a prompt change; a faithfulness evaluator's score drops before any customer complaint arrives, flagging the regression while it's still cheap to fix.</li>
+  <li><strong>Consolidating multi-account monitoring.</strong> A platform team with workloads spread across a dozen AWS accounts and two regions gets one topology view through Spaces, instead of maintaining a dozen separate dashboard sets that drift independently.</li>
+  <li><strong>Safer prompt rollouts.</strong> An engineering team uses the Playground and Experiments view to run a new prompt against a golden dataset and compare evaluation scores against the current version before shipping, rather than shipping and hoping.</li>
+</ul>
+
+<h2 id="benefits-startups-enterprises">Benefits for Startups and Enterprises</h2>
+<p>For startups and small teams building on generative AI, the free IDE extension removes the usual observability bootstrap cost — there's no AWS account setup or dedicated observability engineer needed just to see what an agent is actually doing during development. For teams already on CloudWatch, Omni is an incremental step, not a migration.</p>
+<p>For enterprises, the value leans more organizational: enterprise SSO and Identity Center integration, Spaces that map cleanly onto team and application ownership, multi-account and multi-region topology without a manual tagging project, and cross-cloud visibility for organizations that genuinely run mixed AWS/Azure estates. Adopting a new observability surface well — deciding what belongs in which Space, how alerts route into existing on-call tooling, and how this fits your current <a href="/services/devops-solutions">CI/CD and DevOps practice</a> — is exactly the kind of rollout work a managed DevOps partner can help get right the first time.</p>
+
+<h2 id="limitations">Limitations and Considerations</h2>
+<ul>
+  <li><strong>Limited region footprint at launch.</strong> GA availability is currently three regions (US East N. Virginia, US West Oregon, Europe Ireland) — teams with strict data-residency requirements elsewhere will need to plan around that.</li>
+  <li><strong>Centralization is still your responsibility.</strong> Omni doesn't aggregate telemetry across accounts and regions on its own; cross-account/region visibility still depends on CloudWatch centralization rules being configured.</li>
+  <li><strong>Evaluators are a signal, not ground truth.</strong> A judge-model-based evaluator is still a model — useful for catching regressions at scale, but worth validating periodically against real user feedback rather than trusting blindly.</li>
+  <li><strong>A new access surface to govern.</strong> A dedicated sign-in URL with SSO is a new identity boundary to include in access reviews, alongside existing AWS Console and IAM policies.</li>
+  <li><strong>New telemetry paths have a cost.</strong> As with any observability rollout, ingestion and evaluator usage should be modeled against the CloudWatch Omni pricing page before enabling it broadly across accounts.</li>
+</ul>
+
+<h2 id="when-to-use">When Should a Team Use CloudWatch Omni?</h2>
+<p>CloudWatch Omni is a strong fit when a team already relies on CloudWatch and is expanding into agentic or generative AI features, when engineers are spread across multiple AWS accounts and regions and want one topology view instead of several, when incident response regularly involves handing an investigation off between people or teams, or when "did this change make the agent worse" needs a repeatable answer instead of manual spot-checking.</p>
+<p>It matters less for a single small account with no AI agents and a already-mature, fully tuned Prometheus/Grafana or equivalent stack that the team has no appetite to change — in that case, the migration cost may outweigh what Omni adds on day one.</p>
+
+<h2 id="practical-example">Practical Example: Debugging a Quality Regression</h2>
+<p>Consider a support-chat agent that starts drawing complaints after a prompt update. In Omni, the workflow looks roughly like this:</p>
+<ol>
+  <li>A faithfulness evaluator score, tracked continuously in production, drops below a declared threshold and fires an alert to the team's Slack channel.</li>
+  <li>An engineer opens the resulting investigation session, pre-loaded with the AWS DevOps Agent's initial analysis and the relevant trace.</li>
+  <li>Using Compare mode, the engineer places the last known-good trace next to a current failing one and sees the prompt version differs between them.</li>
+  <li>In the Playground, the engineer tests a corrected prompt, then runs it through the Experiments view against the team's golden dataset to confirm evaluation scores recover before shipping.</li>
+  <li>The fix ships, and the whole investigation — alert, root cause, fix and verification — stays recorded in a Thread for the post-incident review, with no separate report to assemble by hand.</li>
+</ol>
+
+<h2 id="faq">Frequently Asked Questions</h2>
+<h3>Does CloudWatch Omni replace CloudWatch?</h3>
+<p>No. Omni is built on CloudWatch and extends it — existing alarms, dashboards, APIs and console workflows continue to work unchanged.</p>
+<h3>Do I need to re-instrument my applications to use it?</h3>
+<p>No, if you already send telemetry to CloudWatch or instrument with OpenTelemetry. That telemetry appears in Omni without reconfiguration.</p>
+<h3>Can I try it without an AWS account?</h3>
+<p>Yes, for agent development specifically — the free VS Code, Cursor and Kiro IDE extensions let you instrument and trace an agent locally before connecting to an AWS account.</p>
+<h3>Which AI agent frameworks does it support?</h3>
+<p>LangChain, LangGraph, CrewAI, the OpenAI Agents SDK, Strands and the Vercel AI SDK, in Python and TypeScript, along with native support for Amazon Bedrock AgentCore.</p>
+<h3>Does it work with Azure workloads?</h3>
+<p>Yes — Omni provides connectors for environments outside AWS and specifically supports cross-cloud visibility that includes Azure workloads.</p>
+<h3>What regions is it available in today?</h3>
+<p>At general availability: US East (N. Virginia), US West (Oregon) and Europe (Ireland), with AWS's usual pattern of expanding region coverage over time.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+<p>Amazon CloudWatch Omni is less a new monitoring tool than a rethink of how observability data gets used — automatically discovered instead of hand-maintained, correlated across applications and AI agents instead of split across separate stacks, and worked on with an AI agent in the loop rather than alone at 2 a.m. with a dozen open dashboard tabs. For teams already running AWS workloads or shipping their first agentic features, it's worth evaluating now rather than after the next incident makes the gap obvious.</p>
+<p>Getting the rollout right — deciding Space boundaries, wiring alerts into existing on-call tooling, and folding evaluation-driven development into an existing CI/CD pipeline — is exactly the kind of cloud monitoring and managed DevOps work our team helps clients get right the first time.</p>
+`,
+    keyTakeaways: [
+      'CloudWatch Omni extends CloudWatch rather than replacing it — existing alarms, dashboards, APIs and console workflows keep working unchanged.',
+      'It unifies application observability (automatic topology, golden RED metrics, natural-language queries, the AWS DevOps Agent) with AI agent observability (traces, evaluators, prompt experiments) in one workspace.',
+      'Everything is built on OpenTelemetry, so teams already on the CloudWatch agent or OpenTelemetry need no re-instrumentation to appear in Omni.',
+      'The IDE extension for VS Code, Cursor and Kiro is free and works without an AWS account, making agent trace debugging accessible from day one.',
+      'Multi-account, multi-region and even Azure workloads can appear in a single topology view through Spaces and connectors.',
+      'At GA, Omni is available in three regions (US East N. Virginia, US West Oregon, Europe Ireland) — plan multi-region rollouts accordingly.',
+    ],
+  },
 ];
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {
