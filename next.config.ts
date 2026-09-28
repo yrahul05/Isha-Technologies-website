@@ -35,6 +35,54 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Permanent redirects from the previous service URL structure to the
+  // current canonical 14-service structure (see src/data/services.ts).
+  // Kept indefinitely — these old URLs are still indexed and linked from
+  // outside the site, so they must keep resolving, not 404.
+  async redirects() {
+    return [
+      {
+        source: '/services/cloud-migration',
+        destination: '/services/cloud-migration-modernization',
+        permanent: true,
+      },
+      {
+        source: '/services/cloud-cost-optimization',
+        destination: '/services/cloud-cost-optimization-finops',
+        permanent: true,
+      },
+      {
+        source: '/services/platform-solutions',
+        destination: '/services/platform-engineering',
+        permanent: true,
+      },
+      {
+        source: '/services/kubernetes',
+        destination: '/services/kubernetes-container-platforms',
+        permanent: true,
+      },
+      {
+        source: '/services/observability',
+        destination: '/services/observability-monitoring',
+        permanent: true,
+      },
+      {
+        source: '/services/site-reliability',
+        destination: '/services/site-reliability-engineering',
+        permanent: true,
+      },
+      {
+        source: '/services/terraform',
+        destination: '/services/infrastructure-as-code-gitops',
+        permanent: true,
+      },
+      {
+        source: '/services/aws',
+        destination: '/services/cloud-solutions',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

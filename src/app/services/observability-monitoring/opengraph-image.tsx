@@ -3,11 +3,11 @@ import { OG_IMAGE_CONTENT_TYPE, OG_IMAGE_SIZE, OgImageCard } from '@/lib/og-imag
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'nodejs';
-export const alt = 'Isha Technologies — AWS Cloud Services';
+export const alt = 'Isha Technologies — Observability & Monitoring';
 export const size = OG_IMAGE_SIZE;
 export const contentType = OG_IMAGE_CONTENT_TYPE;
 
-const service = getServiceBySlug('aws')!;
+const service = getServiceBySlug('observability-monitoring')!;
 
 export default async function Image() {
   return new ImageResponse(

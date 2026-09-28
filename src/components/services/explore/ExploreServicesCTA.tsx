@@ -1,10 +1,10 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
-export function ServiceCTA({ heading, serviceTitle }: { heading: string; serviceTitle: string }) {
-  const contactHref = `/contact?service=${encodeURIComponent(serviceTitle)}`;
-
+export function ExploreServicesCTA() {
   return (
     <section className="bg-gradient-to-b from-white to-brand/5 py-16">
       <motion.div
@@ -18,18 +18,18 @@ export function ServiceCTA({ heading, serviceTitle }: { heading: string; service
           Let&apos;s Talk Infrastructure
         </span>
         <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
-          {heading}
+          Let&apos;s Build a Reliable Cloud &amp; DevOps Infrastructure
         </h2>
         <p className="mx-auto mt-3 max-w-lg text-base leading-relaxed text-slate-600">
-          Tell us what you&apos;re building, where you&apos;re facing infrastructure challenges,
-          and what you want to improve.
+          Not sure which service fits your situation? Tell us what you&apos;re building and
+          we&apos;ll help you figure out where to start.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-4">
           <Button asChild variant="primary" className="h-11 rounded-lg px-6">
-            <Link href={contactHref}>Talk to an Expert</Link>
+            <Link href="/contact">Talk to an Expert</Link>
           </Button>
           <Button asChild variant="secondary" className="h-11 rounded-lg px-6">
-            <Link href={`${contactHref}#contact-form`}>Request a Consultation</Link>
+            <Link href="/contact#contact-form">Request a Consultation</Link>
           </Button>
         </div>
       </motion.div>

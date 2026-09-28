@@ -89,11 +89,33 @@ export type ServiceArchitectureNode = {
   icon: IconName;
 };
 
+/** A concrete client-facing problem this service addresses — not a
+ * generic pain point copied across services. */
+export type ServiceProblem = {
+  title: string;
+  description: string;
+  icon: IconName;
+};
+
+export type ServiceFaq = {
+  question: string;
+  answer: string;
+};
+
+/** The four groupings used in the services navigation, the Explore All
+ * Services page, and each service page's breadcrumb trail. */
+export type ServiceCategory =
+  | 'Cloud & Infrastructure'
+  | 'DevOps & Platform'
+  | 'Cloud-Native'
+  | 'AI & Security';
+
 export type Service = {
   /** Route segment, e.g. "cloud-solutions" */
   slug: string;
   /** Short display name used in nav, footer, related-services and prev/next */
   title: string;
+  category: ServiceCategory;
   eyebrow: string;
   heading: string;
   description: string;
@@ -101,11 +123,17 @@ export type Service = {
     heading: string;
     paragraphs: string[];
   };
+  /** Specific problems/business challenges this service addresses. */
+  problems: ServiceProblem[];
   capabilities: ServiceCapability[];
   technologies: ServiceTechGroup[];
   process: ServiceProcessStep[];
   architecture: ServiceArchitectureNode[];
+  /** Where this service is genuinely useful — short, specific phrases,
+   * not full sentences (rendered as a checklist). */
+  useCases: string[];
   businessValue: ServiceValuePoint[];
+  faqs: ServiceFaq[];
   cta: {
     heading: string;
   };

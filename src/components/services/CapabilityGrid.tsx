@@ -6,7 +6,7 @@ export function CapabilityGrid({ capabilities }: { capabilities: ServiceCapabili
   const columns = capabilities.length % 3 === 0 ? 'lg:grid-cols-3' : 'lg:grid-cols-2';
 
   return (
-    <section className="bg-brand/[0.03] py-16">
+    <section className="bg-white py-16">
       <div className="mx-auto max-w-[1280px] px-4">
         <div className="mb-10 max-w-xl">
           <span className="text-xs font-semibold uppercase tracking-wide text-brand">

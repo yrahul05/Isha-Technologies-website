@@ -1,7 +1,10 @@
 'use client';
 
 import type { JSX } from 'react';
+import { AIOpsInvestigationVisual } from './AIOpsInvestigationVisual';
+import { AIWorkloadInfrastructureVisual } from './AIWorkloadInfrastructureVisual';
 import { CloudArchitectureVisual } from './CloudArchitectureVisual';
+import { CloudSecurityVisual } from './CloudSecurityVisual';
 import { CostOptimizationVisual } from './CostOptimizationVisual';
 import { DevOpsPipelineVisual } from './DevOpsPipelineVisual';
 import { DevSecOpsPipelineVisual } from './DevSecOpsPipelineVisual';
@@ -15,21 +18,24 @@ import { TerraformWorkflowVisual } from './TerraformWorkflowVisual';
 
 const VISUALS: Record<string, () => JSX.Element> = {
   'cloud-solutions': CloudArchitectureVisual,
-  'devops-solutions': DevOpsPipelineVisual,
-  kubernetes: KubernetesClusterVisual,
-  'cloud-migration': MigrationArchitectureVisual,
+  'cloud-migration-modernization': MigrationArchitectureVisual,
   'managed-cloud': ManagedCloudOperationsVisual,
-  'cloud-cost-optimization': CostOptimizationVisual,
+  'cloud-cost-optimization-finops': CostOptimizationVisual,
+  'devops-solutions': DevOpsPipelineVisual,
   devsecops: DevSecOpsPipelineVisual,
-  'platform-solutions': PlatformEngineeringVisual,
-  'site-reliability': ReliabilityArchitectureVisual,
-  observability: ObservabilitySignalsVisual,
-  terraform: TerraformWorkflowVisual,
+  'platform-engineering': PlatformEngineeringVisual,
+  'infrastructure-as-code-gitops': TerraformWorkflowVisual,
+  'kubernetes-container-platforms': KubernetesClusterVisual,
+  'observability-monitoring': ObservabilitySignalsVisual,
+  'site-reliability-engineering': ReliabilityArchitectureVisual,
+  'ai-powered-devops-aiops': AIOpsInvestigationVisual,
+  'ai-cloud-infrastructure': AIWorkloadInfrastructureVisual,
+  'cloud-security': CloudSecurityVisual,
 };
 
 /**
  * Renders the service-specific hero visual for a given slug. Every one of
- * the 10 services gets its own component (see `VISUALS` above) built from
+ * the 14 services gets its own component (see `VISUALS` above) built from
  * the shared primitives in `./primitives` — same visual language, unique
  * architecture per service.
  */

@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/sheet';
 import { ChevronRight, Menu, Phone } from 'lucide-react';
 import { Logo } from '../ui/logo';
-import { services } from '@/data/data';
+import { getServicesByCategory } from '@/data/services';
 import {
   Accordion,
   AccordionContent,
@@ -56,6 +56,10 @@ const mobileLinkClass = (active: boolean) =>
     'rounded text-base transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
     active ? 'font-semibold text-brand' : 'text-black hover:text-brand'
   );
+
+// Grouped once at module scope — pure data derived from the canonical
+// service list, identical on every render.
+const serviceCategories = getServicesByCategory();
 
 export const Navbar = () => {
   const [isShow, setIsShow] = useState<boolean>(false);
@@ -112,32 +116,43 @@ export const Navbar = () => {
                 <NavigationMenuTrigger className={triggerLinkClass(isServicesActive)}>
                   Services
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="p-2 grid gap-2 border-black/5 w-max bg-white shadow-lg rounded-lg">
-                  {services.map((service, idx) => {
-                    const isActive = isRouteActive(pathname, service.link);
-                    return (
-                      <NavigationMenuLink
-                        asChild
-                        key={idx}
-                        active={isActive}
-                        className={dropdownItemClass(isActive)}
-                      >
-                        <Link href={service.link} aria-current={isActive ? 'page' : undefined}>
-                          <span className="flex justify-between items-center gap-2">
-                            {service.title}
-
-                            <ChevronRight />
-                          </span>
-                        </Link>
-                      </NavigationMenuLink>
-                    );
-                  })}
-                  <hr className="my-1 border-black/5" />
+                <NavigationMenuContent className="w-[640px] rounded-lg border-black/5 bg-white p-5 shadow-lg">
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+                    {serviceCategories.map((group) => (
+                      <div key={group.category}>
+                        <span className="text-xs font-semibold uppercase tracking-wide text-brand">
+                          {group.category}
+                        </span>
+                        <div className="mt-2 grid gap-0.5">
+                          {group.services.map((service) => {
+                            const href = `/services/${service.slug}`;
+                            const isActive = isRouteActive(pathname, href);
+                            return (
+                              <NavigationMenuLink
+                                asChild
+                                key={service.slug}
+                                active={isActive}
+                                className={dropdownItemClass(isActive) + ' !px-2'}
+                              >
+                                <Link href={href} aria-current={isActive ? 'page' : undefined}>
+                                  {service.title}
+                                </Link>
+                              </NavigationMenuLink>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <hr className="my-4 border-black/5" />
                   <NavigationMenuLink
                     asChild
-                    className="px-6 py-1 text-base bg-brand text-white hover:text-brand text-center hover:bg-gray-50 rounded text-nowrap transition-colors duration-200 ease-out"
+                    className="flex items-center justify-center gap-1.5 rounded px-6 py-2 text-center text-base text-nowrap bg-brand text-white transition-colors duration-200 ease-out hover:bg-gray-50 hover:text-brand"
                   >
-                    <Link href="/services">Explore Services</Link>
+                    <Link href="/services">
+                      Explore All Services
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
                   </NavigationMenuLink>
                 </NavigationMenuContent>
               </NavigationMenuItem>
@@ -276,34 +291,44 @@ export const Navbar = () => {
                         Services
                       </AccordionTrigger>
                       <AccordionContent>
-                        <div className="flex flex-col gap-4 mt-2">
-                          {services.map((service, idx) => {
-                            const isActive = isRouteActive(pathname, service.link);
-                            return (
-                              <Link
-                                key={idx}
-                                href={service.link}
-                                aria-current={isActive ? 'page' : undefined}
-                                className={cn(
-                                  'flex items-center justify-between text-sm rounded p-2 transition-colors duration-200 ease-out hover:bg-gray-50',
-                                  isActive
-                                    ? 'bg-brand/10 text-brand font-semibold'
-                                    : 'text-black hover:text-brand'
-                                )}
-                                onClick={() => setIsShow(false)}
-                              >
-                                {service.title}
-                                <ChevronRight className="h-4 w-4" />
-                              </Link>
-                            );
-                          })}
+                        <div className="flex flex-col gap-5 mt-2">
+                          {serviceCategories.map((group) => (
+                            <div key={group.category}>
+                              <span className="text-xs font-semibold uppercase tracking-wide text-brand/70">
+                                {group.category}
+                              </span>
+                              <div className="mt-1.5 flex flex-col gap-1">
+                                {group.services.map((service) => {
+                                  const href = `/services/${service.slug}`;
+                                  const isActive = isRouteActive(pathname, href);
+                                  return (
+                                    <Link
+                                      key={service.slug}
+                                      href={href}
+                                      aria-current={isActive ? 'page' : undefined}
+                                      className={cn(
+                                        'flex items-center justify-between text-sm rounded p-2 transition-colors duration-200 ease-out hover:bg-gray-50',
+                                        isActive
+                                          ? 'bg-brand/10 text-brand font-semibold'
+                                          : 'text-black hover:text-brand'
+                                      )}
+                                      onClick={() => setIsShow(false)}
+                                    >
+                                      {service.title}
+                                      <ChevronRight className="h-4 w-4" />
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
                           <hr className="my-1 border-black/5" />
                           <Link
                             href="/services"
                             className="px-3 py-2 text-center text-base bg-brand text-white transition-colors duration-200 ease-out hover:bg-gray-50 hover:text-brand rounded"
                             onClick={() => setIsShow(false)}
                           >
-                            Explore Services
+                            Explore All Services
                           </Link>
                         </div>
                       </AccordionContent>

@@ -31,9 +31,25 @@ export const ContactForm = () => {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
+    setValue,
   } = useForm<ContactFormValues>();
 
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  // Prefill the "Service Required" dropdown from a `?service=` query param
+  // (used by every service page's CTA links) — read via `window.location`
+  // directly, on mount, rather than `useSearchParams()`, so this page can
+  // stay statically prerendered instead of bailing into a client-only
+  // Suspense fallback at build time. Only an exact match against the real
+  // dropdown options is applied; an arbitrary/stale value is ignored
+  // rather than silently selecting the wrong service.
+  useEffect(() => {
+    const requestedService = new URLSearchParams(window.location.search).get('service');
+    const prefilledService = contactServiceOptions.find((option) => option === requestedService);
+    if (prefilledService) {
+      setValue('service', prefilledService);
+    }
+  }, [setValue]);
 
   // Aggregate, non-identifying view event only — no form values are ever
   // sent to GA4 (see trackEvent's docs and CLAUDE brief on this).

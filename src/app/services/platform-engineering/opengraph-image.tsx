@@ -3,11 +3,11 @@ import { OG_IMAGE_CONTENT_TYPE, OG_IMAGE_SIZE, OgImageCard } from '@/lib/og-imag
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'nodejs';
-export const alt = 'Isha Technologies — Platform Solutions';
+export const alt = 'Isha Technologies — Platform Engineering';
 export const size = OG_IMAGE_SIZE;
 export const contentType = OG_IMAGE_CONTENT_TYPE;
 
-const service = getServiceBySlug('platform-solutions')!;
+const service = getServiceBySlug('platform-engineering')!;
 
 export default async function Image() {
   return new ImageResponse(

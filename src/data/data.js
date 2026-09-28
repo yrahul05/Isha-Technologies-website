@@ -46,7 +46,11 @@ export const steps = [
 ];
 
 // services
+// Kept in sync with the canonical 14-service list in `src/data/services.ts`
+// (same slugs, titles and category order) — this lightweight array feeds
+// the Footer, the homepage services slider and the sitemap.
 export const services = [
+  // Cloud & Infrastructure
   {
     title: 'Cloud Solutions',
     image: '/services/infrastructure-management.svg',
@@ -55,23 +59,9 @@ export const services = [
       'Cloud architecture and infrastructure across AWS, Azure and Google Cloud — networking, IAM, high availability, disaster recovery and security.',
   },
   {
-    title: 'DevOps Solutions',
-    image: '/services/ci-cd-cloud-deploy.svg',
-    link: '/services/devops-solutions',
-    description:
-      'CI/CD, GitOps and Infrastructure as Code with Terraform and Ansible — automating the path from code to production.',
-  },
-  {
-    title: 'Kubernetes',
-    image: '/services/kubernetes-management.svg',
-    link: '/services/kubernetes',
-    description:
-      'Production-ready Kubernetes platforms — cluster architecture, autoscaling, networking, monitoring, logging, security and cost optimization.',
-  },
-  {
-    title: 'Cloud Migration',
+    title: 'Cloud Migration & Modernization',
     image: '/services/cloud-migration.svg',
-    link: '/services/cloud-migration',
+    link: '/services/cloud-migration-modernization',
     description:
       'A structured migration strategy — assess, plan, design, migrate, validate and optimize across servers, databases and containers.',
   },
@@ -83,11 +73,19 @@ export const services = [
       'Reliable infrastructure operations — monitoring, incident support, maintenance, patching, backups, capacity planning and cost visibility.',
   },
   {
-    title: 'Cloud Cost Optimization',
+    title: 'Cloud Cost Optimization & FinOps',
     image: '/services/cost-optimization.svg',
-    link: '/services/cloud-cost-optimization',
+    link: '/services/cloud-cost-optimization-finops',
     description:
       'Improve cloud efficiency without compromising performance — rightsizing, idle resource cleanup, storage, compute and Kubernetes cost analysis.',
+  },
+  // DevOps & Platform
+  {
+    title: 'DevOps Solutions',
+    image: '/services/ci-cd-cloud-deploy.svg',
+    link: '/services/devops-solutions',
+    description:
+      'CI/CD, GitOps and Infrastructure as Code with Terraform and Ansible — automating the path from code to production.',
   },
   {
     title: 'DevSecOps',
@@ -97,39 +95,55 @@ export const services = [
       'Security integrated into the delivery lifecycle — SAST, DAST, dependency and container scanning, secret detection and security gates.',
   },
   {
-    title: 'Platform Solutions',
+    title: 'Platform Engineering',
     image: '/services/ai-powered-devops.svg',
-    link: '/services/platform-solutions',
+    link: '/services/platform-engineering',
     description:
       'Internal developer platforms and self-service infrastructure — golden paths, deployment templates and reusable infrastructure modules.',
   },
   {
-    title: 'Site Reliability',
-    image: '/cloud-load-balancing-svgrepo-com.svg',
-    link: '/services/site-reliability',
+    title: 'Infrastructure as Code & GitOps',
+    image: '/cloud-composer-svgrepo-com.svg',
+    link: '/services/infrastructure-as-code-gitops',
     description:
-      'Reliability designed into production systems — SLIs, SLOs, error budgets, incident management, capacity planning and disaster recovery.',
+      'Terraform and Ansible infrastructure as code, plus Git-based GitOps workflows — reusable modules, remote state and CI/CD-integrated automation.',
+  },
+  // Cloud-Native
+  {
+    title: 'Kubernetes & Container Platforms',
+    image: '/services/kubernetes-management.svg',
+    link: '/services/kubernetes-container-platforms',
+    description:
+      'Production-ready Kubernetes and Amazon EKS platforms — cluster architecture, autoscaling, networking, monitoring, logging and security.',
   },
   {
-    title: 'Observability',
+    title: 'Observability & Monitoring',
     image: '/cloud-audit-logs-svgrepo-com.svg',
-    link: '/services/observability',
+    link: '/services/observability-monitoring',
     description:
       'Turn infrastructure signals into operational visibility — metrics, logs, traces, dashboards and alerts with Prometheus, Grafana and CloudWatch.',
   },
   {
-    title: 'AWS Cloud Services',
-    image: '/cloud-shell-svgrepo-com.svg',
-    link: '/services/aws',
+    title: 'Site Reliability Engineering',
+    image: '/cloud-load-balancing-svgrepo-com.svg',
+    link: '/services/site-reliability-engineering',
     description:
-      'AWS architecture, IAM security, compute and containers, cost optimization and CloudWatch monitoring built on AWS best practices.',
+      'Reliability designed into production systems — SLIs, SLOs, error budgets, incident management, capacity planning and disaster recovery.',
+  },
+  // AI & Security
+  {
+    title: 'AI-Powered DevOps & AIOps',
+    image: '/cloud-shell-svgrepo-com.svg',
+    link: '/services/ai-powered-devops-aiops',
+    description:
+      'AI-assisted incident analysis, log analysis and alert triage — helping engineers investigate faster, without unsupervised automation.',
   },
   {
-    title: 'Terraform & IaC',
-    image: '/cloud-composer-svgrepo-com.svg',
-    link: '/services/terraform',
+    title: 'AI Cloud Infrastructure',
+    image: '/services/infrastructure-management.svg',
+    link: '/services/ai-cloud-infrastructure',
     description:
-      'Terraform module design, remote state management, drift detection and CI/CD-integrated infrastructure as code workflows.',
+      'Cloud infrastructure for AI workloads — scalable compute, containerized model serving and Kubernetes-based orchestration.',
   },
   {
     title: 'Cloud Security',

@@ -19,24 +19,32 @@ import Link from 'next/link';
 const cardBlurbs: Record<string, string> = {
   'Cloud Solutions':
     'Cloud architecture and infrastructure across AWS, Azure and Google Cloud.',
-  'DevOps Solutions':
-    'CI/CD, GitOps and Infrastructure as Code with Terraform and Ansible.',
-  Kubernetes:
-    'Production-ready Kubernetes platforms for scalable container workloads.',
-  'Cloud Migration':
+  'Cloud Migration & Modernization':
     'Structured migration planning, execution and optimization across cloud platforms.',
   'Managed Cloud':
     'Reliable infrastructure operations — monitoring, incident support and capacity planning.',
-  'Cloud Cost Optimization':
+  'Cloud Cost Optimization & FinOps':
     'Improve cloud efficiency without compromising performance or scale.',
+  'DevOps Solutions':
+    'CI/CD and delivery automation with Jenkins, GitHub Actions and GitLab CI/CD.',
   DevSecOps:
     'Security integrated into the delivery lifecycle, from code to deployment.',
-  'Platform Solutions':
+  'Platform Engineering':
     'Internal developer platforms and self-service infrastructure for teams.',
-  'Site Reliability':
-    'Reliability engineered into production systems, from SLOs to incident response.',
-  Observability:
+  'Infrastructure as Code & GitOps':
+    'Terraform and Ansible infrastructure as code, plus Git-based GitOps workflows.',
+  'Kubernetes & Container Platforms':
+    'Production-ready Kubernetes and Amazon EKS platforms for scalable workloads.',
+  'Observability & Monitoring':
     'Metrics, logs and traces turned into real operational visibility.',
+  'Site Reliability Engineering':
+    'Reliability engineered into production systems, from SLOs to incident response.',
+  'AI-Powered DevOps & AIOps':
+    'AI-assisted incident analysis and alert triage that speeds up investigation.',
+  'AI Cloud Infrastructure':
+    'Scalable, containerized cloud infrastructure built for AI and model workloads.',
+  'Cloud Security':
+    'IAM, network security, secrets management and audit visibility across your cloud.',
 };
 
 export function ServicesSlider() {

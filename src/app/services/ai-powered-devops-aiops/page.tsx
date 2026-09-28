@@ -2,7 +2,7 @@ import { ServicePageTemplate } from '@/components/services/ServicePageTemplate';
 import { buildServiceMetadata, getServiceBySlug } from '@/data/services';
 import type { Metadata } from 'next';
 
-const service = getServiceBySlug('cloud-migration')!;
+const service = getServiceBySlug('ai-powered-devops-aiops')!;
 
 export const metadata: Metadata = buildServiceMetadata(service);
 

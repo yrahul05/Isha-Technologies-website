@@ -242,7 +242,7 @@ export const caseStudies: CaseStudy[] = [
       { title: 'Stronger Cluster Security', description: 'RBAC, secrets management and network policy applied deliberately.' },
       { title: 'Better Operational Visibility', description: 'Monitoring and logging integrated into the platform.' },
     ],
-    relatedService: 'kubernetes',
+    relatedService: 'kubernetes-container-platforms',
     ctaLabel: 'Explore Kubernetes Solutions',
     seo: {
       title: 'Kubernetes Platform Case Study | Isha Technologies',
@@ -313,7 +313,7 @@ export const caseStudies: CaseStudy[] = [
       { title: 'Reusable Infrastructure', description: 'Shared modules reduce duplicated provisioning work.' },
       { title: 'Faster Environment Reproduction', description: 'New environments can be provisioned from the same source.' },
     ],
-    relatedService: 'platform-solutions',
+    relatedService: 'platform-engineering',
     ctaLabel: 'Explore Platform Solutions',
     seo: {
       title: 'Terraform Automation Case Study | Isha Technologies',
@@ -385,7 +385,7 @@ export const caseStudies: CaseStudy[] = [
       { title: 'Validated Cutover', description: 'Defined criteria confirm behavior before workloads are considered migrated.' },
       { title: 'Post-Migration Improvement', description: 'The new environment is reviewed and optimized after cutover.' },
     ],
-    relatedService: 'cloud-migration',
+    relatedService: 'cloud-migration-modernization',
     ctaLabel: 'Explore Cloud Migration',
     seo: {
       title: 'Cloud Migration Case Study | Isha Technologies',
@@ -458,7 +458,7 @@ export const caseStudies: CaseStudy[] = [
       { title: 'Improved Cost Visibility', description: 'Utilization tracked on an ongoing basis, not a one-time review.' },
       { title: 'Preserved Reliability', description: 'Efficiency improvements evaluated against performance impact.' },
     ],
-    relatedService: 'cloud-cost-optimization',
+    relatedService: 'cloud-cost-optimization-finops',
     ctaLabel: 'Explore Cloud Cost Optimization',
     seo: {
       title: 'Cloud Cost Optimization Case Study | Isha Technologies',
@@ -600,7 +600,7 @@ export const caseStudies: CaseStudy[] = [
       { title: 'Shared Operational Context', description: 'Metrics, logs and traces viewed together, not in isolation.' },
       { title: 'Clearer Performance Trends', description: 'Historical signals support both investigation and planning.' },
     ],
-    relatedService: 'observability',
+    relatedService: 'observability-monitoring',
     ctaLabel: 'Explore Observability',
     seo: {
       title: 'Observability Case Study | Isha Technologies',
@@ -675,7 +675,7 @@ export const caseStudies: CaseStudy[] = [
       { title: 'Faster Incident Response', description: 'Clear ownership and escalation paths reduce response time.' },
       { title: 'Informed Capacity Planning', description: 'Growth trends inform scaling decisions ahead of demand.' },
     ],
-    relatedService: 'site-reliability',
+    relatedService: 'site-reliability-engineering',
     ctaLabel: 'Explore Site Reliability',
     seo: {
       title: 'Site Reliability Case Study | Isha Technologies',

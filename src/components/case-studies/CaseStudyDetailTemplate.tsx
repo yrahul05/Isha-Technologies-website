@@ -4,6 +4,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ArchitectureVisual } from '@/components/services/ArchitectureVisual';
 import { ServiceCTA } from '@/components/services/ServiceCTA';
 import { getAdjacentCaseStudies } from '@/data/case-studies';
+import { getServiceBySlug } from '@/data/services';
 import type { CaseStudy } from '@/types/case-study';
 import { MotionConfig } from 'framer-motion';
 import { CaseStudyApproach } from './CaseStudyApproach';
@@ -24,6 +25,7 @@ import { CaseStudyTechStack } from './CaseStudyTechStack';
  */
 export function CaseStudyDetailTemplate({ study }: { study: CaseStudy }) {
   const { previous, next } = getAdjacentCaseStudies(study);
+  const relatedServiceTitle = getServiceBySlug(study.relatedService)?.title ?? 'Cloud Solutions';
 
   return (
     <MotionConfig reducedMotion="user">
@@ -46,7 +48,10 @@ export function CaseStudyDetailTemplate({ study }: { study: CaseStudy }) {
       <CaseStudyBenefits study={study} />
       <CaseStudyServiceCTA study={study} />
       <CaseStudyNavigation previous={previous} next={next} />
-      <ServiceCTA heading="Facing an Infrastructure Challenge Like This?" />
+      <ServiceCTA
+        heading="Facing an Infrastructure Challenge Like This?"
+        serviceTitle={relatedServiceTitle}
+      />
     </MotionConfig>
   );
 }

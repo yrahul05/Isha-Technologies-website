@@ -64,30 +64,39 @@ export const UPWORK_URL = 'https://www.upwork.com/freelancers/~0183ad8a41e828428
 
 /** Compact "what we help with" checklist shown next to the contact intro copy. */
 export const contactIntroServices = [
-  'Cloud Infrastructure',
-  'DevOps & CI/CD',
-  'Kubernetes',
-  'Cloud Migration',
-  'Managed Cloud Operations',
-  'Cloud Cost Optimization',
+  'Cloud Solutions',
+  'DevOps Solutions',
+  'Kubernetes & Container Platforms',
+  'Cloud Migration & Modernization',
+  'Managed Cloud',
+  'Cloud Cost Optimization & FinOps',
   'DevSecOps',
   'Platform Engineering',
-  'Site Reliability',
-  'Observability',
+  'Site Reliability Engineering',
+  'Observability & Monitoring',
 ] as const;
 
-/** "Service Required" dropdown options on the enquiry form. */
+/**
+ * "Service Required" dropdown options on the enquiry form — kept as the
+ * exact 14 canonical service titles from `src/data/services.ts` so a
+ * `?service=` link from any service page's CTA (see ServiceHero/ServiceCTA)
+ * always prefills to a valid, matching option.
+ */
 export const contactServiceOptions = [
-  'Cloud Infrastructure',
-  'DevOps & CI/CD',
-  'Kubernetes',
-  'Cloud Migration',
+  'Cloud Solutions',
+  'Cloud Migration & Modernization',
   'Managed Cloud',
-  'Cloud Cost Optimization',
+  'Cloud Cost Optimization & FinOps',
+  'DevOps Solutions',
   'DevSecOps',
-  'Platform Solutions',
-  'Site Reliability',
-  'Observability',
+  'Platform Engineering',
+  'Infrastructure as Code & GitOps',
+  'Kubernetes & Container Platforms',
+  'Observability & Monitoring',
+  'Site Reliability Engineering',
+  'AI-Powered DevOps & AIOps',
+  'AI Cloud Infrastructure',
+  'Cloud Security',
   'Other',
 ] as const;
 

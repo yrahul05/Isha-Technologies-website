@@ -10,12 +10,16 @@ export function ServiceHero({
   heading,
   description,
   slug,
+  title,
 }: {
   eyebrow: string;
   heading: string;
   description: string;
   slug: string;
+  title: string;
 }) {
+  const contactHref = `/contact?service=${encodeURIComponent(title)}`;
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-white to-brand/5">
       <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-4 py-16 md:py-20 lg:grid-cols-2 lg:gap-16">
@@ -36,7 +40,7 @@ export function ServiceHero({
           </p>
           <div className="flex flex-wrap gap-4 pt-2">
             <Button asChild variant="primary" className="h-11 rounded-lg px-6">
-              <Link href="/contact">Talk to an Expert</Link>
+              <Link href={contactHref}>Talk to an Expert</Link>
             </Button>
             <Button asChild variant="secondary" className="h-11 rounded-lg px-6">
               <Link href="/services">Explore Services</Link>

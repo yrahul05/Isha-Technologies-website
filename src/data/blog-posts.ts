@@ -216,8 +216,8 @@ export const blogPosts: BlogPost[] = [
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'kubernetes',
-    ctaLabel: 'Explore Kubernetes Solutions',
-    ctaHref: '/services/kubernetes',
+    ctaLabel: 'Explore Kubernetes & Container Platforms',
+    ctaHref: '/services/kubernetes-container-platforms',
     toc: [
       { id: 'cluster-architecture', heading: 'Cluster Architecture: Nodes and Workloads' },
       { id: 'deployments-services-ingress', heading: 'Deployments, Services and Ingress' },
@@ -307,8 +307,8 @@ spec:
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'terraform',
-    ctaLabel: 'Explore Terraform & IaC Services',
-    ctaHref: '/services/terraform',
+    ctaLabel: 'Explore Infrastructure as Code & GitOps',
+    ctaHref: '/services/infrastructure-as-code-gitops',
     toc: [
       { id: 'iac-fundamentals', heading: 'Infrastructure as Code Fundamentals' },
       { id: 'terraform-workflow', heading: 'The Terraform Workflow' },
@@ -383,8 +383,8 @@ resource "aws_s3_bucket" "assets" {
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'cloud-migration',
-    ctaLabel: 'Explore Cloud Migration',
-    ctaHref: '/services/cloud-migration',
+    ctaLabel: 'Explore Cloud Migration & Modernization',
+    ctaHref: '/services/cloud-migration-modernization',
     toc: [
       { id: 'discovery', heading: 'Infrastructure Discovery and Application Assessment' },
       { id: 'dependency-mapping', heading: 'Dependency Mapping' },
@@ -452,8 +452,8 @@ resource "aws_s3_bucket" "assets" {
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'cloud-cost-optimization',
-    ctaLabel: 'Explore Cloud Cost Optimization',
-    ctaHref: '/services/cloud-cost-optimization',
+    ctaLabel: 'Explore Cloud Cost Optimization & FinOps',
+    ctaHref: '/services/cloud-cost-optimization-finops',
     toc: [
       { id: 'utilization-and-rightsizing', heading: 'Resource Utilization and Rightsizing' },
       { id: 'idle-resources', heading: 'Idle Resources' },
@@ -588,8 +588,8 @@ resource "aws_s3_bucket" "assets" {
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'observability',
-    ctaLabel: 'Explore Observability',
-    ctaHref: '/services/observability',
+    ctaLabel: 'Explore Observability & Monitoring',
+    ctaHref: '/services/observability-monitoring',
     toc: [
       { id: 'three-pillars', heading: 'Metrics, Logs and Traces' },
       { id: 'prometheus-and-grafana', heading: 'Prometheus, Grafana and CloudWatch' },
@@ -652,8 +652,8 @@ resource "aws_s3_bucket" "assets" {
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'site-reliability',
-    ctaLabel: 'Explore Site Reliability',
-    ctaHref: '/services/site-reliability',
+    ctaLabel: 'Explore Site Reliability Engineering',
+    ctaHref: '/services/site-reliability-engineering',
     toc: [
       { id: 'availability-and-reliability', heading: 'Availability and Reliability Engineering' },
       { id: 'sli-slo-error-budgets', heading: 'SLIs, SLOs and Error Budgets' },
@@ -720,8 +720,8 @@ resource "aws_s3_bucket" "assets" {
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'cloud-solutions',
-    ctaLabel: 'Explore AWS Cloud Services',
-    ctaHref: '/services/aws',
+    ctaLabel: 'Explore Cloud Solutions',
+    ctaHref: '/services/cloud-solutions',
     toc: [
       { id: 'vpc-and-subnets', heading: 'VPC and Subnet Design' },
       { id: 'iam', heading: 'IAM' },
@@ -788,8 +788,8 @@ resource "aws_s3_bucket" "assets" {
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'platform-solutions',
-    ctaLabel: 'Explore Platform Solutions',
-    ctaHref: '/services/platform-solutions',
+    ctaLabel: 'Explore Platform Engineering',
+    ctaHref: '/services/platform-engineering',
     toc: [
       { id: 'internal-developer-platforms', heading: 'What an Internal Developer Platform Is' },
       { id: 'golden-paths', heading: 'Golden Paths and Self-Service Infrastructure' },
@@ -921,8 +921,8 @@ resource "aws_s3_bucket" "assets" {
     publishedAt: '2026-09-28T05:30:34.000Z',
     updatedAt: '2026-09-28T05:30:34.000Z',
     visualSlug: 'observability',
-    ctaLabel: 'Explore Observability',
-    ctaHref: '/services/observability',
+    ctaLabel: 'Explore Observability & Monitoring',
+    ctaHref: '/services/observability-monitoring',
     toc: [
       { id: 'what-is-cloudwatch-omni', heading: 'What Is Amazon CloudWatch Omni?' },
       { id: 'why-aws-built-omni', heading: 'Why AWS Built It, and What Problem It Solves' },
@@ -1155,6 +1155,39 @@ export function getRelatedPosts(post: BlogPost, limit = 3): BlogPost[] {
     .filter((candidate) => candidate.category !== post.category)
     .sort(byPublishedAtDesc);
   return [...sameCategory, ...others].slice(0, limit);
+}
+
+/** Maps each of the 14 canonical service slugs to the blog category/tag
+ * keywords that genuinely relate to it, so a service page's "Related
+ * Blogs" section is matched by topic — never a random or fixed set. */
+const SERVICE_BLOG_KEYWORDS: Record<string, string[]> = {
+  'cloud-solutions': ['Cloud Infrastructure', 'AWS', 'High Availability', 'Cloud Architecture', 'Cloud Security'],
+  'cloud-migration-modernization': ['Cloud Migration', 'Cloud Infrastructure', 'Cloud Strategy', 'AWS'],
+  'managed-cloud': ['Cloud Infrastructure', 'Site Reliability', 'Observability'],
+  'cloud-cost-optimization-finops': ['Cloud Cost Optimization', 'FinOps', 'AWS', 'Kubernetes'],
+  'devops-solutions': ['DevOps', 'CI/CD', 'Deployment Automation', 'Pipeline Security'],
+  devsecops: ['DevSecOps', 'CI/CD', 'Cloud Security', 'DevOps'],
+  'platform-engineering': ['Platform Engineering', 'Kubernetes', 'DevOps', 'Developer Experience'],
+  'infrastructure-as-code-gitops': ['Terraform', 'Infrastructure as Code', 'DevOps', 'Cloud Automation'],
+  'kubernetes-container-platforms': ['Kubernetes', 'Container Orchestration', 'Helm', 'Cloud Native'],
+  'observability-monitoring': ['Observability', 'Monitoring', 'AWS', 'AI Observability', 'CloudWatch'],
+  'site-reliability-engineering': ['Site Reliability', 'SRE', 'Incident Response', 'Cloud Infrastructure'],
+  'ai-powered-devops-aiops': ['AI Observability', 'Observability', 'Site Reliability', 'CloudWatch'],
+  'ai-cloud-infrastructure': ['Cloud Infrastructure', 'Kubernetes', 'AI Observability', 'Cloud Architecture'],
+  'cloud-security': ['Cloud Security', 'DevSecOps', 'Infrastructure as Code', 'AWS'],
+};
+
+/** Related posts for the bottom of a service page: posts whose category or
+ * tags overlap this service's topic keywords, newest first — never random,
+ * and empty (not backfilled with unrelated posts) when nothing matches. */
+export function getRelatedPostsForService(serviceSlug: string, limit = 3): BlogPost[] {
+  const keywords = SERVICE_BLOG_KEYWORDS[serviceSlug];
+  if (!keywords || keywords.length === 0) return [];
+
+  const matches = getPublishedBlogPosts().filter(
+    (post) => keywords.includes(post.category) || post.tags.some((tag) => keywords.includes(tag))
+  );
+  return matches.sort(byPublishedAtDesc).slice(0, limit);
 }
 
 export function buildBlogPostMetadata(post: BlogPost): Metadata {
