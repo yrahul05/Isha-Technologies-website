@@ -1,19 +1,14 @@
 import type { NextConfig } from 'next';
 
-// Deployed to a single Cloudflare Worker via OpenNext (`@opennextjs/cloudflare`,
-// see wrangler.jsonc / open-next.config.ts), not Cloudflare Pages.
+// Deployed to Vercel (standard Next.js runtime, zero-config detection).
 // `output: 'export'` must stay OFF because it disables the Next.js server
 // entirely, which would make the /api/analytics/visitors and /api/contact
 // Route Handlers unable to run in production.
 const nextConfig: NextConfig = {
   images: {
-    // Cloudflare Pages does not run Vercel's built-in image optimizer, so
-    // <Image> would otherwise fail to resize/serve images in production.
-    // Every <Image> in the app points at a local file under public/, so
-    // serving the originals unoptimized is a safe, zero-config fallback —
-    // switch this to a Cloudflare Images loader later if optimization is
-    // needed.
-    unoptimized: true,
+    // Vercel runs Next.js's built-in image optimizer natively, so <Image>
+    // is resized/served through it with no extra configuration. Every
+    // <Image> in the app points at a local file under public/.
     // A small number of local brand-logo assets (e.g. the Microsoft Azure
     // partner mark) are SVGs, which Next.js's image handling refuses to
     // serve by default (returns 400) as an XSS precaution against

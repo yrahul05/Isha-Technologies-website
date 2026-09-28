@@ -11,12 +11,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
 
       - name: Install dependencies
@@ -29,7 +29,7 @@ jobs:
         run: npm test --if-present
 
       - name: Type Check
-        run: npm run type-check --if-present
+        run: npm run type-check
 
-      - name: Build (optional, since Cloudflare Pages does it)
+      - name: Build (validation only — Vercel handles the actual deployment build)
         run: npm run build

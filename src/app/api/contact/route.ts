@@ -9,17 +9,10 @@ import {
 import { checkRateLimit } from '@/lib/rate-limit';
 import { NextResponse } from 'next/server';
 
-// Deliberately NOT `runtime = 'edge'`. This app is deployed via OpenNext to
-// a single Cloudflare Worker (wrangler.jsonc), not Cloudflare Pages
-// Functions. Under OpenNext, `edge` runtime routes are compiled with
-// Next.js's own Edge Runtime sandbox, whose `process.env` is frozen at
-// build time from the middleware manifest — it never sees the Worker's
-// real runtime bindings (CONTACT_EMAIL/EMAIL_FROM/EMAIL_API_KEY), which
-// only exist at deploy/runtime. The default (nodejs) runtime is bundled
-// into OpenNext's normal server function, which runs in the Worker's main
-// scope where `process.env` is populated from the actual Cloudflare
-// bindings on every request — see runWithCloudflareRequestContext /
-// populateProcessEnv in @opennextjs/cloudflare.
+// Node.js runtime (Vercel's default serverless function runtime) — this
+// route just needs reliable access to server-side env vars
+// (CONTACT_EMAIL/EMAIL_FROM/EMAIL_API_KEY) and has no need for edge-specific
+// capabilities.
 export const runtime = 'nodejs';
 
 // Guards against excessively large requests before we even attempt to parse them.
@@ -96,8 +89,8 @@ export async function POST(req: Request) {
     const EMAIL_API_KEY = process.env.EMAIL_API_KEY;
 
     // Diagnostic only — booleans, never the actual values. Safe to leave in
-    // `wrangler tail` output; confirms whether the Worker runtime actually
-    // has these bindings, without revealing any secret.
+    // Vercel's function logs; confirms whether these env vars are actually
+    // set, without revealing any secret.
     console.log('Contact form env check:', {
       emailApiKeyPresent: Boolean(EMAIL_API_KEY),
       emailFromPresent: Boolean(EMAIL_FROM),

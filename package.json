@@ -9,9 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write .",
-    "cf:build": "opennextjs-cloudflare build",
-    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
@@ -41,7 +39,6 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@opennextjs/cloudflare": "^1.20.6",
     "@tailwindcss/postcss": "^4",
     "@types/aos": "^3.0.7",
     "@types/node": "^20",
@@ -51,7 +48,6 @@
     "eslint-config-next": "^15.5.25",
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "wrangler": "^4.125.0"
+    "typescript": "^5"
   }
 }

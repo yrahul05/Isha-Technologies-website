@@ -49,37 +49,30 @@ npm run lint
 npm run build
 ```
 
-## Deploy on Cloudflare (via GitHub)
+## Deploy on Vercel (via GitHub)
 
-The app deploys to **Cloudflare Workers** using the OpenNext Cloudflare
-adapter (`@opennextjs/cloudflare`), which compiles this Next.js app —
-including the `/api/contact` and `/api/analytics/visitors` Route Handlers —
-into a Cloudflare Worker. Both routes already declare `runtime = 'edge'`
-and use only `fetch`/Web Crypto, so no code changes are needed for them to
-run on Cloudflare.
+The app deploys to **Vercel** using Vercel's native Next.js support — no
+adapter, build command, or config file needed. Vercel auto-detects this as
+a standard Next.js App Router project and handles the build and output.
 
-1. Push this repo to GitHub.
-2. In the Cloudflare dashboard: **Workers & Pages → Create → Import a
-   repository**, and connect the GitHub repo.
-3. Build settings:
-   - Build command: `npm run cf:build`
-   - Deploy command: `npx wrangler deploy`
-   (Cloudflare's Next.js framework preset can also auto-detect these.)
-4. Add the environment variables below under **Settings → Environment
-   Variables** (Production and Preview) — they are read from `.env.local`
-   only for local dev and are never committed:
+1. Push this repo to GitHub (`yrahul05/Isha-Technologies-website`).
+2. In the Vercel dashboard: **Add New → Project**, and import the GitHub
+   repo. Leave the framework preset as **Next.js** and the build/output
+   settings on their defaults.
+3. Add the environment variables below under **Project → Settings →
+   Environment Variables** (Production and Preview) — they are read from
+   `.env.local` only for local dev and are never committed:
    - `CONTACT_EMAIL`, `EMAIL_FROM`, `EMAIL_API_KEY` (contact form email —
      see [Contact form](#contact-form) below)
-   - `NEXT_PUBLIC_GA_MEASUREMENT_ID`, `GA4_PROPERTY_ID`, `GA4_CLIENT_EMAIL`,
-     `GA4_PRIVATE_KEY` (analytics — see `docs/analytics-visitor-count.md`)
-5. Every push to the connected branch rebuilds and redeploys automatically.
-
-To build/preview the Cloudflare Worker locally:
-
-```bash
-npm run cf:build     # next build + OpenNext bundling into .open-next/
-npm run cf:preview   # build, then run the Worker locally via wrangler
-```
+   - `NEXT_PUBLIC_GA_MEASUREMENT_ID` (analytics)
+   - `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID` (optional footer visitor
+     count — see `docs/analytics-visitor-count.md`)
+4. Set the production domain (`www.ishatechnologies.in`) and an apex
+   redirect under **Project → Settings → Domains**.
+5. Every push to `main` triggers a Production deployment; every pull
+   request gets its own Preview deployment — both automatic via Vercel's
+   GitHub integration, no manual deploy step and no GitHub Actions
+   involvement.
 
 > `EMAIL_FROM`'s domain must be a **verified sender domain in Resend**
 > before email sending will succeed in production — until then, `/api/contact`

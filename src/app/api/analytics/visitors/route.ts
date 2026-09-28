@@ -6,11 +6,12 @@ import { NextResponse } from 'next/server';
  * server-side.
  *
  * Reads two SERVER-ONLY environment variables (never NEXT_PUBLIC_ — set
- * them as Cloudflare Worker vars/secrets; see docs/analytics-visitor-count.md):
+ * them as Vercel Environment Variables; see docs/analytics-visitor-count.md):
  *
  *   CLOUDFLARE_API_TOKEN — a token scoped to Zone > Analytics > Read for
- *                           the ishatechnologies.in zone. MUST be set as an
- *                           encrypted Worker Secret, never a plain var.
+ *                           the ishatechnologies.in zone. MUST be set as a
+ *                           Vercel "Sensitive" (encrypted) env var, never a
+ *                           plain one.
  *   CLOUDFLARE_ZONE_ID   — the zone ID for ishatechnologies.in.
  *
  * If either is missing, this returns { status: 'not_configured' } — never a
@@ -20,13 +21,14 @@ import { NextResponse } from 'next/server';
  * response is always exactly { status, visits? } — never the API token,
  * headers, or any raw Cloudflare payload.
  *
- * Deliberately NOT `runtime = 'edge'` — same reasoning as
- * src/app/api/contact/route.ts. This app is deployed via OpenNext to a
- * single Cloudflare Worker (wrangler.jsonc), not Cloudflare Pages
- * Functions. Under OpenNext, `edge` runtime routes are compiled with
- * Next.js's own Edge Runtime sandbox, whose `process.env` is frozen at
- * build time — it never sees the Worker's real runtime secrets, which only
- * exist at deploy/runtime.
+ * Node.js runtime (Vercel's default serverless function runtime) — this
+ * route just needs reliable access to the server-side
+ * CLOUDFLARE_API_TOKEN/CLOUDFLARE_ZONE_ID secrets (set as Vercel
+ * environment variables) and has no need for edge-specific capabilities.
+ * Note: these are Cloudflare Analytics API credentials, unrelated to where
+ * the app itself is hosted — they're what let this route read traffic
+ * stats for a domain that's proxied through Cloudflare (orange-clouded),
+ * regardless of the origin server behind it.
  *
  * DATE RANGE — the last 30 complete UTC days (yesterday back through 30
  * days before that; today is excluded because its data is still

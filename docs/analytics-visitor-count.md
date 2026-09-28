@@ -34,18 +34,15 @@ scoped to `Zone > Analytics > Read`, called from a real server — never
 from the browser, and never with a `NEXT_PUBLIC_` variable. The token must
 never be logged or returned in any API response.
 
-The site is deployed via **OpenNext to a single Cloudflare Worker**
-(`wrangler.jsonc`, `open-next.config.ts` — not Cloudflare Pages), so the
-credentialed read lives in an ordinary Next.js Route Handler:
-`src/app/api/analytics/visitors/route.ts` (`runtime = 'nodejs'` — just
-`fetch`, no Node-specific APIs, no extra dependency). It must **not**
-declare `runtime = 'edge'`: under OpenNext's Cloudflare Worker build, an
-edge-runtime route is compiled with Next.js's own Edge Runtime sandbox,
-whose `process.env` is frozen at build time and never sees the Worker's
-real runtime secrets — this was the actual cause of the footer always
-showing "setup required" in an earlier, GA4-based version of this route,
-identical to a bug the contact form (`src/app/api/contact/route.ts`) had
-and was fixed for. The footer's `FooterVisitorStat` component
+The site is deployed on **Vercel**, so the credentialed read lives in an
+ordinary Next.js Route Handler: `src/app/api/analytics/visitors/route.ts`
+(`runtime = 'nodejs'` — just `fetch`, no Node-specific APIs, no extra
+dependency), reading `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ZONE_ID` from
+Vercel's server-side environment variables. Note this domain can be
+proxied through Cloudflare (for DNS/CDN) while being hosted on Vercel —
+those are independent: Cloudflare's Analytics API reports on traffic to
+the zone regardless of which origin server sits behind it. The footer's
+`FooterVisitorStat` component
 (`src/components/layout/FooterVisitorStat.tsx`) calls
 `/api/analytics/visitors` and renders one of: a loading skeleton, the real
 number, or an "Analytics unavailable" fallback.
@@ -54,7 +51,7 @@ number, or an "Analytics unavailable" fallback.
 Footer (browser)
    │  GET /api/analytics/visitors
    ▼
-Next.js Route Handler (Cloudflare Worker, nodejs runtime)   ← token only ever lives here
+Next.js Route Handler (Vercel serverless function, nodejs runtime)   ← token only ever lives here
    │  POST https://api.cloudflare.com/client/v4/graphql
    │  query { viewer { zones(filter:{zoneTag}) {
    │    httpRequests1dGroups(filter:{date_geq, date_leq}) { sum { visits } }
@@ -111,35 +108,35 @@ placeholder.
    - Permissions: `Zone` → `Analytics` → `Read`
    - Zone Resources: `Include` → `Specific zone` → `ishatechnologies.in`
    No other permissions are needed for this feature.
-3. Add both as **Cloudflare Worker Variables and Secrets** (Workers &
-   Pages → `isha-technologies-website` → Settings → Variables and
-   Secrets):
+3. Add both as **Vercel Environment Variables** (Project → Settings →
+   Environment Variables, for the Production — and Preview, if you want
+   the number in preview deployments too — environments):
 
    | Variable | Value | Type |
    |---|---|---|
-   | `CLOUDFLARE_API_TOKEN` | the token from step 2 | **Secret** (encrypted) |
-   | `CLOUDFLARE_ZONE_ID` | the zone ID from step 1 | Variable (not secret, but kept server-side) |
+   | `CLOUDFLARE_API_TOKEN` | the token from step 2 | **Sensitive** (encrypted) |
+   | `CLOUDFLARE_ZONE_ID` | the zone ID from step 1 | Plain (not secret, but kept server-side) |
 
    These are intentionally **not** prefixed `NEXT_PUBLIC_` — they must
    never reach the browser. `NEXT_PUBLIC_GA_MEASUREMENT_ID` and Cloudflare
    Web Analytics stay exactly as-is alongside them, unaffected.
-4. Redeploy the Worker (`npm run cf:deploy`) so the new secrets take
-   effect.
+4. Redeploy on Vercel (push to `main`, or trigger a redeploy from the
+   Vercel dashboard) so the new environment variables take effect.
 5. Verify: open the site, check the footer shows a real "`<number>` Visits"
    figure, and cross-check it against dash.cloudflare.com → the domain →
    **Analytics & Logs** for the same 30-day window.
 
-Once both are set on the live Worker, the footer automatically starts
-showing the real number — no further code change needed. The result is
-cached for ~30 minutes (`export const revalidate = 1800` in the route
-handler), so every visitor sees the same stable number and Cloudflare
-isn't called on every page load.
+Once both are set on Vercel, the footer automatically starts showing the
+real number — no further code change needed. The result is cached for
+~30 minutes (`export const revalidate = 1800` in the route handler), so
+every visitor sees the same stable number and Cloudflare isn't called on
+every page load.
 
 ## Security notes
 
 - `CLOUDFLARE_API_TOKEN` is **only ever read inside
-  `src/app/api/analytics/visitors/route.ts`**, which runs on Cloudflare's
-  own servers (the Worker), never in the browser, and is never logged.
+  `src/app/api/analytics/visitors/route.ts`**, which runs server-side on
+  Vercel, never in the browser, and is never logged.
 - The endpoint's response is always exactly `{ "status": "ok", "visits": <number> }`
   (or `not_configured` / `error`) — never the token, request headers, or
   the raw Cloudflare GraphQL payload.
