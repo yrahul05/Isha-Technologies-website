@@ -1045,20 +1045,6 @@ resource "aws_s3_bucket" "assets" {
   <li>The fix ships, and the whole investigation — alert, root cause, fix and verification — stays recorded in a Thread for the post-incident review, with no separate report to assemble by hand.</li>
 </ol>
 
-<h2 id="faq">Frequently Asked Questions</h2>
-<h3>Does CloudWatch Omni replace CloudWatch?</h3>
-<p>No. Omni is built on CloudWatch and extends it — existing alarms, dashboards, APIs and console workflows continue to work unchanged.</p>
-<h3>Do I need to re-instrument my applications to use it?</h3>
-<p>No, if you already send telemetry to CloudWatch or instrument with OpenTelemetry. That telemetry appears in Omni without reconfiguration.</p>
-<h3>Can I try it without an AWS account?</h3>
-<p>Yes, for agent development specifically — the free VS Code, Cursor and Kiro IDE extensions let you instrument and trace an agent locally before connecting to an AWS account.</p>
-<h3>Which AI agent frameworks does it support?</h3>
-<p>LangChain, LangGraph, CrewAI, the OpenAI Agents SDK, Strands and the Vercel AI SDK, in Python and TypeScript, along with native support for Amazon Bedrock AgentCore.</p>
-<h3>Does it work with Azure workloads?</h3>
-<p>Yes — Omni provides connectors for environments outside AWS and specifically supports cross-cloud visibility that includes Azure workloads.</p>
-<h3>What regions is it available in today?</h3>
-<p>At general availability: US East (N. Virginia), US West (Oregon) and Europe (Ireland), with AWS's usual pattern of expanding region coverage over time.</p>
-
 <h2 id="conclusion">Conclusion</h2>
 <p>Amazon CloudWatch Omni is less a new monitoring tool than a rethink of how observability data gets used — automatically discovered instead of hand-maintained, correlated across applications and AI agents instead of split across separate stacks, and worked on with an AI agent in the loop rather than alone at 2 a.m. with a dozen open dashboard tabs. For teams already running AWS workloads or shipping their first agentic features, it's worth evaluating now rather than after the next incident makes the gap obvious.</p>
 <p>Getting the rollout right — deciding Space boundaries, wiring alerts into existing on-call tooling, and folding evaluation-driven development into an existing CI/CD pipeline — is exactly the kind of cloud monitoring and managed DevOps work our team helps clients get right the first time.</p>
@@ -1070,6 +1056,38 @@ resource "aws_s3_bucket" "assets" {
       'The IDE extension for VS Code, Cursor and Kiro is free and works without an AWS account, making agent trace debugging accessible from day one.',
       'Multi-account, multi-region and even Azure workloads can appear in a single topology view through Spaces and connectors.',
       'At GA, Omni is available in three regions (US East N. Virginia, US West Oregon, Europe Ireland) — plan multi-region rollouts accordingly.',
+    ],
+    faqs: [
+      {
+        question: 'Does CloudWatch Omni replace CloudWatch?',
+        answer:
+          'No. Omni is built on CloudWatch and extends it — existing alarms, dashboards, APIs and console workflows continue to work unchanged.',
+      },
+      {
+        question: 'Do I need to re-instrument my applications to use it?',
+        answer:
+          'No, if you already send telemetry to CloudWatch or instrument with OpenTelemetry. That telemetry appears in Omni without reconfiguration.',
+      },
+      {
+        question: 'Can I try it without an AWS account?',
+        answer:
+          'Yes, for agent development specifically — the free VS Code, Cursor and Kiro IDE extensions let you instrument and trace an agent locally before connecting to an AWS account.',
+      },
+      {
+        question: 'Which AI agent frameworks does it support?',
+        answer:
+          'LangChain, LangGraph, CrewAI, the OpenAI Agents SDK, Strands and the Vercel AI SDK, in Python and TypeScript, along with native support for Amazon Bedrock AgentCore.',
+      },
+      {
+        question: 'Does it work with Azure workloads?',
+        answer:
+          'Yes — Omni provides connectors for environments outside AWS and specifically supports cross-cloud visibility that includes Azure workloads.',
+      },
+      {
+        question: 'What regions is it available in today?',
+        answer:
+          "At general availability: US East (N. Virginia), US West (Oregon) and Europe (Ireland), with AWS's usual pattern of expanding region coverage over time.",
+      },
     ],
   },
 ];

@@ -1,15 +1,18 @@
 import { ServiceHeroVisual } from '@/components/services/visuals/ServiceHeroVisual';
 import { Button } from '@/components/ui/button';
 import { formatBlogDate } from '@/data/blog-posts';
+import { BLOG_VARIANT_STYLES, getBlogVariant } from '@/data/blog-variants';
 import type { BlogPostSummary } from '@/types/blog';
 import { Clock } from 'lucide-react';
 import Link from 'next/link';
 
 export function FeaturedBlog({ post }: { post: BlogPostSummary }) {
+  const variant = BLOG_VARIANT_STYLES[getBlogVariant(post.category)];
+
   return (
     <div className="card-hover mb-12 grid grid-cols-1 items-center gap-8 overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm md:grid-cols-2 md:p-10">
       <div>
-        <span className="text-[11px] font-bold uppercase tracking-widest text-brand">
+        <span className={`text-[11px] font-bold uppercase tracking-widest ${variant.text}`}>
           Technical Guide
         </span>
         <h2 className="mt-3 text-2xl font-bold leading-tight tracking-tight text-black md:text-3xl">
@@ -27,7 +30,7 @@ export function FeaturedBlog({ post }: { post: BlogPostSummary }) {
           <Link href={`/resources/blogs/${post.slug}`}>Read Technical Guide</Link>
         </Button>
       </div>
-      <div className="rounded-xl bg-brand/5 py-6">
+      <div className={`rounded-xl ${variant.soft} py-6`}>
         <ServiceHeroVisual slug={post.visualSlug} />
       </div>
     </div>

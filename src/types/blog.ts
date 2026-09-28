@@ -41,10 +41,14 @@ export type BlogPost = {
   ctaLabel: string;
   ctaHref: string;
   toc: BlogTocEntry[];
-  /** Article body as an HTML string, rendered via MarkdownContainerNormal —
-   * the same mechanism already used for the legal pages. */
+  /** Article body as an HTML string, rendered via BlogContent (blog
+   * pages) using react-markdown + rehype-raw with element overrides
+   * (premium code blocks, callouts, styled tables). */
   contentHtml: string;
   keyTakeaways: string[];
+  /** Optional FAQ entries rendered as an accordion (FAQSection). Only set
+   * when a post genuinely has them — never force-populated. */
+  faqs?: { question: string; answer: string }[];
 };
 
 /** Fields needed to render a post teaser (BlogCard / FeaturedBlog on the

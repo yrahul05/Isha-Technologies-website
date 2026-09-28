@@ -4,7 +4,11 @@ import typography from '@tailwindcss/typography';
 import tailwindcssAnimate from 'tailwindcss-animate';
 
 const config: Config = {
-  content: ['./src/app/**/*.{js,ts,jsx,tsx}', './src/components/**/*.{js,ts,jsx,tsx}'],
+  content: [
+    './src/app/**/*.{js,ts,jsx,tsx}',
+    './src/components/**/*.{js,ts,jsx,tsx}',
+    './src/data/**/*.{js,ts,jsx,tsx}',
+  ],
   theme: {
     extend: {},
   },
