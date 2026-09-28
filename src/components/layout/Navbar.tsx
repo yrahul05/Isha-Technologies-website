@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import * as NavigationMenuPrimitive from '@radix-ui/react-navigation-menu';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -52,7 +53,7 @@ const dropdownItemClass = (active: boolean) =>
   );
 
 // Services mega-menu link style — deliberately NOT `text-nowrap` (that was
-// the root cause of the overlap bug: long titles like "Cloud Cost
+// the root cause of the original overlap bug: long titles like "Cloud Cost
 // Optimization & FinOps" were forced onto one line and overflowed past
 // their grid column, visually bleeding into the next one). `block` +
 // `min-w-0` + `break-words` let each link wrap naturally within its own
@@ -62,6 +63,37 @@ const megaMenuLinkClass = (active: boolean) =>
     'block min-w-0 rounded-lg px-3 py-2.5 text-[17px] font-medium leading-[1.5] whitespace-normal break-words transition-colors duration-200 ease-out hover:bg-gray-50',
     active ? 'bg-brand/10 text-brand font-semibold' : 'text-black hover:text-brand'
   );
+
+// The shared `NavigationMenuContent` (from @/components/ui/navigation-menu,
+// used by the Resources dropdown) bakes its sizing/position classes
+// (`top-full`, `overflow-hidden`, `rounded-md`, `border`, `shadow`, ...)
+// behind a `group-data-[viewport=false]/navigation-menu:` selector, which
+// has HIGHER CSS specificity (an attribute selector + a class) than a
+// plain utility class passed through `className`. That is what actually
+// broke the mega-menu: every attempt to override width/position from the
+// outside (`top-16`, `fixed`, `rounded-2xl`, ...) lost the cascade to
+// that built-in, higher-specificity rule and silently fell back to
+// `position: absolute; top: 100%` relative to the narrow "Services"
+// trigger, with no explicit width — hence the sliver-thin, one-letter-
+// per-line panel in the screenshot.
+//
+// The mega-menu renders `NavigationMenuPrimitive.Content` directly
+// instead of the shared wrapper, so 100% of its layout is controlled by
+// plain, unprefixed, easily-overridable utility classes below — same
+// underlying Radix primitive as Resources (same open/close, focus and
+// dismiss behavior, same animation classes), just without the "compact
+// dropdown" CSS that a 4-column mega-menu can't work within. The
+// Resources dropdown is untouched and still uses the shared wrapper,
+// which is exactly right for a short, narrow list like that.
+const megaMenuContentClass = cn(
+  'data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52',
+  // `fixed` + two symmetric viewport insets + `mx-auto` + `max-w` centers
+  // the panel in the browser viewport (never the narrow trigger) and caps
+  // its width at 1100px, shrinking to `calc(100vw - 32px)` on anything
+  // narrower — without a `transform`, so it can't fight Radix's own
+  // translate-driven slide animation above.
+  'fixed inset-x-4 top-16 z-50 mx-auto max-w-[1100px] rounded-2xl border border-black/5 bg-white p-6 shadow-xl duration-300 sm:p-8'
+);
 
 const mobileLinkClass = (active: boolean) =>
   cn(
@@ -128,20 +160,7 @@ export const Navbar = () => {
                 <NavigationMenuTrigger className={triggerLinkClass(isServicesActive)}>
                   Services
                 </NavigationMenuTrigger>
-                {/*
-                  Positioned as `fixed`, centered between two symmetric
-                  viewport insets (`inset-x-4` + `mx-auto` + `max-w-*`)
-                  instead of `absolute` under the trigger. The trigger's own
-                  positioned ancestor (`NavigationMenuItem`, always
-                  `position: relative`) is far narrower than a 4-column
-                  mega-menu, so anchoring to it left-aligned the panel and
-                  let it run off the right edge of the viewport on anything
-                  but very wide screens — this keeps it centered and fully
-                  on-screen at every width, without a transform (which would
-                  otherwise fight Radix's own translate-based open/close
-                  animation).
-                */}
-                <NavigationMenuContent className="fixed inset-x-4 top-16 z-50 mx-auto max-w-[1100px] rounded-2xl border-black/5 bg-white p-6 shadow-xl sm:p-8">
+                <NavigationMenuPrimitive.Content className={megaMenuContentClass}>
                   <div className="grid grid-cols-4 gap-x-10 gap-y-8">
                     {serviceCategories.map((group) => (
                       <div key={group.category} className="min-w-0">
@@ -179,10 +198,12 @@ export const Navbar = () => {
                       <ChevronRight className="h-4 w-4" />
                     </Link>
                   </NavigationMenuLink>
-                </NavigationMenuContent>
+                </NavigationMenuPrimitive.Content>
               </NavigationMenuItem>
 
-              {/* Resources dropdown */}
+              {/* Resources dropdown — unchanged: still uses the shared,
+                  pre-styled `NavigationMenuContent` wrapper, which is the
+                  right fit for a short, narrow dropdown like this one. */}
               <NavigationMenuItem className="relative">
                 <NavigationMenuTrigger className={triggerLinkClass(isResourcesActive)}>
                   Resources
