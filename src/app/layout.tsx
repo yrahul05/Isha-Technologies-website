@@ -12,41 +12,34 @@ const DM_SansFonts = DM_Sans({
   weight: ['400', '500', '600', '700'],
 });
 
+const SITE_URL = 'https://www.ishatechnologies.in';
+
 const description =
   'Managed Cloud & DevOps Solutions from Isha Technologies — expert infrastructure support without building everything in-house. Cloud architecture, DevOps automation, Kubernetes, security, migration and observability.';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.ishatechnologies.in'),
+  metadataBase: new URL(SITE_URL),
   title: 'Isha Technologies | Managed Cloud & DevOps Solutions',
   description,
   robots: 'index, follow',
   authors: [
     {
       name: 'Isha Technologies',
-      url: 'https://ishatechnologies.in',
+      url: SITE_URL,
     },
   ],
   publisher: 'Isha Technologies',
   openGraph: {
     type: 'website',
-    url: 'https://ishatechnologies.in',
+    url: SITE_URL,
     siteName: 'Isha Technologies',
     title: 'Isha Technologies | Managed Cloud & DevOps Solutions',
     description,
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Isha Technologies — Managed Cloud & DevOps Solutions',
-      },
-    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Isha Technologies | Managed Cloud & DevOps Solutions',
     description,
-    images: ['/og-image.png'],
   },
 };
 
@@ -55,10 +48,10 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'Organization',
-      '@id': 'https://ishatechnologies.in/#organization',
+      '@id': `${SITE_URL}/#organization`,
       name: 'Isha Technologies',
-      url: 'https://ishatechnologies.in',
-      logo: 'https://ishatechnologies.in/ISHA-TECHNO-LG.png',
+      url: SITE_URL,
+      logo: `${SITE_URL}/ISHA-TECHNO-LG.png`,
       description,
       slogan: 'Managed Cloud & DevOps Solutions',
       email: 'hello.ishatechnologies@gmail.com',
@@ -72,11 +65,11 @@ const jsonLd = {
     },
     {
       '@type': 'WebSite',
-      '@id': 'https://ishatechnologies.in/#website',
-      url: 'https://ishatechnologies.in',
+      '@id': `${SITE_URL}/#website`,
+      url: SITE_URL,
       name: 'Isha Technologies',
       description,
-      publisher: { '@id': 'https://ishatechnologies.in/#organization' },
+      publisher: { '@id': `${SITE_URL}/#organization` },
     },
   ],
 };

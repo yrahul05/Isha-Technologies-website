@@ -1,5 +1,6 @@
 'use client';
 
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ArchitectureVisual } from '@/components/services/ArchitectureVisual';
 import { ServiceCTA } from '@/components/services/ServiceCTA';
 import { getAdjacentCaseStudies } from '@/data/case-studies';
@@ -26,6 +27,15 @@ export function CaseStudyDetailTemplate({ study }: { study: CaseStudy }) {
 
   return (
     <MotionConfig reducedMotion="user">
+      <div className="max-w-[1280px] mx-auto px-4 pt-6">
+        <Breadcrumbs
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Case Studies', href: '/case-studies' },
+            { label: study.title, href: `/case-studies/${study.slug}` },
+          ]}
+        />
+      </div>
       <CaseStudyDetailHero study={study} />
       <CaseStudyProblem study={study} />
       <CaseStudyApproach study={study} />

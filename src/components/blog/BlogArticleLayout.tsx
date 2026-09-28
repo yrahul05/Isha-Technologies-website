@@ -1,7 +1,7 @@
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { BLOG_VARIANT_STYLES, getBlogVariant } from '@/data/blog-variants';
 import type { BlogPost, BlogPostSummary } from '@/types/blog';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
-import Link from 'next/link';
+import { CheckCircle2 } from 'lucide-react';
 import { BlogContent } from './BlogContent';
 import { BlogCTA } from './BlogCTA';
 import { BlogHero } from './BlogHero';
@@ -27,13 +27,13 @@ export function BlogArticleLayout({
   return (
     <section className="py-12">
       <div className="max-w-[1280px] mx-auto px-4">
-        <Link
-          href="/resources/blogs"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 transition hover:text-brand"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          All Technical Resources
-        </Link>
+        <Breadcrumbs
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Technical Resources', href: '/resources/blogs' },
+            { label: post.title, href: `/resources/blogs/${post.slug}` },
+          ]}
+        />
 
         <BlogHero post={post} variant={variant} />
 

@@ -23,20 +23,11 @@ export const metadata: Metadata = {
     siteName: 'Isha Technologies',
     title: 'Contact Isha Technologies | Cloud & DevOps Solutions',
     description,
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Contact Isha Technologies',
-      },
-    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Contact Isha Technologies | Cloud & DevOps Solutions',
     description,
-    images: ['/og-image.png'],
   },
 };
 

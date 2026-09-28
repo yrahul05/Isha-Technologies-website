@@ -1,5 +1,6 @@
 'use client';
 
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { getAdjacentServices, getRelatedServices } from '@/data/services';
 import type { Service } from '@/types/types';
 import { MotionConfig } from 'framer-motion';
@@ -33,10 +34,10 @@ export function ServicePageTemplate({ service }: { service: Service }) {
     '@type': 'Service',
     name: service.title,
     description: service.description,
-    url: `https://ishatechnologies.in/services/${service.slug}`,
+    url: `https://www.ishatechnologies.in/services/${service.slug}`,
     serviceType: service.title,
     provider: {
-      '@id': 'https://ishatechnologies.in/#organization',
+      '@id': 'https://www.ishatechnologies.in/#organization',
     },
   };
 
@@ -46,6 +47,15 @@ export function ServicePageTemplate({ service }: { service: Service }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <div className="max-w-[1280px] mx-auto px-4 pt-6">
+        <Breadcrumbs
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Services', href: '/services' },
+            { label: service.title, href: `/services/${service.slug}` },
+          ]}
+        />
+      </div>
       <ServiceHero
         eyebrow={service.eyebrow}
         heading={service.heading}

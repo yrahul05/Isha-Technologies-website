@@ -5,8 +5,8 @@ export const CONTACT_EMAIL_ADDRESS = 'hello.ishatechnologies@gmail.com';
 export const CONTACT_PHONE_DISPLAY = '+91 9351267228';
 export const CONTACT_PHONE_TEL = '+919351267228';
 export const CONTACT_LOCATION = 'Jaipur, Rajasthan, India';
-export const CONTACT_WEBSITE_DISPLAY = 'ishatechnologies.in';
-export const CONTACT_WEBSITE_URL = 'https://ishatechnologies.in';
+export const CONTACT_WEBSITE_DISPLAY = 'www.ishatechnologies.in';
+export const CONTACT_WEBSITE_URL = 'https://www.ishatechnologies.in';
 
 export const WHATSAPP_NUMBER = '919351267228';
 

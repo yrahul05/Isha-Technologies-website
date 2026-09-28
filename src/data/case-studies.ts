@@ -701,6 +701,8 @@ export function getAdjacentCaseStudies(study: CaseStudy): {
 }
 
 /** Builds a complete, unique Next.js Metadata object for a case study detail page. */
+/** No `images` here — case-studies/[slug]/opengraph-image.tsx generates a
+ * unique image per study, which Next.js applies automatically. */
 export function buildCaseStudyMetadata(study: CaseStudy): Metadata {
   const path = `/case-studies/${study.slug}`;
   return {
@@ -713,20 +715,11 @@ export function buildCaseStudyMetadata(study: CaseStudy): Metadata {
       siteName: 'Isha Technologies',
       title: study.seo.title,
       description: study.seo.description,
-      images: [
-        {
-          url: '/og-image.png',
-          width: 1200,
-          height: 630,
-          alt: study.title,
-        },
-      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: study.seo.title,
       description: study.seo.description,
-      images: ['/og-image.png'],
     },
   };
 }

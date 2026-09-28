@@ -27,28 +27,32 @@ export default async function Page({
   const study = getCaseStudyBySlug(slug);
   if (!study) notFound();
 
+  const canonicalUrl = `https://www.ishatechnologies.in/case-studies/${study.slug}`;
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'TechArticle',
     headline: study.title,
     description: study.seo.description,
+    url: canonicalUrl,
     articleSection: study.displayCategory,
     about: 'Representative engineering scenario — not a verified client engagement.',
     author: {
       '@type': 'Organization',
       name: 'Isha Technologies',
+      url: 'https://www.ishatechnologies.in',
     },
     publisher: {
       '@type': 'Organization',
       name: 'Isha Technologies',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://ishatechnologies.in/app-logo.png',
+        url: 'https://www.ishatechnologies.in/ISHA-TECHNO-LG.png',
       },
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://ishatechnologies.in/case-studies/${study.slug}`,
+      '@id': canonicalUrl,
     },
   };
 

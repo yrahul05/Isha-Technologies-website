@@ -860,7 +860,9 @@ export function getRelatedServices(service: Service): Service[] {
     .filter((s): s is Service => Boolean(s));
 }
 
-/** Builds a complete, unique Next.js Metadata object for a service page. */
+/** Builds a complete, unique Next.js Metadata object for a service page.
+ * No `images` here — each service route has its own opengraph-image.tsx
+ * file, which Next.js applies automatically. */
 export function buildServiceMetadata(service: Service): Metadata {
   const path = `/services/${service.slug}`;
   return {
@@ -873,20 +875,11 @@ export function buildServiceMetadata(service: Service): Metadata {
       siteName: 'Isha Technologies',
       title: service.seo.title,
       description: service.seo.description,
-      images: [
-        {
-          url: '/og-image.png',
-          width: 1200,
-          height: 630,
-          alt: service.title,
-        },
-      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: service.seo.title,
       description: service.seo.description,
-      images: ['/og-image.png'],
     },
   };
 }

@@ -45,11 +45,11 @@ const content = `
   <p class="font-semibold text-gray-900 mb-1">Isha Technologies</p>
   <p>Jaipur, Rajasthan, India</p>
   <p>Email: <a href="mailto:hello.ishatechnologies@gmail.com" class="text-brand font-medium">hello.ishatechnologies@gmail.com</a></p>
-  <p>Website: <a href="https://ishatechnologies.in" target="_blank" rel="noopener noreferrer" class="text-brand font-medium">https://ishatechnologies.in</a></p>
+  <p>Website: <a href="https://www.ishatechnologies.in" target="_blank" rel="noopener noreferrer" class="text-brand font-medium">https://www.ishatechnologies.in</a></p>
 </div>
 
 <h2 id="section-1" class="scroll-mt-28">1. About These Terms</h2>
-<p>This website is operated by Isha Technologies, Jaipur, Rajasthan, India (<a href="mailto:hello.ishatechnologies@gmail.com">hello.ishatechnologies@gmail.com</a>, <a href="https://ishatechnologies.in" target="_blank" rel="noopener noreferrer">https://ishatechnologies.in</a>). By using this website, you agree to these Terms &amp; Conditions to the extent permitted by applicable law. If you do not agree, please discontinue use of the website.</p>
+<p>This website is operated by Isha Technologies, Jaipur, Rajasthan, India (<a href="mailto:hello.ishatechnologies@gmail.com">hello.ishatechnologies@gmail.com</a>, <a href="https://www.ishatechnologies.in" target="_blank" rel="noopener noreferrer">https://www.ishatechnologies.in</a>). By using this website, you agree to these Terms &amp; Conditions to the extent permitted by applicable law. If you do not agree, please discontinue use of the website.</p>
 
 <h2 id="section-2" class="scroll-mt-28">2. Website Use</h2>
 <p>Visitors may:</p>
@@ -135,7 +135,7 @@ const content = `
   <p>Jaipur, Rajasthan, India</p>
   <p>Email: <a href="mailto:hello.ishatechnologies@gmail.com" class="text-brand font-medium">hello.ishatechnologies@gmail.com</a></p>
   <p>Phone / WhatsApp: <a href="tel:+919351267228" class="text-brand font-medium">+91 9351267228</a></p>
-  <p>Website: <a href="https://ishatechnologies.in" target="_blank" rel="noopener noreferrer" class="text-brand font-medium">https://ishatechnologies.in</a></p>
+  <p>Website: <a href="https://www.ishatechnologies.in" target="_blank" rel="noopener noreferrer" class="text-brand font-medium">https://www.ishatechnologies.in</a></p>
 </div>
 `;
 
