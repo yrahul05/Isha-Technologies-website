@@ -76,9 +76,12 @@ a standard Next.js App Router project and handles the build and output.
    involvement.
 
 > `EMAIL_FROM`'s domain must be a **verified sender domain in Resend**
-> before email sending will succeed in production — until then, `/api/contact`
-> returns an error and the form transparently falls back to a `mailto:` link
-> client-side, so enquiries are never silently lost either way.
+> before email sending will succeed for arbitrary recipients — until then,
+> Resend's sandbox mode only allows sending to the account's own signup
+> address. If `/api/contact` fails (e.g. missing env vars, or the
+> internal enquiry email genuinely can't be sent), the form shows an error
+> with a "Try Again" button and a WhatsApp fallback link — it never
+> silently redirects to `mailto:` or discards what the visitor typed.
 
 ## Contact form
 
