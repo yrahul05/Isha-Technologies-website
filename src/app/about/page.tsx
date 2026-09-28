@@ -43,8 +43,9 @@ export default function Page() {
             {/* Text */}
             <div className="relative z-10 border-l border-blue-600 px-4 py-0">
               <p className="opacity-80 leading-relaxed mb-4">
-                Isha Technologies delivers cloud and DevOps solutions designed
-                around reliability, security and operational efficiency.
+                Isha Technologies is a cloud and DevOps solutions provider
+                based in Jaipur, Rajasthan, designed around reliability,
+                security and operational efficiency.
                 <br />
                 <br />
                 We help organizations build, automate and modernize their

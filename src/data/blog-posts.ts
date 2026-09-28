@@ -94,7 +94,7 @@ export const blogPosts: BlogPost[] = [
 <p>Backups that have never been restored are, in practice, unverified. Periodic restore drills are what actually validate a disaster recovery plan.</p>
 
 <h2 id="security-controls">Security Controls</h2>
-<p>Security controls for production infrastructure generally cover four areas: network boundaries (security groups, network ACLs, private subnets), identity (IAM, least privilege, MFA), data protection (encryption at rest and in transit, key management) and visibility (audit logging of API and console activity). None of these are optional extras — they are part of the baseline, not something bolted on after launch.</p>
+<p><a href="/services/cloud-security">Security controls</a> for production infrastructure generally cover four areas: network boundaries (security groups, network ACLs, private subnets), identity (IAM, least privilege, MFA), data protection (encryption at rest and in transit, key management) and visibility (audit logging of API and console activity). None of these are optional extras — they are part of the baseline, not something bolted on after launch.</p>
 
 <h2 id="monitoring-and-iac">Monitoring and Infrastructure as Code</h2>
 <p>Production systems need monitoring that answers two questions quickly: is the system healthy right now, and what changed recently. That means metrics and dashboards for the first question, and infrastructure as code with a change history for the second. When infrastructure is defined in code (<a href="/resources/blogs/terraform-cloud-operations">Terraform</a>, CloudFormation, Bicep, or similar), every change is reviewable, repeatable across environments, and traceable to a specific commit — which turns "what changed before this incident started" into a five-minute question instead of a guessing exercise.</p>
@@ -307,8 +307,8 @@ spec:
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'terraform',
-    ctaLabel: 'Explore Platform Solutions',
-    ctaHref: '/services/platform-solutions',
+    ctaLabel: 'Explore Terraform & IaC Services',
+    ctaHref: '/services/terraform',
     toc: [
       { id: 'iac-fundamentals', heading: 'Infrastructure as Code Fundamentals' },
       { id: 'terraform-workflow', heading: 'The Terraform Workflow' },
@@ -720,8 +720,8 @@ resource "aws_s3_bucket" "assets" {
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
     visualSlug: 'cloud-solutions',
-    ctaLabel: 'Explore Cloud Solutions',
-    ctaHref: '/services/cloud-solutions',
+    ctaLabel: 'Explore AWS Cloud Services',
+    ctaHref: '/services/aws',
     toc: [
       { id: 'vpc-and-subnets', heading: 'VPC and Subnet Design' },
       { id: 'iam', heading: 'IAM' },

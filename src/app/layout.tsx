@@ -14,6 +14,16 @@ const DM_SansFonts = DM_Sans({
 
 const SITE_URL = 'https://www.ishatechnologies.in';
 
+// Official Isha Technologies organization profiles only (not the individual
+// team-member LinkedIn profiles, and not the Upwork link — that's a
+// personal freelancer profile, not this organization's own page). Matches
+// exactly what's already linked from the footer (src/data/data.js).
+const ORGANIZATION_SAME_AS = [
+  'https://www.linkedin.com/company/isha-technologies-official',
+  'https://www.instagram.com/isha_technologies_official/',
+  'https://github.com/IshaTechnologies',
+];
+
 const description =
   'Managed Cloud & DevOps Solutions from Isha Technologies — expert infrastructure support without building everything in-house. Cloud architecture, DevOps automation, Kubernetes, security, migration and observability.';
 
@@ -62,6 +72,7 @@ const jsonLd = {
         addressRegion: 'Rajasthan',
         addressCountry: 'IN',
       },
+      sameAs: ORGANIZATION_SAME_AS,
     },
     {
       '@type': 'WebSite',

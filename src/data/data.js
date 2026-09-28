@@ -117,6 +117,27 @@ export const services = [
     description:
       'Turn infrastructure signals into operational visibility — metrics, logs, traces, dashboards and alerts with Prometheus, Grafana and CloudWatch.',
   },
+  {
+    title: 'AWS Cloud Services',
+    image: '/cloud-shell-svgrepo-com.svg',
+    link: '/services/aws',
+    description:
+      'AWS architecture, IAM security, compute and containers, cost optimization and CloudWatch monitoring built on AWS best practices.',
+  },
+  {
+    title: 'Terraform & IaC',
+    image: '/cloud-composer-svgrepo-com.svg',
+    link: '/services/terraform',
+    description:
+      'Terraform module design, remote state management, drift detection and CI/CD-integrated infrastructure as code workflows.',
+  },
+  {
+    title: 'Cloud Security',
+    image: '/security-svgrepo-com.svg',
+    link: '/services/cloud-security',
+    description:
+      'IAM and access reviews, network segmentation, encryption, audit logging and compliance readiness across AWS, Azure and Google Cloud.',
+  },
 ];
 
 // mission & vision
