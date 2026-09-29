@@ -1,6 +1,8 @@
 'use client';
 
 import { ServiceHeroVisual } from '@/components/services/visuals/ServiceHeroVisual';
+import { BLOG_VARIANT_STYLES } from '@/data/blog-variants';
+import { getCaseStudyVariant } from '@/data/case-study-variants';
 import type { CaseStudy } from '@/types/case-study';
 import { ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -25,6 +27,7 @@ function MiniBlock({ label, text }: { label: string; text: string }) {
  */
 export function CaseStudyRow({ study, index }: { study: CaseStudy; index: number }) {
   const reversed = index % 2 === 1;
+  const variant = BLOG_VARIANT_STYLES[getCaseStudyVariant(study.slug)];
 
   return (
     <motion.article
@@ -32,11 +35,11 @@ export function CaseStudyRow({ study, index }: { study: CaseStudy; index: number
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-80px' }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="card-hover group rounded-[28px] border border-gray-200 bg-white p-6 shadow-sm md:p-8"
+      className={`card-hover group rounded-[28px] border bg-white p-6 shadow-sm md:p-8 ${variant.border}`}
     >
       <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
         <div
-          className={`flex justify-center rounded-2xl border border-gray-100 bg-brand/[0.03] py-8 transition-transform duration-300 ease-out group-hover:scale-[1.02] ${
+          className={`flex justify-center rounded-2xl border py-8 transition-transform duration-300 ease-out group-hover:scale-[1.02] ${variant.border} ${variant.soft} ${
             reversed ? 'md:order-2' : 'md:order-1'
           }`}
         >
@@ -45,14 +48,16 @@ export function CaseStudyRow({ study, index }: { study: CaseStudy; index: number
 
         <div className={reversed ? 'md:order-1' : 'md:order-2'}>
           <div className="flex items-center gap-3">
-            <span className="card-accent text-3xl font-bold text-brand/15 transition-colors duration-300 ease-out md:text-4xl">
+            <span
+              className={`card-accent text-3xl font-bold opacity-20 transition-colors duration-300 ease-out md:text-4xl ${variant.text}`}
+            >
               {study.number}
             </span>
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 Technical Engineering Demonstration
               </span>
-              <span className="text-xs font-semibold uppercase tracking-wide text-brand">
+              <span className={`text-xs font-semibold uppercase tracking-wide ${variant.text}`}>
                 {study.displayCategory}
               </span>
             </div>
@@ -73,7 +78,7 @@ export function CaseStudyRow({ study, index }: { study: CaseStudy; index: number
 
           <Link
             href={`/case-studies/${study.slug}`}
-            className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-brand"
+            className={`mt-6 inline-flex items-center gap-1.5 text-sm font-semibold ${variant.text}`}
           >
             View Case Study
             <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1" />

@@ -6,7 +6,7 @@
  * post still uses the exact same components and the same brand blue for
  * primary actions (buttons, links) — only the variant accent changes.
  *
- * Deliberately a small, curated set of 7 variants (not one per category):
+ * Deliberately a small, curated set of variants (not one per category):
  * several categories share a treatment (e.g. AWS/Cloud Migration/Azure/
  * Google Cloud all read as "cloud"), which keeps the system reusable
  * instead of needing a bespoke design per category.
@@ -18,6 +18,9 @@ export type BlogVariant =
   | 'security'
   | 'terraform'
   | 'cost-optimization'
+  | 'observability'
+  | 'reliability'
+  | 'platform'
   | 'general';
 
 const CATEGORY_TO_VARIANT: Record<string, BlogVariant> = {
@@ -33,9 +36,9 @@ const CATEGORY_TO_VARIANT: Record<string, BlogVariant> = {
   'Cloud Security': 'security',
   'Terraform & IaC': 'terraform',
   'Cloud Cost Optimization': 'cost-optimization',
-  Observability: 'general',
-  'Site Reliability': 'general',
-  'Platform Engineering': 'general',
+  Observability: 'observability',
+  'Site Reliability': 'reliability',
+  'Platform Engineering': 'platform',
   'Linux & Infrastructure': 'general',
 };
 
@@ -43,7 +46,7 @@ export function getBlogVariant(category: string): BlogVariant {
   return CATEGORY_TO_VARIANT[category] ?? 'general';
 }
 
-type VariantStyle = {
+export type VariantStyle = {
   /** Tailwind text-color utility for accents (active TOC link, icon). */
   text: string;
   /** Tailwind background utility for soft chips/badges. */
@@ -97,6 +100,27 @@ export const BLOG_VARIANT_STYLES: Record<BlogVariant, VariantStyle> = {
     border: 'border-emerald-500/30',
     gradientFrom: 'from-emerald-500/15',
     gradientTo: 'to-emerald-500/0',
+  },
+  observability: {
+    text: 'text-cyan-600',
+    soft: 'bg-cyan-500/10',
+    border: 'border-cyan-500/30',
+    gradientFrom: 'from-cyan-500/15',
+    gradientTo: 'to-cyan-500/0',
+  },
+  reliability: {
+    text: 'text-teal-600',
+    soft: 'bg-teal-500/10',
+    border: 'border-teal-500/30',
+    gradientFrom: 'from-teal-500/15',
+    gradientTo: 'to-teal-500/0',
+  },
+  platform: {
+    text: 'text-sky-600',
+    soft: 'bg-sky-500/10',
+    border: 'border-sky-500/30',
+    gradientFrom: 'from-sky-500/15',
+    gradientTo: 'to-sky-500/0',
   },
   general: {
     text: 'text-brand',

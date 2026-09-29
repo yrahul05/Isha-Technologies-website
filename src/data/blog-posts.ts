@@ -215,7 +215,7 @@ export const blogPosts: BlogPost[] = [
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
-    visualSlug: 'kubernetes',
+    visualSlug: 'kubernetes-container-platforms',
     ctaLabel: 'Explore Kubernetes & Container Platforms',
     ctaHref: '/services/kubernetes-container-platforms',
     toc: [
@@ -306,7 +306,7 @@ spec:
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
-    visualSlug: 'terraform',
+    visualSlug: 'infrastructure-as-code-gitops',
     ctaLabel: 'Explore Infrastructure as Code & GitOps',
     ctaHref: '/services/infrastructure-as-code-gitops',
     toc: [
@@ -382,7 +382,7 @@ resource "aws_s3_bucket" "assets" {
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
-    visualSlug: 'cloud-migration',
+    visualSlug: 'cloud-migration-modernization',
     ctaLabel: 'Explore Cloud Migration & Modernization',
     ctaHref: '/services/cloud-migration-modernization',
     toc: [
@@ -451,7 +451,7 @@ resource "aws_s3_bucket" "assets" {
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
-    visualSlug: 'cloud-cost-optimization',
+    visualSlug: 'cloud-cost-optimization-finops',
     ctaLabel: 'Explore Cloud Cost Optimization & FinOps',
     ctaHref: '/services/cloud-cost-optimization-finops',
     toc: [
@@ -587,7 +587,7 @@ resource "aws_s3_bucket" "assets" {
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
-    visualSlug: 'observability',
+    visualSlug: 'observability-monitoring',
     ctaLabel: 'Explore Observability & Monitoring',
     ctaHref: '/services/observability-monitoring',
     toc: [
@@ -651,7 +651,7 @@ resource "aws_s3_bucket" "assets" {
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
-    visualSlug: 'site-reliability',
+    visualSlug: 'site-reliability-engineering',
     ctaLabel: 'Explore Site Reliability Engineering',
     ctaHref: '/services/site-reliability-engineering',
     toc: [
@@ -787,7 +787,7 @@ resource "aws_s3_bucket" "assets" {
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
     updatedAt: '2026-09-12T17:14:38.000Z',
-    visualSlug: 'platform-solutions',
+    visualSlug: 'platform-engineering',
     ctaLabel: 'Explore Platform Engineering',
     ctaHref: '/services/platform-engineering',
     toc: [
@@ -920,7 +920,7 @@ resource "aws_s3_bucket" "assets" {
     status: 'published',
     publishedAt: '2026-09-28T05:30:34.000Z',
     updatedAt: '2026-09-28T05:30:34.000Z',
-    visualSlug: 'observability',
+    visualSlug: 'ai-powered-devops-aiops',
     ctaLabel: 'Explore Observability & Monitoring',
     ctaHref: '/services/observability-monitoring',
     toc: [
@@ -1100,6 +1100,15 @@ export function getBlogPostBySlug(slug: string): BlogPost | undefined {
 
 export function getPublishedBlogPosts(): BlogPost[] {
   return blogPosts.filter((post) => post.status === 'published');
+}
+
+/** The first published post covering a given topic (matched by
+ * `visualSlug`, the same key used for `ServiceHeroVisual`) — used to link
+ * a case study to the one article that explains the same scenario in
+ * more depth. Several posts can share a `visualSlug`; this returns a
+ * single, deterministic match rather than a random one. */
+export function getBlogPostByVisualSlug(visualSlug: string): BlogPost | undefined {
+  return getPublishedBlogPosts().find((post) => post.visualSlug === visualSlug);
 }
 
 function byPublishedAtDesc(a: BlogPost, b: BlogPost): number {

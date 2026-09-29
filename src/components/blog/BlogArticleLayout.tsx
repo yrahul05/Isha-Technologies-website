@@ -5,8 +5,10 @@ import { CheckCircle2 } from 'lucide-react';
 import { BlogContent } from './BlogContent';
 import { BlogCTA } from './BlogCTA';
 import { BlogHero } from './BlogHero';
+import { BlogHowItWorks } from './BlogHowItWorks';
 import { FAQSection } from './FAQSection';
 import { RelatedBlogs } from './RelatedBlogs';
+import { RelatedCaseStudy } from './RelatedCaseStudy';
 import { TableOfContents } from './TableOfContents';
 
 /**
@@ -37,6 +39,10 @@ export function BlogArticleLayout({
 
         <BlogHero post={post} variant={variant} />
 
+        <div className="mx-auto max-w-5xl">
+          <BlogHowItWorks visualSlug={post.visualSlug} variant={variant} />
+        </div>
+
         <div className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-10 lg:grid-cols-[220px_1fr]">
           <TableOfContents entries={post.toc} accentText={variant.text} />
 
@@ -57,6 +63,7 @@ export function BlogArticleLayout({
             </div>
 
             <FAQSection faqs={post.faqs} />
+            <RelatedCaseStudy visualSlug={post.visualSlug} variant={variant} />
           </div>
         </div>
 

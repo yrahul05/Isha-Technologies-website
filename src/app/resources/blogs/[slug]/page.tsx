@@ -1,5 +1,4 @@
 import { BlogArticleLayout } from '@/components/blog/BlogArticleLayout';
-import { HeroBanner } from '@/components/layout/HeroBanner';
 import {
   buildBlogPostMetadata,
   getBlogPostBySlug,
@@ -76,7 +75,6 @@ export default async function Page({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <HeroBanner title="TECHNICAL RESOURCES" />
       <BlogArticleLayout post={post} related={related} />
     </>
   );

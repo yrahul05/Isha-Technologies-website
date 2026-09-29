@@ -2,14 +2,29 @@
 
 import { ServiceHeroVisual } from '@/components/services/visuals/ServiceHeroVisual';
 import { Button } from '@/components/ui/button';
+import type { VariantStyle } from '@/data/blog-variants';
 import type { CaseStudy } from '@/types/case-study';
 import { ArrowLeft, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
-export function CaseStudyDetailHero({ study }: { study: CaseStudy }) {
+export function CaseStudyDetailHero({
+  study,
+  variant,
+}: {
+  study: CaseStudy;
+  variant: VariantStyle;
+}) {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-white to-brand/5">
+    <section className="relative overflow-hidden">
+      {/* Soft variant-tinted backdrop — CSS gradient only, no image asset,
+          same technique as BlogHero so the two content types feel like one
+          design system with topic-specific accents. */}
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-gradient-to-b ${variant.gradientFrom} ${variant.gradientTo}`}
+        aria-hidden="true"
+      />
+
       <div className="mx-auto max-w-[1280px] px-4 pt-8">
         <Link
           href="/case-studies"
@@ -28,7 +43,9 @@ export function CaseStudyDetailHero({ study }: { study: CaseStudy }) {
           className="space-y-4"
         >
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex rounded-full border border-brand bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand">
+            <span
+              className={`inline-flex rounded-full border bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide ${variant.border} ${variant.text}`}
+            >
               {study.displayCategory}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">
@@ -66,7 +83,7 @@ export function CaseStudyDetailHero({ study }: { study: CaseStudy }) {
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, ease: 'easeOut', delay: 0.15 }}
-          className="flex justify-center rounded-2xl border border-gray-200 bg-white/60 py-6 lg:justify-end"
+          className={`flex justify-center rounded-2xl border py-6 lg:justify-end ${variant.border} ${variant.soft}`}
         >
           <ServiceHeroVisual slug={study.visualSlug} />
         </motion.div>

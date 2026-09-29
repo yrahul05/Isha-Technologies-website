@@ -1,12 +1,19 @@
+import type { VariantStyle } from '@/data/blog-variants';
 import type { CaseStudy } from '@/types/case-study';
 import { CheckCircle2 } from 'lucide-react';
 
-export function CaseStudyBenefits({ study }: { study: CaseStudy }) {
+export function CaseStudyBenefits({
+  study,
+  variant,
+}: {
+  study: CaseStudy;
+  variant: VariantStyle;
+}) {
   return (
     <section className="bg-white py-16">
       <div className="mx-auto max-w-[1280px] px-4">
         <div className="mb-10 max-w-2xl">
-          <span className="text-xs font-semibold uppercase tracking-wide text-brand">
+          <span className={`text-xs font-semibold uppercase tracking-wide ${variant.text}`}>
             Expected Operational Benefits
           </span>
           <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
@@ -17,8 +24,11 @@ export function CaseStudyBenefits({ study }: { study: CaseStudy }) {
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {study.benefits.map((point) => (
-            <div key={point.title} className="rounded-[20px] border border-gray-200 bg-white p-5">
-              <CheckCircle2 className="h-5 w-5 text-brand" strokeWidth={1.75} />
+            <div
+              key={point.title}
+              className={`rounded-[20px] border bg-white p-5 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md ${variant.border}`}
+            >
+              <CheckCircle2 className={`h-5 w-5 ${variant.text}`} strokeWidth={1.75} />
               <h3 className="mt-3 text-base font-semibold tracking-tight text-slate-900">
                 {point.title}
               </h3>

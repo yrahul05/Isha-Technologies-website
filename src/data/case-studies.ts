@@ -179,7 +179,7 @@ export const caseStudies: CaseStudy[] = [
     category: 'Kubernetes',
     displayCategory: 'Kubernetes',
     title: 'Building a Production-Ready Kubernetes Platform',
-    visualSlug: 'kubernetes',
+    visualSlug: 'kubernetes-container-platforms',
     summary:
       'A team has adopted containers but Kubernetes operations grow difficult as workloads increase. This scenario explores designing a production-ready platform around isolation, automation and observability.',
     cardProblem: 'Cluster networking, scaling and security need stronger operational practice.',
@@ -258,7 +258,7 @@ export const caseStudies: CaseStudy[] = [
     category: 'DevOps',
     displayCategory: 'Terraform & Automation',
     title: 'Modernizing Infrastructure Through Infrastructure as Code',
-    visualSlug: 'terraform',
+    visualSlug: 'infrastructure-as-code-gitops',
     summary:
       'Infrastructure changes are performed manually across multiple environments, causing configuration drift. This scenario explores converting infrastructure into version-controlled Terraform modules.',
     cardProblem: 'Manual provisioning causes configuration drift across environments.',
@@ -329,7 +329,7 @@ export const caseStudies: CaseStudy[] = [
     category: 'Cloud Migration',
     displayCategory: 'Cloud Migration',
     title: 'Planning a Structured Cloud Migration',
-    visualSlug: 'cloud-migration',
+    visualSlug: 'cloud-migration-modernization',
     summary:
       'An organization wants to move existing workloads to the cloud but has limited visibility into dependencies and priorities. This scenario explores a structured, phased migration approach.',
     cardProblem: 'Limited visibility into dependencies makes migrating everything at once risky.',
@@ -401,7 +401,7 @@ export const caseStudies: CaseStudy[] = [
     category: 'Cost Optimization',
     displayCategory: 'Cloud Cost Optimization',
     title: 'Improving Cloud Efficiency Through Infrastructure Optimization',
-    visualSlug: 'cloud-cost-optimization',
+    visualSlug: 'cloud-cost-optimization-finops',
     summary:
       'Cloud environments often accumulate oversized and idle resources over time. This scenario explores improving efficiency without compromising performance or reliability.',
     cardProblem: 'Over-provisioned and idle resources accumulate without visibility.',
@@ -546,7 +546,7 @@ export const caseStudies: CaseStudy[] = [
     category: 'Observability',
     displayCategory: 'Observability',
     title: 'Building Infrastructure Visibility With Observability',
-    visualSlug: 'observability',
+    visualSlug: 'observability-monitoring',
     summary:
       'When production issues occur, teams often have limited visibility into what happened across applications and infrastructure. This scenario explores building a correlated observability architecture.',
     cardProblem: 'Fragmented metrics, logs and alerts slow down incident investigation.',
@@ -616,7 +616,7 @@ export const caseStudies: CaseStudy[] = [
     category: 'Reliability',
     displayCategory: 'Site Reliability',
     title: 'Designing a More Reliable Production Environment',
-    visualSlug: 'site-reliability',
+    visualSlug: 'site-reliability-engineering',
     summary:
       'Production systems may work under normal conditions but lack clear reliability practices for spikes, failures and incidents. This scenario explores designing reliability into the platform.',
     cardProblem: 'Reliability practices are missing for traffic spikes, failures and incidents.',

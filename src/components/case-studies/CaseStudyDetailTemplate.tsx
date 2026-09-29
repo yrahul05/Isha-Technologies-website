@@ -3,7 +3,9 @@
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ArchitectureVisual } from '@/components/services/ArchitectureVisual';
 import { ServiceCTA } from '@/components/services/ServiceCTA';
+import { BLOG_VARIANT_STYLES } from '@/data/blog-variants';
 import { getAdjacentCaseStudies } from '@/data/case-studies';
+import { getCaseStudyVariant } from '@/data/case-study-variants';
 import { getServiceBySlug } from '@/data/services';
 import type { CaseStudy } from '@/types/case-study';
 import { MotionConfig } from 'framer-motion';
@@ -21,11 +23,14 @@ import { CaseStudyTechStack } from './CaseStudyTechStack';
  * Renders a complete case study detail page from one `CaseStudy` record.
  * Every one of the 9 case study routes renders through this same template —
  * mirrors `ServicePageTemplate`'s structure so the two content types stay
- * visually consistent across the site.
+ * visually consistent across the site. `variant` (from case-study-variants,
+ * reusing the same palette as blog posts) gives each case study its own
+ * accent color instead of one flat brand blue everywhere.
  */
 export function CaseStudyDetailTemplate({ study }: { study: CaseStudy }) {
   const { previous, next } = getAdjacentCaseStudies(study);
   const relatedServiceTitle = getServiceBySlug(study.relatedService)?.title ?? 'Cloud Solutions';
+  const variant = BLOG_VARIANT_STYLES[getCaseStudyVariant(study.slug)];
 
   return (
     <MotionConfig reducedMotion="user">
@@ -38,15 +43,20 @@ export function CaseStudyDetailTemplate({ study }: { study: CaseStudy }) {
           ]}
         />
       </div>
-      <CaseStudyDetailHero study={study} />
-      <CaseStudyProblem study={study} />
-      <CaseStudyApproach study={study} />
-      <ArchitectureVisual nodes={study.flow} eyebrow="Solution" heading="Architecture & Solution Flow" />
-      <CaseStudyImplementation study={study} />
-      <CaseStudyTechStack study={study} />
-      <CaseStudyConsiderations study={study} />
-      <CaseStudyBenefits study={study} />
-      <CaseStudyServiceCTA study={study} />
+      <CaseStudyDetailHero study={study} variant={variant} />
+      <CaseStudyProblem study={study} variant={variant} />
+      <CaseStudyApproach study={study} variant={variant} />
+      <ArchitectureVisual
+        nodes={study.flow}
+        eyebrow="Solution"
+        heading="Architecture & Solution Flow"
+        variant={variant}
+      />
+      <CaseStudyImplementation study={study} variant={variant} />
+      <CaseStudyTechStack study={study} variant={variant} />
+      <CaseStudyConsiderations study={study} variant={variant} />
+      <CaseStudyBenefits study={study} variant={variant} />
+      <CaseStudyServiceCTA study={study} variant={variant} />
       <CaseStudyNavigation previous={previous} next={next} />
       <ServiceCTA
         heading="Facing an Infrastructure Challenge Like This?"
