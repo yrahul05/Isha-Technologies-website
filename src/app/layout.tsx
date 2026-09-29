@@ -5,6 +5,15 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { WhatsAppButton } from '@/components/layout/WhatsAppButton';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
+import Script from 'next/script';
+
+// Read directly here (not imported from GoogleAnalytics.tsx) because that
+// file is a 'use client' module — a plain value exported across a client
+// boundary becomes a server-reference proxy that throws when read directly
+// in a Server Component like this layout, instead of the real string.
+// `NEXT_PUBLIC_` env vars are statically inlined at build time, so reading
+// it here directly is safe and correct in both server and client contexts.
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 const DM_SansFonts = DM_Sans({
   variable: '--font-dm-sans',
@@ -93,6 +102,37 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${DM_SansFonts.variable} antialiased`}>
+        {/*
+          The gtag.js script tags MUST be declared directly inside this
+          root layout file — `next/script`'s `beforeInteractive` strategy
+          (which puts them in the raw server-rendered HTML, not only
+          injected client-side after hydration) is only supported there,
+          per Next.js's own App Router guidance. `afterInteractive` is
+          Next.js's normal recommendation and does work for real visitors,
+          but it left the tag genuinely absent from the raw HTML response
+          — which is what Google's own automated "tag not detected"
+          checker (and any tool that fetches HTML without running JS)
+          flags. This is still the only place GA4 is ever loaded from —
+          `<GoogleAnalytics />` below only handles the page-view effect
+          for client-side route changes; see that file for the full
+          explanation.
+        */}
+        {GA_MEASUREMENT_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+              strategy="beforeInteractive"
+            />
+            <Script id="ga4-init" strategy="beforeInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false });
+              `}
+            </Script>
+          </>
+        )}
         <GoogleAnalytics />
         <script
           type="application/ld+json"
