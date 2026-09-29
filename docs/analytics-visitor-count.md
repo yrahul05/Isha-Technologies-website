@@ -1,4 +1,4 @@
-# Footer "Website Visitors" stat — setup
+# Footer "Website Visitors" stat, and the internal /analytics dashboard
 
 ## Current
 
@@ -6,12 +6,21 @@
   `G-98Z5JSM7P9` (`NEXT_PUBLIC_GA_MEASUREMENT_ID`, loaded by
   `src/components/analytics/GoogleAnalytics.tsx`, mounted once in
   `src/app/layout.tsx`). This sends normal page views for every route,
-  including client-side navigation.
+  including client-side navigation (a `useEffect` on `usePathname()` fires
+  `gtag('config', ..., { page_path })` on every route change, with the
+  bootstrap script's automatic page_view disabled via
+  `send_page_view: false` — so the initial load and every later
+  client-side navigation are each tracked exactly once, from one place).
 - The global footer has a compact "Website Visitors" stat, in the Connect
   column below the social icon row, showing the real count of **sessions
   on ishatechnologies.in over the last 30 days**, read back out of that
   same GA4 property via the **GA4 Data API** — never a fake, random,
   all-time, or client-side-counted number.
+- An internal, password-gated dashboard at **`/analytics`** shows a fuller
+  picture from the same GA4 property: total visitors, active users right
+  now, page views, sessions, top pages, traffic sources and a device
+  breakdown, all over the last 30 days. See "Internal /analytics
+  dashboard" below.
 - This feature is a separate, read-only, server-side call — it does not
   change how GA4 tracking itself works, and it does not use Cloudflare
   Analytics (the site is hosted on Vercel; this project no longer uses
@@ -135,14 +144,65 @@ the real number — no further code change needed. The result is cached for
 every visitor sees the same stable number and the GA4 Data API isn't
 called on every page load.
 
+## Internal /analytics dashboard
+
+A fuller dashboard lives at `/analytics` — total visitors, active users
+right now, page views, sessions, top 5 pages, top 5 traffic sources, and
+a device (desktop/mobile/tablet) breakdown, all for the last 30 days.
+It reuses the same GA4 service account as the footer stat
+(`GA4_PROPERTY_ID` / `GA4_CLIENT_EMAIL` / `GA4_PRIVATE_KEY` — the JWT
+signing and report-fetching logic is shared in `src/lib/ga4.ts`), so no
+separate Google Cloud setup is needed once those three are already
+configured.
+
+**Access control.** This site has no user-account system, so the
+dashboard is gated by a single shared password rather than a full auth
+framework — proportionate to what it protects (aggregate marketing
+stats, not customer data):
+
+1. Set a strong, random value as a fourth env var, **`ANALYTICS_DASHBOARD_PASSWORD`**
+   (Vercel: Sensitive/encrypted, same as `GA4_PRIVATE_KEY`). Leave it
+   unset and the dashboard shows "not configured" instead of ever
+   allowing access.
+2. Visiting `/analytics` without a valid session shows a password form.
+   Submitting the correct password (`POST /api/analytics/auth`) sets an
+   httpOnly, `Secure` (in production), `SameSite=Lax` session cookie
+   valid for 12 hours — the cookie is an HMAC-SHA256 of a fixed string
+   keyed by the password (`src/lib/analytics-auth.ts`), never the
+   password itself, so it can't be reversed if it ever leaked.
+3. The dashboard's data route, `GET /api/analytics/dashboard`, is
+   protected twice: `src/middleware.ts` rejects any request to that exact
+   path without a valid session cookie before the route handler even
+   runs, and the route handler independently re-checks the same cookie —
+   so it stays safe to call directly even if the middleware matcher is
+   ever changed.
+4. `/analytics` itself is marked `robots: { index: false, follow: false }`
+   and is never linked from navigation, the footer, or the sitemap —
+   reachable only by someone who already has the URL and the password.
+
+The session check (`verifyAnalyticsSessionValue`) is built on the Web
+Crypto API (`crypto.subtle`), not Node's `crypto` module, specifically
+because Next.js middleware always runs on the Edge Runtime, which
+doesn't support Node's `crypto` — `crypto.subtle` is a global available
+in both the Edge and Node.js runtimes, so the exact same verification
+function runs correctly in `src/middleware.ts`, the dashboard route, and
+the page's own server-side cookie check.
+
 ## Security notes
 
-- `GA4_PRIVATE_KEY` is **only ever read inside
-  `src/app/api/analytics/visitors/route.ts`**, which runs server-side on
-  Vercel, never in the browser, and is never logged.
-- The endpoint's response is always exactly `{ "status": "ok", "visits": <number> }`
-  (or `not_configured` / `error`) — never the private key, the OAuth2
-  access token, or the raw GA4 Data API payload.
+- `GA4_PRIVATE_KEY` is **only ever read inside server-side Route
+  Handlers** (`src/app/api/analytics/visitors/route.ts` and
+  `src/app/api/analytics/dashboard/route.ts`, via the shared
+  `src/lib/ga4.ts`), never in the browser, and is never logged.
+- The visitors endpoint's response is always exactly
+  `{ "status": "ok", "visits": <number> }` (or `not_configured` / `error`)
+  — never the private key, the OAuth2 access token, or the raw GA4 Data
+  API payload. The dashboard endpoint follows the same discipline: only
+  the aggregate numbers above, never a credential or raw API response.
+- `ANALYTICS_DASHBOARD_PASSWORD` is only ever read inside
+  `src/lib/analytics-auth.ts`; it's never logged, never included in an
+  API response, and never stored in the session cookie itself (the
+  cookie is an HMAC derived from it, not the password).
 - No personal contact-form information (name, email, phone, company,
   message) is ever sent to GA4 by this feature — see
   `src/components/forms/ContactForm.tsx`, which only fires aggregate
