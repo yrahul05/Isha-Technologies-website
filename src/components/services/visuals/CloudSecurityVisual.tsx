@@ -1,24 +1,43 @@
 'use client';
 
-import { KeyRound, Lock, Search, Server } from 'lucide-react';
-import { BoundaryFrame, VConnector, VisualCanvas, VisualNode } from './primitives';
+import {
+  Activity,
+  Database,
+  KeyRound,
+  Layers,
+  Network,
+  Search,
+  Server,
+  ShieldAlert,
+} from 'lucide-react';
+import { VConnector, VisualCanvas, VisualNode } from './primitives';
 
-/** Cloud Security — identity gates entry into a segmented, secured
- * workload boundary, with an audit trail watching from outside it. */
+const LAYERS = [
+  { icon: KeyRound, label: 'Identity' },
+  { icon: Network, label: 'Network' },
+  { icon: Layers, label: 'Application' },
+  { icon: Server, label: 'Workload' },
+  { icon: Database, label: 'Data' },
+  { icon: Activity, label: 'Monitoring' },
+];
+
+/** Cloud Security — defense in depth: each layer (identity, network,
+ * application, workload, data) is a distinct control, watched by
+ * monitoring that feeds threat detection and, ultimately, response. */
 export function CloudSecurityVisual() {
   return (
     <VisualCanvas>
       <div className="flex flex-col items-center py-6">
-        <VisualNode icon={KeyRound} label="Identity & Access" delay={0} emphasis />
-        <VConnector delay={0.15} height={16} />
-        <BoundaryFrame label="Secured Boundary" delay={0.2}>
-          <div className="flex items-center gap-3">
-            <VisualNode icon={Lock} label="Secrets" delay={0.3} />
-            <VisualNode icon={Server} label="Workloads" delay={0.35} />
+        {LAYERS.map((layer, idx) => (
+          <div key={layer.label} className="flex flex-col items-center">
+            <VisualNode icon={layer.icon} label={layer.label} delay={idx * 0.07} emphasis={idx === 0} />
+            <VConnector delay={idx * 0.09} height={14} />
           </div>
-        </BoundaryFrame>
-        <VConnector delay={0.5} height={16} />
-        <VisualNode icon={Search} label="Audit Trail" delay={0.55} />
+        ))}
+
+        <VisualNode icon={ShieldAlert} label="Threat Detection" delay={0.55} emphasis />
+        <VConnector delay={0.65} height={14} />
+        <VisualNode icon={Search} label="Response" delay={0.7} />
       </div>
     </VisualCanvas>
   );

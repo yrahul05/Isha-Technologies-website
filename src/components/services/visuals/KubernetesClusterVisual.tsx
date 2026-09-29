@@ -1,8 +1,8 @@
 'use client';
 
-import { Boxes, Cloud, Layers, Network, Package, Server, Waypoints } from 'lucide-react';
+import { Boxes, Cpu, GitBranch, Layers, Package, PackageSearch, Server, Users, Waypoints } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { BoundaryFrame, VConnector, VisualCanvas, VisualNode } from './primitives';
+import { BoundaryFrame, MiniNode, VConnector, VisualCanvas, VisualNode } from './primitives';
 
 function PodRow() {
   const reduce = useReducedMotion();
@@ -45,31 +45,39 @@ function NodeRow() {
   );
 }
 
-/** Kubernetes — cluster hierarchy from ingress down to the nodes it runs on. */
+/** Kubernetes & Container Platforms — from a developer's commit through
+ * CI/CD and the registry, into the cluster's control plane, nodes and
+ * pods, out through services and ingress to the running application. */
 export function KubernetesClusterVisual() {
   return (
     <VisualCanvas>
       <div className="flex flex-col items-center py-6">
-        <VisualNode icon={Waypoints} label="Ingress" delay={0} emphasis />
-        <VConnector delay={0} />
-        <VisualNode icon={Boxes} label="Services" delay={0.1} />
-        <VConnector delay={0.2} />
-        <VisualNode icon={Layers} label="Deployments" delay={0.2} />
-        <VConnector delay={0.3} />
+        <div className="flex flex-wrap items-center justify-center gap-1.5">
+          <MiniNode icon={Users} label="Developer" delay={0} />
+          <MiniNode icon={GitBranch} label="CI/CD" delay={0.07} />
+          <MiniNode icon={PackageSearch} label="Registry" delay={0.14} />
+        </div>
+        <VConnector delay={0.25} height={16} />
 
-        <BoundaryFrame label="Cluster" delay={0.3} className="mt-1">
+        <VisualNode icon={Waypoints} label="Ingress" delay={0.3} emphasis />
+        <VConnector delay={0.35} />
+        <VisualNode icon={Boxes} label="Services" delay={0.4} />
+        <VConnector delay={0.45} />
+        <VisualNode icon={Layers} label="Deployments" delay={0.45} />
+        <VConnector delay={0.5} />
+
+        <BoundaryFrame label="Cluster" delay={0.5} className="mt-1">
           <div className="flex flex-col items-center gap-2.5">
+            <VisualNode icon={Cpu} label="Control Plane" delay={0.55} />
+            <VConnector height={10} delay={0.6} />
             <PodRow />
-            <VConnector height={12} delay={0.4} />
+            <VConnector height={10} delay={0.65} />
             <NodeRow />
           </div>
         </BoundaryFrame>
 
-        <VConnector delay={0.5} />
-        <VisualNode icon={Cloud} label="Cloud" delay={0.5} />
-        <span className="mt-2 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
-          <Network className="h-3 w-3 text-brand/50" /> production orchestration
-        </span>
+        <VConnector delay={0.75} />
+        <VisualNode icon={Layers} label="Application" delay={0.75} />
       </div>
     </VisualCanvas>
   );
