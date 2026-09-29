@@ -1,6 +1,7 @@
 'use client';
 
 import type { JSX } from 'react';
+import { AgentRegistryVisual } from './AgentRegistryVisual';
 import { AIOpsInvestigationVisual } from './AIOpsInvestigationVisual';
 import { AIWorkloadInfrastructureVisual } from './AIWorkloadInfrastructureVisual';
 import { CloudArchitectureVisual } from './CloudArchitectureVisual';
@@ -31,13 +32,18 @@ const VISUALS: Record<string, () => JSX.Element> = {
   'ai-powered-devops-aiops': AIOpsInvestigationVisual,
   'ai-cloud-infrastructure': AIWorkloadInfrastructureVisual,
   'cloud-security': CloudSecurityVisual,
+  // Blog-only visuals below — keyed by a slug that isn't a real service,
+  // reusing this same lookup/fallback mechanism (`post.visualSlug`) that
+  // every blog post already goes through.
+  'aws-agent-registry': AgentRegistryVisual,
 };
 
 /**
  * Renders the service-specific hero visual for a given slug. Every one of
  * the 14 services gets its own component (see `VISUALS` above) built from
  * the shared primitives in `./primitives` — same visual language, unique
- * architecture per service.
+ * architecture per service. A handful of blog-only entries reuse the same
+ * map/fallback for posts whose topic doesn't match any real service.
  */
 export function ServiceHeroVisual({ slug }: { slug: string }) {
   const Visual = VISUALS[slug] ?? CloudArchitectureVisual;

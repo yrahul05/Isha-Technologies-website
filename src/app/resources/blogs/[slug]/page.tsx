@@ -43,7 +43,7 @@ export default async function Page({
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
     headline: post.title,
-    description: post.excerpt,
+    description: post.metaDescription ?? post.excerpt,
     image: `${canonicalUrl}/opengraph-image`,
     url: canonicalUrl,
     datePublished: post.publishedAt,

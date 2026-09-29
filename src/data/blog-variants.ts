@@ -21,6 +21,7 @@ export type BlogVariant =
   | 'observability'
   | 'reliability'
   | 'platform'
+  | 'ai'
   | 'general';
 
 const CATEGORY_TO_VARIANT: Record<string, BlogVariant> = {
@@ -39,6 +40,7 @@ const CATEGORY_TO_VARIANT: Record<string, BlogVariant> = {
   Observability: 'observability',
   'Site Reliability': 'reliability',
   'Platform Engineering': 'platform',
+  'AI-Powered DevOps & AIOps': 'ai',
   'Linux & Infrastructure': 'general',
 };
 
@@ -121,6 +123,13 @@ export const BLOG_VARIANT_STYLES: Record<BlogVariant, VariantStyle> = {
     border: 'border-sky-500/30',
     gradientFrom: 'from-sky-500/15',
     gradientTo: 'to-sky-500/0',
+  },
+  ai: {
+    text: 'text-purple-600',
+    soft: 'bg-purple-500/10',
+    border: 'border-purple-500/30',
+    gradientFrom: 'from-purple-500/15',
+    gradientTo: 'to-purple-500/0',
   },
   general: {
     text: 'text-brand',

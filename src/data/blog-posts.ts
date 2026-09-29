@@ -1090,6 +1090,215 @@ resource "aws_s3_bucket" "assets" {
       },
     ],
   },
+
+  {
+    slug: 'aws-agent-registry-ai-agent-governance',
+    title: 'AWS Agent Registry: The New Way to Govern Enterprise AI Agents',
+    seoTitle: 'AWS Agent Registry: AI Agent Governance for Enterprises',
+    category: 'AI-Powered DevOps & AIOps',
+    tags: ['AWS', 'AI Agent Governance', 'Cloud Security', 'Platform Engineering', 'MCP'],
+    primaryKeyword: 'AWS Agent Registry',
+    secondaryKeywords: [
+      'AWS Agent Registry 2026',
+      'AI agent governance',
+      'enterprise AI agents',
+      'AI agent discovery',
+      'AWS Bedrock AgentCore',
+      'MCP server governance',
+      'AI tools governance',
+      'agent governance',
+      'enterprise AI governance',
+      'AI infrastructure',
+      'AWS AI services',
+      'AI agent security',
+      'MCP server registry',
+      'AgentCore Registry',
+      'governed AI agents',
+    ],
+    excerpt:
+      'AWS Agent Registry gives enterprises a centralized, governed catalog for discovering and approving AI agents, tools, skills and MCP servers — here is how it works and what it does not solve.',
+    metaDescription:
+      'Learn how AWS Agent Registry helps enterprises discover, govern, and manage AI agents, tools, skills, MCP servers, and custom resources at scale.',
+    introduction:
+      'AI agents are moving from isolated experiments to production systems. As organizations deploy agents, MCP servers, tools and reusable skills across teams, another infrastructure problem appears: how do you know what already exists, who owns it, who approved it, and how developers are supposed to find it without rebuilding it from scratch. AWS Agent Registry, generally available since August 31, 2026, introduces a centralized discovery and governance layer for exactly these resources — less a new way to build an agent, and more a control and discovery layer around the agent ecosystem an organization already has.',
+    readingTime: '13 min read',
+    author: AUTHOR,
+    status: 'published',
+    publishedAt: '2026-09-29T00:00:00.000Z',
+    updatedAt: '2026-09-29T00:00:00.000Z',
+    visualSlug: 'aws-agent-registry',
+    ctaLabel: 'Explore AI-Powered DevOps & AIOps',
+    ctaHref: '/services/ai-powered-devops-aiops',
+    toc: [
+      { id: 'why-agent-governance-is-a-platform-problem', heading: 'Why AI Agent Governance Is Becoming a Platform Problem' },
+      { id: 'what-is-aws-agent-registry', heading: 'What Is AWS Agent Registry?' },
+      { id: 'how-aws-agent-registry-works', heading: 'How AWS Agent Registry Works' },
+      { id: 'what-can-be-registered', heading: 'What Can Be Registered?' },
+      { id: 'governance-the-important-part', heading: 'Governance: The Important Part' },
+      { id: 'aws-organizations-and-auto-detection', heading: 'AWS Organizations and Auto-Detection' },
+      { id: 'agent-registry-and-mcp', heading: 'AWS Agent Registry and MCP' },
+      { id: 'agent-registry-and-amazon-quick', heading: 'AWS Agent Registry and Amazon Quick' },
+      { id: 'agent-registry-and-cloud-security', heading: 'Agent Registry and Cloud Security' },
+      { id: 'agent-registry-and-platform-engineering', heading: 'Agent Registry and Platform Engineering' },
+      { id: 'agent-registry-vs-traditional-catalogs', heading: 'AWS Agent Registry vs. Traditional Software Catalogs' },
+      { id: 'what-agent-registry-does-not-solve', heading: 'What AWS Agent Registry Does Not Solve' },
+      { id: 'practical-enterprise-architecture', heading: 'Practical Enterprise Architecture' },
+      { id: 'how-enterprises-should-approach-agent-governance', heading: 'How Enterprises Should Approach Agent Governance' },
+      { id: 'how-isha-technologies-can-help', heading: 'How Isha Technologies Can Help' },
+    ],
+    contentHtml: `
+<h2 id="why-agent-governance-is-a-platform-problem">Why AI Agent Governance Is Becoming a Platform Problem</h2>
+<p>Traditional software has a well-understood management layer: code moves through a repository, a CI/CD pipeline, a deployment, and monitoring. Agentic software adds a much wider set of things to keep track of — agents, tools, MCP servers, skills, models, data access, permissions, and a runtime, on top of everything traditional software already needed.</p>
+<p>In practice, this shows up as a predictable pattern: one team builds an MCP server to expose an internal API, another team unknowingly builds something nearly identical weeks later, and a third team's agent has access to a tool nobody remembers approving. None of this is a failure of any individual team — it's what happens when a fast-moving category of software has no shared catalog, no ownership model, and no approval step between "someone built this" and "this is safe for other teams to use." Platform and security teams end up needing a basic answer: what agents, tools and MCP servers actually exist right now, who owns each one, and which are approved for reuse? Without a registry, that answer usually lives in nobody's head.</p>
+
+<h2 id="what-is-aws-agent-registry">What Is AWS Agent Registry?</h2>
+<p>According to AWS, <strong>AWS Agent Registry is a fully managed discovery service that provides a centralized catalog for organizing, curating, and discovering resources across your organization</strong>. Teams publish MCP servers, agents, agent skills, and custom resources into a searchable registry, access is controlled through an approval workflow, and both human users and AI agents can discover the right tool or agent through hybrid search, catalog browsing, or a native MCP endpoint.</p>
+<p>The core idea is a simple pipeline: <strong>registry → catalog → approval → discovery → reuse</strong>. A resource is published into a registry, it's reviewed against that registry's approval settings, and only once approved does it become part of the discoverable catalog other teams can search, browse and reuse — rather than every team rebuilding the same capability because they had no way to find it.</p>
+<p>Discovery itself supports two complementary approaches: <strong>semantic search</strong>, for natural-language queries like "find me a tool that looks up customer order status," and <strong>keyword search</strong>, for exact name or identifier lookups — plus a dedicated catalog-browsing experience with filters, for teams that prefer to explore what's available rather than search for something specific.</p>
+
+<h2 id="how-aws-agent-registry-works">How AWS Agent Registry Works</h2>
+<p>AWS Agent Registry is organized around two resources. A <strong>registry</strong> is the catalog itself — it has a name, description, an authorization configuration (IAM or JWT from a corporate identity provider), and its own approval settings. Organizations can create one org-wide registry, or split registries by resource type, environment (production, QA, development), or team — whichever boundary matches how the organization actually operates. A <strong>registry record</strong> represents one published resource inside a registry, capturing the metadata that describes what it is, what it does, and how it can be found.</p>
+<p>The typical workflow follows four steps: an administrator creates a registry and configures its authorization and approval settings; a publisher creates a record describing their MCP server, agent, or tool and submits it for approval; a curator reviews pending records and approves, rejects, or later deprecates them; and consumers — human developers or AI agents — search, browse, or connect to the registry's MCP endpoint to find what they need. Each record moves through a defined lifecycle: <strong>draft → pending approval → approved (or rejected) → deprecated</strong>.</p>
+<p>That lifecycle is also why AWS describes the registry as having two logical planes: a <strong>Governance Plane</strong>, which holds every record regardless of its approval state, and a <strong>Discovery Plane</strong>, which surfaces only the approved, curated subset that consumers actually see when they search or browse. Separating the two is what makes "this exists somewhere" and "this is safe to use" two distinct, deliberate states instead of the same thing.</p>
+
+<h2 id="what-can-be-registered">What Can Be Registered?</h2>
+<p>AWS Agent Registry supports four record types, and validates the first two against their respective protocol schemas rather than accepting arbitrary metadata:</p>
+<ul>
+  <li><strong>Agents.</strong> Autonomous or semi-autonomous AI agents, registered and discoverable as Agent-to-Agent (A2A) resources — including agents hosted on <a href="/services/ai-cloud-infrastructure">Amazon Bedrock AgentCore Runtime</a>.</li>
+  <li><strong>MCP servers.</strong> Model Context Protocol servers that expose tools, resources, or prompts. The registry validates these against the MCP protocol schema, and can even sync metadata directly from a live external MCP or A2A server rather than requiring it to be entered by hand.</li>
+  <li><strong>Skills.</strong> Reusable, packaged capabilities that an agent can invoke — the kind of narrow, well-defined function that's genuinely worth sharing across teams instead of reimplementing.</li>
+  <li><strong>Custom resources.</strong> Anything else an organization wants cataloged, described with custom JSON metadata rather than a fixed protocol schema.</li>
+</ul>
+<p>It's worth being precise about MCP here: the Model Context Protocol is an open, AWS-independent standard for connecting AI applications to external tools, data and prompts. AWS Agent Registry doesn't reinvent MCP — it provides a governed discovery layer <em>around</em> MCP servers your teams already build, whether those servers run on AWS or elsewhere.</p>
+
+<h2 id="governance-the-important-part">Governance: The Important Part</h2>
+<p>Discovery alone isn't the hard problem — a shared spreadsheet can list what exists. The harder problem is making sure that "something exists" and "this is an approved capability developers can safely use" aren't treated as the same fact. That gap is exactly what the approval workflow, ownership metadata, and lifecycle states are designed to close.</p>
+<p>In practice, governance here means: an approval step between publishing and discoverability, a defined owner for every record, the ability to deprecate a resource when it's no longer maintained, tags for organizing records by cost center or access boundary, and — critically for security and compliance reviews — an audit trail. AWS Agent Registry logs registry API calls through <strong>AWS CloudTrail</strong>, so who created, approved, or modified a record is a matter of record, not institutional memory.</p>
+<blockquote><p>Treating governance as something built into the platform — an approval gate every publish goes through, not a manual review someone remembers to schedule — is what actually makes it scale past a handful of teams.</p></blockquote>
+
+<h2 id="aws-organizations-and-auto-detection">AWS Organizations and Auto-Detection</h2>
+<p>One of the more consequential capabilities AWS shipped alongside general availability addresses what's often called "Shadow AI" — agents and MCP servers that get deployed without ever going through a central review. An administrator enables endpoint detection once at the <strong>AWS Organizations</strong> level, and from that point on, AWS Agent Registry automatically detects agents and MCP servers running on <strong>Amazon Bedrock AgentCore Runtime</strong> and <strong>AgentCore Gateway</strong> across every member account in the organization.</p>
+<p>Detected resources don't appear as approved, discoverable entries — they flow in as <strong>draft records</strong>, waiting for a curator to review, approve, or reject them. That distinction matters: auto-detection gives platform and security teams visibility into what's actually running, without silently promoting anything to "approved for reuse" on its own. It's also worth being precise about scope — this covers AgentCore Runtime and Gateway workloads across accounts in the same organization, not AI workloads on other clouds, on-premises, or outside AgentCore entirely. For a mixed environment, auto-detection covers the AWS/AgentCore portion, and manual or API-driven registration still covers the rest.</p>
+
+<h2 id="agent-registry-and-mcp">AWS Agent Registry and MCP</h2>
+<p>Every registry instance is also exposed as its own remote MCP endpoint, which means any MCP-compatible client can query it directly using the Model Context Protocol rather than a bespoke API integration. AWS specifically confirms that MCP-compatible development environments — including <strong>Kiro</strong> and <strong>Claude Code</strong> — can connect to a registry natively, letting a developer run a natural-language search like "find me an MCP server for problem tickets" from inside their editor and get back approved, governed results.</p>
+<p>Authorization for the MCP endpoint follows the same model as the rest of the registry — IAM credentials or JWTs from a corporate identity provider — with OAuth setup handled through Dynamic Client Registration so a developer's IDE doesn't need pre-provisioned credentials just to search. Discovering an approved tool becomes part of a developer's normal workflow instead of a separate lookup in a different system.</p>
+
+<h2 id="agent-registry-and-amazon-quick">AWS Agent Registry and Amazon Quick</h2>
+<p>AWS Agent Registry also connects to <strong>Amazon Quick</strong>, AWS's business-user-facing AI surface. Once a Quick administrator connects their tenant to one or more Agent Registries, approved agents and MCP servers that expose MCP connectors appear directly on Quick's Integrations page — and from there, business users can reach those same governed capabilities through <strong>Quick Chat, Automations, Flows, and Deep Research</strong>.</p>
+<p>The significance is less about Quick specifically and more about what it demonstrates: the same governed catalog — same approval workflow, same owner and audit trail — can serve a developer querying an MCP endpoint and a business user in a no-code flow alike. Worth noting: this requires explicit configuration by a Quick administrator, not something every organization gets automatically the moment a registry exists.</p>
+
+<h2 id="agent-registry-and-cloud-security">Agent Registry and Cloud Security</h2>
+<p>AWS Agent Registry is a genuinely useful piece of an enterprise AI security posture, but it's worth being precise about which piece. What it provides directly: an approval gate between "published" and "discoverable," ownership and audit trails through CloudTrail, lifecycle management (including deprecation), and reduced Shadow AI risk through org-wide auto-detection. What it does not provide on its own is complete AI security.</p>
+<p>Enterprise AI security still depends on identity and IAM design, network controls, secrets management, data security, runtime security for the agents and MCP servers themselves, and the observability that shows what agents actually do in production. AWS Agent Registry can enforce <em>that</em> an approval happened; it doesn't replace the identity, network, and data controls that determine whether the underlying resource is actually safe to approve. Our <a href="/services/cloud-security">Cloud Security</a> practice focuses specifically on that surrounding layer — IAM, network segmentation, secrets management, and audit logging — that a registry depends on rather than replaces.</p>
+
+<h2 id="agent-registry-and-platform-engineering">Agent Registry and Platform Engineering</h2>
+<p>For a platform team, AWS Agent Registry is a natural building block inside an internal developer platform rather than a replacement for one. The registry can sit behind a self-service layer: a developer requests an AI capability, the platform routes them to an approved agent, MCP server, skill or tool already in the registry, and they consume it securely — without filing a ticket or rebuilding something that already exists three teams over.</p>
+<p>The platform team's job doesn't disappear here — if anything, it becomes more explicit. Someone still needs to define what "approved" means for this organization, decide who holds curator and administrator roles, automate the infrastructure that publishes and hosts these resources, wire in the observability that shows how registered agents actually behave in production, and keep the registry's lifecycle state accurate as tools are deprecated or replaced. That's precisely the kind of standards-and-automation work our <a href="/services/platform-engineering">Platform Engineering</a> practice is built around, and it pairs naturally with the automation and repeatability our <a href="/services/infrastructure-as-code-gitops">Infrastructure as Code &amp; GitOps</a> and <a href="/services/devops-solutions">DevOps Solutions</a> work already brings to the rest of an organization's delivery pipeline.</p>
+
+<h2 id="agent-registry-vs-traditional-catalogs">AWS Agent Registry vs. Traditional Software Catalogs</h2>
+<p>Teams that already run an internal service catalog or API registry might reasonably ask how this is different. The honest answer is that AWS Agent Registry isn't trying to replace a general software catalog — it's purpose-built for a category of resource that traditional catalogs weren't designed around.</p>
+<table>
+<thead>
+<tr><th>Capability</th><th>Traditional Software Catalog</th><th>AWS Agent Registry</th></tr>
+</thead>
+<tbody>
+<tr><td>Primary resource type</td><td>Services, APIs, repositories</td><td>Agents, MCP servers, skills, custom resources</td></tr>
+<tr><td>Discovery method</td><td>Keyword search, manual browsing</td><td>Hybrid semantic + keyword search, catalog browsing</td></tr>
+<tr><td>Machine-readable discovery</td><td>Usually API-only, not agent-native</td><td>Native remote MCP endpoint for AI-agent consumption</td></tr>
+<tr><td>Protocol validation</td><td>Rarely enforced automatically</td><td>MCP and Agent (A2A) records validated against protocol schemas</td></tr>
+<tr><td>Approval workflow</td><td>Varies widely by organization</td><td>Built-in draft → pending approval → approved/rejected lifecycle</td></tr>
+<tr><td>Cross-account visibility</td><td>Custom-built, if it exists at all</td><td>AWS Organizations auto-detection, AWS RAM cross-account sharing</td></tr>
+<tr><td>Audit trail</td><td>Depends on the tool chosen</td><td>Built-in AWS CloudTrail logging of registry API calls</td></tr>
+</tbody>
+</table>
+<p>This isn't a case of one approach being objectively better — a mature software catalog still matters for the services and APIs it already tracks well. AWS Agent Registry is designed specifically for an AI/agent ecosystem, where the resource types, discovery pattern (agents searching for tools, not just humans), and approval requirements are different enough to warrant a purpose-built layer.</p>
+
+<h2 id="what-agent-registry-does-not-solve">What AWS Agent Registry Does Not Solve</h2>
+<p>To be technically credible about this service, it's worth being explicit about what stays entirely outside its scope. AWS Agent Registry does not replace:</p>
+<ul>
+  <li><strong>IAM design and identity federation</strong> — the registry has its own authorization model, but the identity and permission strategy for everything it points to is still yours to design.</li>
+  <li><strong>Secrets management</strong> for the credentials an agent or MCP server actually uses at runtime.</li>
+  <li><strong>Network security</strong> — VPC design, PrivateLink, and segmentation around where agents and MCP servers actually run.</li>
+  <li><strong>Data governance</strong> for what an agent or tool is allowed to read, write, or expose.</li>
+  <li><strong>Model governance</strong> — evaluating a model's behavior, bias, or reliability is a separate discipline from cataloging the agent that uses it.</li>
+  <li><strong>Runtime monitoring and incident response</strong> once an approved agent is actually running in production.</li>
+  <li><strong>Cost management</strong> for the compute and inference the registered resources consume.</li>
+  <li><strong>Human approval for sensitive workflows</strong> that need judgment a registry's approval workflow can route to, but can't substitute for.</li>
+  <li><strong>Compliance processes, agent evaluation, and testing</strong> — the registry can require that these happened before approval; it doesn't perform them.</li>
+</ul>
+<p>None of this is a criticism — it's a fairly deliberate scope. A discovery and governance layer that tried to also be an IAM system, a secrets manager, and a testing framework would do all of them poorly. AWS Agent Registry is best understood as one well-defined piece of a much larger enterprise AI platform.</p>
+
+<h2 id="practical-enterprise-architecture">Practical Enterprise Architecture</h2>
+<p>Put together, a reasonably mature setup looks like this: developers and business users reach an internal developer platform, which sits in front of the Agent Registry and the organization's existing security controls (IAM, network policy, secrets management) side by side. The registry catalogs agents, MCP servers, skills, and custom resources, each ultimately hosted through Bedrock AgentCore or an equivalent runtime and backed by real data, APIs and enterprise systems. Wrapping the entire path — not just sitting at the end of it — are observability, audit logging, and security monitoring, watching not just whether a resource was approved, but how it actually behaves once teams are using it. The registry is one layer in that stack: it answers "does this exist, and is it approved," while the layers around it still have to answer "is it secure" and "is it observable."</p>
+
+<h2 id="how-enterprises-should-approach-agent-governance">How Enterprises Should Approach Agent Governance</h2>
+<p>For an organization starting from scratch — most are, given how recent this category is — a phased approach tends to work better than trying to govern everything on day one:</p>
+<ol>
+  <li><strong>Inventory.</strong> Find out what agents, MCP servers and tools already exist, including the ones nobody remembers building. Auto-detection helps considerably here.</li>
+  <li><strong>Ownership.</strong> Assign a clear owner to every discovered resource before doing anything else with it.</li>
+  <li><strong>Classification.</strong> Decide which resources are safe candidates for reuse, which need rework first, and which should be retired outright.</li>
+  <li><strong>Approval.</strong> Define what "approved" actually requires at your organization — security review, testing, documentation — and configure the registry's approval workflow to match.</li>
+  <li><strong>Discovery.</strong> Roll out search and browsing access to the teams that need it, once there's something genuinely trustworthy to discover.</li>
+  <li><strong>Access control.</strong> Tie registry authorization to your existing identity provider rather than a separate credential system.</li>
+  <li><strong>Monitoring.</strong> Extend existing observability practices to cover what registered agents and tools do at runtime, not just whether they were approved.</li>
+  <li><strong>Lifecycle management.</strong> Treat deprecation as a normal, ongoing part of the process — an unmaintained approved record is its own kind of risk.</li>
+</ol>
+
+<h2 id="how-isha-technologies-can-help">How Isha Technologies Can Help</h2>
+<p>Building an enterprise AI platform requires more than deploying agents. It requires the cloud infrastructure, security, governance, automation, and observability around them.</p>
+<p>Isha Technologies is a Cloud &amp; DevOps Solutions Provider. Depending on where an organization actually is in its agent governance journey, that can mean designing the AI-assisted operational tooling in <a href="/services/ai-powered-devops-aiops">AI-Powered DevOps &amp; AIOps</a>, hardening the identity, network and audit layer through <a href="/services/cloud-security">Cloud Security</a>, building the self-service platform and golden paths in <a href="/services/platform-engineering">Platform Engineering</a>, automating the infrastructure that hosts these resources with <a href="/services/infrastructure-as-code-gitops">Infrastructure as Code &amp; GitOps</a>, extending delivery practices through <a href="/services/devops-solutions">DevOps Solutions</a>, instrumenting what's actually running with <a href="/services/observability-monitoring">Observability &amp; Monitoring</a>, or designing the underlying environment itself with <a href="/services/cloud-solutions">Cloud Solutions</a>.</p>
+`,
+    keyTakeaways: [
+      'AWS Agent Registry (GA since August 31, 2026) is a centralized, governed catalog for agents, MCP servers, skills and custom resources — not a new way to build an agent.',
+      'Discovery and governance are deliberately separate: a Governance Plane holds every record, while a Discovery Plane surfaces only the approved subset consumers actually see.',
+      'AWS Organizations auto-detection finds AgentCore Runtime and AgentCore Gateway workloads across every member account, but flows them in as draft records — it doesn’t auto-approve anything.',
+      'Every registry is also a remote MCP endpoint, so MCP-compatible IDEs like Kiro and Claude Code can search it natively from a developer’s editor.',
+      'The registry integrates with Amazon Quick so the same governed catalog can serve developers and business users through one approval workflow.',
+      'It is not a replacement for IAM, secrets management, network security, data governance, or runtime monitoring — it governs discovery and approval, not the full security stack around it.',
+    ],
+    faqs: [
+      {
+        question: 'What is AWS Agent Registry?',
+        answer:
+          'A fully managed AWS discovery service that provides a centralized, governed catalog for publishing, approving and discovering AI agents, MCP servers, skills and custom resources across an organization.',
+      },
+      {
+        question: 'When did AWS Agent Registry become generally available?',
+        answer: 'August 31, 2026.',
+      },
+      {
+        question: 'What can AWS Agent Registry manage?',
+        answer:
+          'Four record types: agents (registered as Agent-to-Agent/A2A resources), MCP servers (validated against the MCP protocol schema), reusable skills, and custom resources described with custom JSON metadata.',
+      },
+      {
+        question: 'What is the relationship between AWS Agent Registry and Amazon Bedrock AgentCore?',
+        answer:
+          'They’re related but distinct services. AgentCore Runtime and AgentCore Gateway host and run agents and MCP servers; Agent Registry catalogs, governs and makes those (and other) resources discoverable. Registry can also auto-detect agents and MCP servers already running on AgentCore Runtime and Gateway.',
+      },
+      {
+        question: 'Does AWS Agent Registry support MCP servers?',
+        answer:
+          'Yes — MCP servers are one of its core record types, validated against the MCP protocol schema, and every registry instance is itself exposed as a remote MCP endpoint that MCP-compatible clients can query directly.',
+      },
+      {
+        question: 'How does AWS Agent Registry help with AI agent governance?',
+        answer:
+          'Through an approval workflow that separates "published" from "discoverable," ownership and lifecycle tracking (draft, pending approval, approved, rejected, deprecated), and AWS CloudTrail audit logging of registry API activity.',
+      },
+      {
+        question: 'Can AWS Agent Registry work across AWS accounts?',
+        answer:
+          'Yes. AWS Organizations auto-detection can find AgentCore Runtime and Gateway resources across every account in an organization, and AWS Resource Access Manager (RAM) supports sharing a registry across accounts for organization-wide catalogs.',
+      },
+      {
+        question: 'Is AWS Agent Registry a replacement for IAM or cloud security?',
+        answer:
+          'No. It has its own authorization model (IAM or JWT) for the registry itself, but it does not replace identity federation, network security, secrets management, data governance, or runtime security for the resources it catalogs — those remain the organization’s responsibility.',
+      },
+    ],
+  },
 ];
 
 /** Only 'published' posts are ever returned here — a 'draft' slug 404s via
@@ -1152,9 +1361,15 @@ export function toBlogPostSummary(post: BlogPost): BlogPostSummary {
   };
 }
 
+function sharedTagCount(a: BlogPost, b: BlogPost): number {
+  return a.tags.filter((tag) => b.tags.includes(tag)).length;
+}
+
 /** Related posts for the bottom of a post page: same-category posts first,
- * then others — each group newest-first — excluding drafts and the post
- * itself. */
+ * then others ranked by shared-tag count (most overlapping tags first,
+ * newest breaking ties) — never a plain "newest other posts" fallback,
+ * which would show topically unrelated articles for any category that
+ * currently has only one post. Excludes drafts and the post itself. */
 export function getRelatedPosts(post: BlogPost, limit = 3): BlogPost[] {
   const published = getPublishedBlogPosts().filter((candidate) => candidate.slug !== post.slug);
   const sameCategory = published
@@ -1162,7 +1377,7 @@ export function getRelatedPosts(post: BlogPost, limit = 3): BlogPost[] {
     .sort(byPublishedAtDesc);
   const others = published
     .filter((candidate) => candidate.category !== post.category)
-    .sort(byPublishedAtDesc);
+    .sort((a, b) => sharedTagCount(b, post) - sharedTagCount(a, post) || byPublishedAtDesc(a, b));
   return [...sameCategory, ...others].slice(0, limit);
 }
 
@@ -1176,14 +1391,27 @@ const SERVICE_BLOG_KEYWORDS: Record<string, string[]> = {
   'cloud-cost-optimization-finops': ['Cloud Cost Optimization', 'FinOps', 'AWS', 'Kubernetes'],
   'devops-solutions': ['DevOps', 'CI/CD', 'Deployment Automation', 'Pipeline Security'],
   devsecops: ['DevSecOps', 'CI/CD', 'Cloud Security', 'DevOps'],
-  'platform-engineering': ['Platform Engineering', 'Kubernetes', 'DevOps', 'Developer Experience'],
+  'platform-engineering': [
+    'Platform Engineering',
+    'Kubernetes',
+    'DevOps',
+    'Developer Experience',
+    'AI Agent Governance',
+  ],
   'infrastructure-as-code-gitops': ['Terraform', 'Infrastructure as Code', 'DevOps', 'Cloud Automation'],
   'kubernetes-container-platforms': ['Kubernetes', 'Container Orchestration', 'Helm', 'Cloud Native'],
   'observability-monitoring': ['Observability', 'Monitoring', 'AWS', 'AI Observability', 'CloudWatch'],
   'site-reliability-engineering': ['Site Reliability', 'SRE', 'Incident Response', 'Cloud Infrastructure'],
-  'ai-powered-devops-aiops': ['AI Observability', 'Observability', 'Site Reliability', 'CloudWatch'],
+  'ai-powered-devops-aiops': [
+    'AI Observability',
+    'Observability',
+    'Site Reliability',
+    'CloudWatch',
+    'AI-Powered DevOps & AIOps',
+    'AI Agent Governance',
+  ],
   'ai-cloud-infrastructure': ['Cloud Infrastructure', 'Kubernetes', 'AI Observability', 'Cloud Architecture'],
-  'cloud-security': ['Cloud Security', 'DevSecOps', 'Infrastructure as Code', 'AWS'],
+  'cloud-security': ['Cloud Security', 'DevSecOps', 'Infrastructure as Code', 'AWS', 'AI Agent Governance'],
 };
 
 /** Related posts for the bottom of a service page: posts whose category or
@@ -1201,11 +1429,12 @@ export function getRelatedPostsForService(serviceSlug: string, limit = 3): BlogP
 
 export function buildBlogPostMetadata(post: BlogPost): Metadata {
   const path = `/resources/blogs/${post.slug}`;
-  const title = `${post.title} | Isha Technologies`;
+  const title = `${post.seoTitle ?? post.title} | Isha Technologies`;
+  const description = post.metaDescription ?? post.excerpt;
   const keywords = [post.primaryKeyword, ...post.secondaryKeywords].join(', ');
   return {
     title,
-    description: post.excerpt,
+    description,
     keywords,
     alternates: { canonical: path },
     // No `images` here: opengraph-image.tsx in this route segment
@@ -1218,7 +1447,7 @@ export function buildBlogPostMetadata(post: BlogPost): Metadata {
       url: path,
       siteName: 'Isha Technologies',
       title,
-      description: post.excerpt,
+      description,
       authors: [post.author],
       tags: post.tags,
       publishedTime: post.publishedAt,
@@ -1228,7 +1457,7 @@ export function buildBlogPostMetadata(post: BlogPost): Metadata {
     twitter: {
       card: 'summary_large_image',
       title,
-      description: post.excerpt,
+      description,
     },
   };
 }

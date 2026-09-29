@@ -8,7 +8,18 @@ export type BlogTocEntry = {
 export type BlogPost = {
   /** URL slug — the page lives at /resources/blogs/[slug]. */
   slug: string;
+  /** The H1 and article headline — can read more like a headline than a
+   * search-engine title. */
   title: string;
+  /** Optional, more concise search-facing title for the `<title>` tag and
+   * OG/Twitter title, when it should differ from the H1 headline (`title`
+   * above). Falls back to `title` when omitted — every existing post
+   * before this field existed keeps behaving exactly as before. */
+  seoTitle?: string;
+  /** Optional meta description / OG description / Twitter description,
+   * when it should differ from the on-page `excerpt` shown in cards.
+   * Falls back to `excerpt` when omitted. */
+  metaDescription?: string;
   category: string;
   /** Specific, reusable tags for this post (distinct from `category`,
    * which is the single primary taxonomy bucket). Keep this short and

@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   LifeBuoy,
   Lock,
+  Search,
   Server,
   ShieldCheck,
   Terminal,
@@ -37,5 +38,6 @@ export const blogCategoryIcons: Record<BlogCategory, LucideIcon> = {
   Observability: Activity,
   'Site Reliability': LifeBuoy,
   'Platform Engineering': LayoutGrid,
+  'AI-Powered DevOps & AIOps': Search,
   'Linux & Infrastructure': Terminal,
 };

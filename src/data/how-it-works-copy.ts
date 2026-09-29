@@ -12,6 +12,12 @@ export type HowItWorksCopy = {
 };
 
 export const HOW_IT_WORKS_COPY: Record<string, HowItWorksCopy> = {
+  'aws-agent-registry': {
+    eyebrow: 'How It Works',
+    heading: 'Discover, Govern, Approve, Publish, Reuse',
+    description:
+      'Agents, MCP servers and skills are published into a registry, reviewed against an approval workflow, and only then become discoverable — so "this exists" and "this is approved for use" stay two distinct, auditable states rather than the same thing.',
+  },
   'cloud-solutions': {
     eyebrow: 'How It Works',
     heading: 'How a Request Moves Through the Stack',

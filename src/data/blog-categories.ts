@@ -16,6 +16,7 @@ export const blogCategories = [
   'Observability',
   'Site Reliability',
   'Platform Engineering',
+  'AI-Powered DevOps & AIOps',
   'Linux & Infrastructure',
 ] as const;
 
