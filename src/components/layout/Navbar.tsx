@@ -64,35 +64,48 @@ const megaMenuLinkClass = (active: boolean) =>
     active ? 'bg-brand/10 text-brand font-semibold' : 'text-black hover:text-brand'
   );
 
-// The shared `NavigationMenuContent` (from @/components/ui/navigation-menu,
-// used by the Resources dropdown) bakes its sizing/position classes
-// (`top-full`, `overflow-hidden`, `rounded-md`, `border`, `shadow`, ...)
-// behind a `group-data-[viewport=false]/navigation-menu:` selector, which
-// has HIGHER CSS specificity (an attribute selector + a class) than a
-// plain utility class passed through `className`. That is what actually
-// broke the mega-menu: every attempt to override width/position from the
-// outside (`top-16`, `fixed`, `rounded-2xl`, ...) lost the cascade to
-// that built-in, higher-specificity rule and silently fell back to
-// `position: absolute; top: 100%` relative to the narrow "Services"
-// trigger, with no explicit width — hence the sliver-thin, one-letter-
-// per-line panel in the screenshot.
+// Resources' dropdown (`w-48`, plain/unprefixed) "just works" for a
+// reason that isn't obvious from reading its className alone: the shared
+// `NavigationMenuContent` component's base classes set `width: auto` at
+// >=768px via `md:w-auto`, and any override only wins if Tailwind's
+// compiled stylesheet happens to place it AFTER `md:w-auto` — which is
+// NOT decided by which order classes are written in, but by Tailwind's
+// own internal utility ordering. Verified directly in the compiled CSS:
+// even an `md:w-[...]` arbitrary-value override (matching modifier, as
+// it should) is emitted BEFORE `md:w-auto` in the stylesheet, so
+// `md:w-auto` still wins the cascade and silently overrides it. Resources
+// never notices this, because `width: auto` on an absolutely-positioned
+// element with no explicit width shrinks to fit its own content — and
+// two short links ("Blogs", "Our Journey") are narrow anyway, so
+// shrink-to-fit and the intended `w-48` look almost identical by
+// coincidence.
 //
-// The mega-menu renders `NavigationMenuPrimitive.Content` directly
-// instead of the shared wrapper, so 100% of its layout is controlled by
-// plain, unprefixed, easily-overridable utility classes below — same
-// underlying Radix primitive as Resources (same open/close, focus and
-// dismiss behavior, same animation classes), just without the "compact
-// dropdown" CSS that a 4-column mega-menu can't work within. The
-// Resources dropdown is untouched and still uses the shared wrapper,
-// which is exactly right for a short, narrow list like that.
+// For Services, "shrink to fit" was the actual bug: with no width
+// override that can reliably win, the browser sized the panel to fit
+// inside the narrow `Services` trigger's own box (its positioned
+// ancestor), and the 4-column grid had nowhere to go but to wrap text
+// one character at a time.
+//
+// Because the shared wrapper's own width rule cannot be reliably
+// overridden by any class-based technique (confirmed empirically, not
+// assumed), the mega-menu renders `NavigationMenuPrimitive.Content`
+// directly — the exact same underlying Radix primitive Resources uses
+// (identical open/close, focus and dismiss behavior, identical
+// `data-motion`/`data-state`-driven animations, reproduced below) — just
+// without the shared wrapper's un-overridable base classes standing in
+// the way. Every visual value here (border, background, shadow, corner
+// radius, padding) is copied directly from Resources' own className so
+// the two dropdowns look identical. The one deliberate difference is
+// positioning: `fixed` + two symmetric viewport insets, centered with
+// `mx-auto`, instead of Resources' `absolute` anchored to the trigger.
+// A 1000px, 4-column panel anchored the way Resources' 192px panel is
+// (flush against the left edge of the "Services" trigger, which sits
+// left-of-center in the nav) would run off one edge of the viewport at
+// common desktop widths — centering it in the viewport instead is the
+// only way to satisfy "stays within the viewport" for content this wide.
 const megaMenuContentClass = cn(
-  'data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52',
-  // `fixed` + two symmetric viewport insets + `mx-auto` + `max-w` centers
-  // the panel in the browser viewport (never the narrow trigger) and caps
-  // its width at 1100px, shrinking to `calc(100vw - 32px)` on anything
-  // narrower — without a `transform`, so it can't fight Radix's own
-  // translate-driven slide animation above.
-  'fixed inset-x-4 top-16 z-50 mx-auto max-w-[1100px] rounded-2xl border border-black/5 bg-white p-6 shadow-xl duration-300 sm:p-8'
+  'data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 duration-200',
+  'fixed inset-x-4 top-16 z-50 mx-auto grid max-w-[1000px] grid-cols-4 gap-x-8 gap-y-6 rounded-lg border border-black/5 bg-white p-6 shadow-lg'
 );
 
 const mobileLinkClass = (active: boolean) =>
@@ -161,49 +174,46 @@ export const Navbar = () => {
                   Services
                 </NavigationMenuTrigger>
                 <NavigationMenuPrimitive.Content className={megaMenuContentClass}>
-                  <div className="grid grid-cols-4 gap-x-10 gap-y-8">
-                    {serviceCategories.map((group) => (
-                      <div key={group.category} className="min-w-0">
-                        <span className="text-sm font-semibold uppercase tracking-wide text-brand">
-                          {group.category}
-                        </span>
-                        <div className="mt-3 flex flex-col gap-1">
-                          {group.services.map((service) => {
-                            const href = `/services/${service.slug}`;
-                            const isActive = isRouteActive(pathname, href);
-                            return (
-                              <NavigationMenuLink
-                                asChild
-                                key={service.slug}
-                                active={isActive}
-                                className={megaMenuLinkClass(isActive)}
-                              >
-                                <Link href={href} aria-current={isActive ? 'page' : undefined}>
-                                  {service.title}
-                                </Link>
-                              </NavigationMenuLink>
-                            );
-                          })}
-                        </div>
+                  {serviceCategories.map((group) => (
+                    <div key={group.category} className="min-w-0">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-brand">
+                        {group.category}
+                      </span>
+                      <div className="mt-2 flex flex-col gap-1">
+                        {group.services.map((service) => {
+                          const href = `/services/${service.slug}`;
+                          const isActive = isRouteActive(pathname, href);
+                          return (
+                            <NavigationMenuLink
+                              asChild
+                              key={service.slug}
+                              active={isActive}
+                              className={megaMenuLinkClass(isActive)}
+                            >
+                              <Link href={href} aria-current={isActive ? 'page' : undefined}>
+                                {service.title}
+                              </Link>
+                            </NavigationMenuLink>
+                          );
+                        })}
                       </div>
-                    ))}
+                    </div>
+                  ))}
+                  <div className="col-span-4 mt-2 border-t border-black/5 pt-4">
+                    <NavigationMenuLink
+                      asChild
+                      className="flex flex-row items-center justify-center gap-1.5 rounded-lg px-6 py-3 text-center text-base font-semibold text-nowrap bg-brand text-white transition-colors duration-200 ease-out hover:bg-gray-50 hover:text-brand"
+                    >
+                      <Link href="/services">
+                        Explore All Services
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    </NavigationMenuLink>
                   </div>
-                  <hr className="my-6 border-black/5" />
-                  <NavigationMenuLink
-                    asChild
-                    className="flex flex-row items-center justify-center gap-1.5 rounded-lg px-6 py-3 text-center text-base font-semibold text-nowrap bg-brand text-white transition-colors duration-200 ease-out hover:bg-gray-50 hover:text-brand"
-                  >
-                    <Link href="/services">
-                      Explore All Services
-                      <ChevronRight className="h-4 w-4" />
-                    </Link>
-                  </NavigationMenuLink>
                 </NavigationMenuPrimitive.Content>
               </NavigationMenuItem>
 
-              {/* Resources dropdown — unchanged: still uses the shared,
-                  pre-styled `NavigationMenuContent` wrapper, which is the
-                  right fit for a short, narrow dropdown like this one. */}
+              {/* Resources dropdown — unchanged. */}
               <NavigationMenuItem className="relative">
                 <NavigationMenuTrigger className={triggerLinkClass(isResourcesActive)}>
                   Resources
