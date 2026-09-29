@@ -1,14 +1,15 @@
-import { ServiceHeroVisual } from '@/components/services/visuals/ServiceHeroVisual';
 import type { VariantStyle } from '@/data/blog-variants';
 import { HOW_IT_WORKS_COPY } from '@/data/how-it-works-copy';
 
 /**
- * A prominent, topic-specific "How It Works" section for blog posts —
- * reuses the same per-topic animated diagram already built for service
- * page heroes (`ServiceHeroVisual`), but presents it as a featured,
- * explained section in the article body instead of a small hero
- * decoration. Renders nothing if the post's `visualSlug` has no matching
- * explanatory copy, rather than showing an unexplained diagram.
+ * The explanatory "How It Works" text block for blog posts — heading +
+ * description only. The topic diagram itself (`ServiceHeroVisual`) is
+ * rendered once, in `BlogHero`, right below the article introduction;
+ * this section deliberately does NOT render it a second time (it
+ * originally did, producing an identical animation twice on every post —
+ * see the fix that removed it). Renders nothing if the post's
+ * `visualSlug` has no matching explanatory copy, rather than showing an
+ * empty heading.
  */
 export function BlogHowItWorks({
   visualSlug,
@@ -30,12 +31,6 @@ export function BlogHowItWorks({
           {copy.heading}
         </h2>
         <p className="mt-3 text-base leading-relaxed text-gray-600">{copy.description}</p>
-      </div>
-
-      <div
-        className={`mt-8 flex justify-center rounded-[28px] border ${variant.border} ${variant.soft} px-6 py-12 md:py-16`}
-      >
-        <ServiceHeroVisual slug={visualSlug} />
       </div>
     </section>
   );
