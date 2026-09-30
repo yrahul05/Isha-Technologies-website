@@ -20,7 +20,7 @@ import {
   SheetHeader,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { ChevronRight, Menu, Phone } from 'lucide-react';
+import { ChevronRight, LockKeyhole, Menu, Phone } from 'lucide-react';
 import { Logo } from '../ui/logo';
 import { getServicesByCategory } from '@/data/services';
 import {
@@ -273,6 +273,13 @@ export const Navbar = () => {
           {/* Contact Button */}
           <div className="flex items-center gap-2">
             <Link
+              href="/portal"
+              className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-brand/5 hover:text-brand lg:inline-flex"
+            >
+              <LockKeyhole className="h-4 w-4" strokeWidth={1.75} />
+              Client Login
+            </Link>
+            <Link
               href="/free-cloud-assessment"
               className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-brand transition-colors duration-200 hover:bg-brand/5 xl:inline-flex"
             >
@@ -322,6 +329,14 @@ export const Navbar = () => {
                     onClick={() => setIsShow(false)}
                   >
                     Get Free Cloud Assessment
+                  </Link>
+                  <Link
+                    href="/portal"
+                    className="flex items-center justify-center gap-2 text-base font-medium text-slate-600 hover:text-brand transition-colors"
+                    onClick={() => setIsShow(false)}
+                  >
+                    <LockKeyhole className="h-4 w-4" strokeWidth={1.75} />
+                    Client Login
                   </Link>
                   <Link
                     href="/"

@@ -27,7 +27,7 @@ const holder: Holder = (globalForDb.__ishaDb ??= {});
 export const PGLITE_DIR = process.env.PGLITE_DIR || '.data/pglite';
 
 export function isDatabaseConfigured(): boolean {
-  return Boolean(process.env.DATABASE_URL) || process.env.NODE_ENV !== 'production';
+  return Boolean(process.env.DATABASE_URL) || process.env.NODE_ENV !== 'production' || process.env.ALLOW_PGLITE_IN_PRODUCTION === '1';
 }
 
 function createDb(): Database {
