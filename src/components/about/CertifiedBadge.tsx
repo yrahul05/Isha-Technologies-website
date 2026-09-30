@@ -4,13 +4,16 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 /**
- * The About page's "Certified Cloud & DevOps Engineers" identity badge.
- * Same box/border treatment as before, refined typography, and a slow
- * text carousel through positioning phrases (not separate certification
- * claims). Pauses on the first phrase under prefers-reduced-motion.
+ * The About page's identity badge. Same box/border treatment as before and
+ * a slow text carousel through positioning phrases. Deliberately makes no
+ * certification claim (the previous "Certified Cloud & DevOps Engineers"
+ * phrase had no certificate records behind it). Pauses on the first phrase
+ * under prefers-reduced-motion. Rendered as a <p>, not a heading — it sits
+ * above the page's <h1>.
  */
 const PHRASES = [
-  'Certified Cloud & DevOps Engineers',
+  // Kept to the old phrase's length — the badge is single-line (nowrap).
+  'Cloud & DevOps Team · Jaipur, India',
   'Cloud Infrastructure Specialists',
   'DevOps & Automation Experts',
   'Infrastructure Engineering Team',
@@ -31,7 +34,7 @@ export function CertifiedBadge() {
   const activeIndex = reduce ? 0 : index;
 
   return (
-    <h2 className="card-hover relative mx-auto flex h-[60px] w-full items-center justify-center overflow-hidden rounded-[20px] border border-dashed border-brand bg-white px-6 shadow-md sm:h-16 sm:px-7 md:h-[68px] md:px-8">
+    <p className="card-hover relative mx-auto flex h-[60px] w-full items-center justify-center overflow-hidden rounded-[20px] border border-dashed border-brand bg-white px-6 shadow-md sm:h-16 sm:px-7 md:h-[68px] md:px-8">
       <AnimatePresence mode="wait">
         <motion.span
           key={activeIndex}
@@ -44,6 +47,6 @@ export function CertifiedBadge() {
           {PHRASES[activeIndex]}
         </motion.span>
       </AnimatePresence>
-    </h2>
+    </p>
   );
 }

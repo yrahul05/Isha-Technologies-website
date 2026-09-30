@@ -1,3 +1,5 @@
+'use client';
+
 import { cn } from '@/lib/utils';
 import type { VariantStyle } from '@/data/blog-variants';
 import { iconMap } from '@/data/icon-map';
@@ -48,60 +50,27 @@ export function ArchitectureVisual({
             variant ? variant.soft : 'bg-brand/[0.03]'
           )}
         >
-          {/* Desktop / tablet: horizontal flow */}
-          <div className="hidden flex-wrap items-center justify-center gap-3 md:flex">
+          {/* One ordered list of nodes for every viewport — a vertical flow on
+              mobile, a wrapping horizontal flow from md up. Rendered once
+              (not as separate desktop and mobile copies) so each label
+              appears a single time in the DOM and accessibility tree. */}
+          <ol className="flex flex-col items-center gap-3 md:flex-row md:flex-wrap md:justify-center">
             {nodes.map((node, idx) => {
               const Icon = iconMap[node.icon];
+              const isLast = idx === nodes.length - 1;
               return (
-                <div key={node.label} className="flex items-center gap-3">
+                <li
+                  key={node.label}
+                  className="flex w-full flex-col items-center gap-3 md:w-auto md:flex-row"
+                >
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: '-80px' }}
+                    viewport={{ once: true, margin: '-60px' }}
                     whileHover={{ y: -3, transition: { duration: 0.2, ease: 'easeOut' } }}
-                    transition={{ duration: 0.4, ease: 'easeOut', delay: idx * 0.1 }}
+                    transition={{ duration: 0.4, ease: 'easeOut', delay: idx * 0.09 }}
                     className={cn(
-                      'group flex w-32 flex-col items-center gap-2 rounded-2xl border border-gray-200 bg-white px-3 py-4 text-center shadow-sm transition-[border-color,box-shadow] duration-300 ease-out hover:shadow-md',
-                      variant ? variant.border : 'hover:border-brand'
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'flex h-9 w-9 items-center justify-center rounded-lg transition-transform duration-300 ease-out group-hover:scale-110',
-                        variant ? `${variant.soft} ${variant.text}` : 'bg-brand/10 text-brand'
-                      )}
-                    >
-                      <Icon className="h-4 w-4" strokeWidth={1.75} />
-                    </span>
-                    <span className="text-xs font-semibold text-slate-800">{node.label}</span>
-                  </motion.div>
-                  {idx < nodes.length - 1 && (
-                    <ArrowRight
-                      className={cn(
-                        'h-4 w-4 shrink-0',
-                        variant ? `opacity-40 ${variant.text}` : 'text-brand/40'
-                      )}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Mobile: vertical flow */}
-          <div className="flex flex-col items-center gap-3 md:hidden">
-            {nodes.map((node, idx) => {
-              const Icon = iconMap[node.icon];
-              return (
-                <div key={node.label} className="flex flex-col items-center gap-3">
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: '-40px' }}
-                    whileHover={{ y: -2, transition: { duration: 0.2, ease: 'easeOut' } }}
-                    transition={{ duration: 0.4, ease: 'easeOut', delay: idx * 0.08 }}
-                    className={cn(
-                      'group flex w-full max-w-[220px] items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm transition-[border-color,box-shadow] duration-300 ease-out hover:shadow-md',
+                      'group flex w-full max-w-[220px] items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm transition-[border-color,box-shadow] duration-300 ease-out hover:shadow-md md:w-32 md:max-w-none md:flex-col md:gap-2 md:px-3 md:py-4 md:text-center',
                       variant ? variant.border : 'hover:border-brand'
                     )}
                   >
@@ -111,22 +80,34 @@ export function ArchitectureVisual({
                         variant ? `${variant.soft} ${variant.text}` : 'bg-brand/10 text-brand'
                       )}
                     >
-                      <Icon className="h-4 w-4" strokeWidth={1.75} />
+                      <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
                     </span>
-                    <span className="text-sm font-semibold text-slate-800">{node.label}</span>
+                    <span className="text-sm font-semibold text-slate-800 md:text-xs">
+                      {node.label}
+                    </span>
                   </motion.div>
-                  {idx < nodes.length - 1 && (
-                    <ArrowDown
-                      className={cn(
-                        'h-4 w-4 shrink-0',
-                        variant ? `opacity-40 ${variant.text}` : 'text-brand/40'
-                      )}
-                    />
+                  {!isLast && (
+                    <>
+                      <ArrowDown
+                        aria-hidden="true"
+                        className={cn(
+                          'h-4 w-4 shrink-0 md:hidden',
+                          variant ? `opacity-40 ${variant.text}` : 'text-brand/40'
+                        )}
+                      />
+                      <ArrowRight
+                        aria-hidden="true"
+                        className={cn(
+                          'hidden h-4 w-4 shrink-0 md:block',
+                          variant ? `opacity-40 ${variant.text}` : 'text-brand/40'
+                        )}
+                      />
+                    </>
                   )}
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ol>
         </div>
       </div>
     </section>

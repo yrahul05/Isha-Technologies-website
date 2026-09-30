@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { CalendarDays } from 'lucide-react';
 import { FaEnvelope, FaPhone, FaWhatsapp } from 'react-icons/fa';
 import { SiSignal } from 'react-icons/si';
-import { FooterVisitorStat } from './FooterVisitorStat';
 import { Logo } from '../ui/logo';
 import {
   CALENDLY_URL,
@@ -94,6 +93,10 @@ export const Footer = () => {
                 operate reliable cloud infrastructure — from modern
                 architecture and DevOps to security, observability and
                 day-to-day operations.
+              </p>
+              <p className="mt-3 max-w-[390px] text-sm leading-[1.6] text-gray-500">
+                Cloud &amp; DevOps solutions provider based in Jaipur,
+                Rajasthan, India.
               </p>
             </div>
 
@@ -256,7 +259,6 @@ export const Footer = () => {
                 })}
               </div>
 
-              <FooterVisitorStat />
             </div>
           </div>
         </nav>

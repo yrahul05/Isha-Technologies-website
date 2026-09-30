@@ -29,7 +29,7 @@ export function RelatedCaseStudy({
       >
         <div>
           <span className={`text-[11px] font-bold uppercase tracking-widest ${variant.text}`}>
-            Related Case Study
+            Related Technical Scenario
           </span>
           <h3 className="mt-1 text-base font-semibold text-black">{study.title}</h3>
           <p className="mt-1 line-clamp-2 text-sm text-gray-600">{study.summary}</p>

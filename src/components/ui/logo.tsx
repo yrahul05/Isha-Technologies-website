@@ -11,15 +11,21 @@ interface LogoProps {
   height?: number;
   /** Classes for the <img> itself (sizing). */
   imgClassName?: string;
+  /** Preload as a likely LCP image — only for the above-the-fold navbar logo. */
+  priority?: boolean;
 }
 
 export function Logo({
   href = '/',
   className,
   src = '/ISHA-TECHNO-LG.png',
-  width = 2172,
-  height = 724,
+  // Intrinsic size at the largest rendered width (~155px) × 2 for retina,
+  // keeping the source's 3:1 ratio. Declaring the full 2172×724 source
+  // size here made Next.js request the logo at w=3840 on every page.
+  width = 312,
+  height = 104,
   imgClassName = 'h-9 w-auto',
+  priority = false,
 }: LogoProps) {
   return (
     <Link
@@ -35,7 +41,7 @@ export function Logo({
         alt="Isha Technologies"
         width={width}
         height={height}
-        priority
+        priority={priority}
         className={imgClassName}
       />
     </Link>

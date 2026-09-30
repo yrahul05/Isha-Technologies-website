@@ -1,3 +1,5 @@
+'use client';
+
 import type { ServiceProcessStep } from '@/types/types';
 import { motion } from 'framer-motion';
 
@@ -29,47 +31,43 @@ export function ServiceProcess({ steps }: { steps: ServiceProcessStep[] }) {
           </h2>
         </div>
 
-        {/* Desktop / tablet: horizontal timeline */}
-        <div className="hidden md:flex md:items-start">
-          {steps.map((step, idx) => (
-            <div
-              key={step.title}
-              className="group flex flex-1 flex-col items-center text-center transition-transform duration-300 ease-out hover:-translate-y-0.5 motion-reduce:hover:translate-y-0"
-            >
-              <div className="flex w-full items-center">
-                <span className={`h-px flex-1 ${idx === 0 ? 'bg-transparent' : 'bg-brand/25'}`} />
-                <StepMarker index={idx} />
-                <span
-                  className={`h-px flex-1 ${idx === steps.length - 1 ? 'bg-transparent' : 'bg-brand/25'}`}
-                />
-              </div>
-              <h3 className="mt-3 text-sm font-semibold text-slate-900 transition-colors duration-300 ease-out group-hover:text-brand">
-                {step.title}
-              </h3>
-              <p className="mt-1 max-w-[11rem] text-sm leading-relaxed text-slate-600">
-                {step.description}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Mobile: vertical timeline */}
-        <div className="flex flex-col md:hidden">
-          {steps.map((step, idx) => (
-            <div key={step.title} className="group flex gap-4">
-              <div className="flex flex-col items-center">
-                <StepMarker index={idx} />
-                {idx < steps.length - 1 && <span className="w-px flex-1 bg-brand/25" />}
-              </div>
-              <div className="pb-6">
-                <h3 className="pt-1.5 text-sm font-semibold text-slate-900 transition-colors duration-300 ease-out group-hover:text-brand">
-                  {step.title}
-                </h3>
-                <p className="mt-1 text-sm leading-relaxed text-slate-600">{step.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* One ordered list for every viewport — a vertical timeline on
+            mobile, a horizontal one from md up. Rendered once (not as
+            separate desktop and mobile copies) so each step heading appears
+            a single time in the DOM and accessibility tree. */}
+        <ol className="flex flex-col md:flex-row md:items-start">
+          {steps.map((step, idx) => {
+            const isFirst = idx === 0;
+            const isLast = idx === steps.length - 1;
+            return (
+              <li
+                key={step.title}
+                className="group flex gap-4 transition-transform duration-300 ease-out md:flex-1 md:flex-col md:items-center md:gap-0 md:text-center md:hover:-translate-y-0.5 motion-reduce:md:hover:translate-y-0"
+              >
+                <div className="flex flex-col items-center md:w-full md:flex-row">
+                  <span
+                    aria-hidden="true"
+                    className={`hidden h-px flex-1 md:block ${isFirst ? 'bg-transparent' : 'bg-brand/25'}`}
+                  />
+                  <StepMarker index={idx} />
+                  <span
+                    aria-hidden="true"
+                    className={`hidden h-px flex-1 md:block ${isLast ? 'bg-transparent' : 'bg-brand/25'}`}
+                  />
+                  {!isLast && <span aria-hidden="true" className="w-px flex-1 bg-brand/25 md:hidden" />}
+                </div>
+                <div className="pb-6 md:flex md:flex-col md:items-center md:pb-0">
+                  <h3 className="pt-1.5 text-sm font-semibold text-slate-900 transition-colors duration-300 ease-out group-hover:text-brand md:mt-3 md:pt-0">
+                    {step.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-600 md:max-w-[11rem]">
+                    {step.description}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </section>
   );

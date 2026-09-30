@@ -1,8 +1,13 @@
 export function ServiceOverview({
+  title,
+  definition,
   heading,
   paragraphs,
   platforms,
 }: {
+  /** Service name, used for the "What is …?" definition heading. */
+  title: string;
+  definition: string;
   heading: string;
   paragraphs: string[];
   /** Cloud/hosting platform experience relevant to this service — not a partnership claim. */
@@ -27,6 +32,12 @@ export function ServiceOverview({
           )}
         </div>
         <div className="space-y-4">
+          <div className="mb-8 max-w-2xl rounded-2xl border border-brand/15 bg-brand/[0.03] p-5 md:p-6">
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">
+              What is {title}?
+            </h2>
+            <p className="mt-2 text-base leading-relaxed text-slate-700">{definition}</p>
+          </div>
           <h2 className="max-w-2xl text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
             {heading}
           </h2>

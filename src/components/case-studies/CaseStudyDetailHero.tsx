@@ -36,12 +36,8 @@ export function CaseStudyDetailHero({
       </div>
 
       <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-4 py-10 md:py-14 lg:grid-cols-2 lg:gap-16">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="space-y-4"
-        >
+        {/* CSS entrance so the H1 (LCP element) paints before hydration. */}
+        <div className="space-y-4 motion-safe:animate-hero-rise">
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={`inline-flex rounded-full border bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide ${variant.border} ${variant.text}`}
@@ -77,7 +73,7 @@ export function CaseStudyDetailHero({
               <Link href={`/services/${study.relatedService}`}>{study.ctaLabel}</Link>
             </Button>
           </div>
-        </motion.div>
+        </div>
 
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}

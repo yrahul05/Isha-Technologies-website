@@ -6,6 +6,15 @@ import { Footer } from '@/components/layout/Footer';
 import { WhatsAppButton } from '@/components/layout/WhatsAppButton';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import Script from 'next/script';
+import { JsonLd } from '@/components/JsonLd';
+import { CONTACT_EMAIL_ADDRESS } from '@/data/contact';
+import {
+  LOGO_URL,
+  ORGANIZATION_ID,
+  SITE_NAME,
+  SITE_URL,
+  WEBSITE_ID,
+} from '@/lib/seo';
 
 // Read directly here (not imported from GoogleAnalytics.tsx) because that
 // file is a 'use client' module — a plain value exported across a client
@@ -21,12 +30,11 @@ const DM_SansFonts = DM_Sans({
   weight: ['400', '500', '600', '700'],
 });
 
-const SITE_URL = 'https://www.ishatechnologies.in';
-
-// Official Isha Technologies organization profiles only (not the individual
-// team-member LinkedIn profiles, and not the Upwork link — that's a
-// personal freelancer profile, not this organization's own page). Matches
-// exactly what's already linked from the footer (src/data/data.js).
+// Official Isha Technologies organization profiles only — the same set
+// linked from the footer (src/data/data.js). Deliberately excludes the
+// individual team-member LinkedIn profiles and the Upwork link (a personal
+// freelancer profile, not this organization's own page) and Medium (could
+// not be independently verified — its host blocks automated checks).
 const ORGANIZATION_SAME_AS = [
   'https://www.linkedin.com/company/isha-technologies-official',
   'https://www.instagram.com/isha_technologies_official/',
@@ -34,46 +42,62 @@ const ORGANIZATION_SAME_AS = [
 ];
 
 const description =
-  'Managed Cloud & DevOps Solutions from Isha Technologies — expert infrastructure support without building everything in-house. Cloud architecture, DevOps automation, Kubernetes, security, migration and observability.';
+  'Isha Technologies is a cloud and DevOps engineering company in Jaipur, India — cloud architecture, Kubernetes, CI/CD, Terraform, security and cloud operations.';
+
+const TITLE = 'Isha Technologies | Cloud & DevOps Infrastructure Engineering';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: 'Isha Technologies | Managed Cloud & DevOps Solutions',
+  title: TITLE,
   description,
-  robots: 'index, follow',
-  authors: [
-    {
-      name: 'Isha Technologies',
-      url: SITE_URL,
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
     },
-  ],
-  publisher: 'Isha Technologies',
+  },
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  publisher: SITE_NAME,
   openGraph: {
     type: 'website',
     url: SITE_URL,
-    siteName: 'Isha Technologies',
-    title: 'Isha Technologies | Managed Cloud & DevOps Solutions',
+    siteName: SITE_NAME,
+    locale: 'en_IN',
+    title: TITLE,
     description,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Isha Technologies | Managed Cloud & DevOps Solutions',
+    title: TITLE,
     description,
   },
 };
 
+/**
+ * Site-wide entity graph. Organization (not LocalBusiness /
+ * ProfessionalService): there is no public street address, opening hours
+ * or service-area data to publish, and those types expect them — so only
+ * verified facts are used here (city/region/country, contact details,
+ * founding year, official profiles). No ratings, reviews, price range or
+ * partner-program claims.
+ */
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
       '@type': 'Organization',
-      '@id': `${SITE_URL}/#organization`,
-      name: 'Isha Technologies',
+      '@id': ORGANIZATION_ID,
+      name: SITE_NAME,
       url: SITE_URL,
-      logo: `${SITE_URL}/ISHA-TECHNO-LG.png`,
+      logo: { '@type': 'ImageObject', url: LOGO_URL, width: 2172, height: 724 },
       description,
-      slogan: 'Managed Cloud & DevOps Solutions',
-      email: 'hello.ishatechnologies@gmail.com',
+      slogan: 'The Engineering Behind What’s Next.',
+      foundingDate: '2026',
+      email: CONTACT_EMAIL_ADDRESS,
       telephone: '+91-9351267228',
       address: {
         '@type': 'PostalAddress',
@@ -81,15 +105,37 @@ const jsonLd = {
         addressRegion: 'Rajasthan',
         addressCountry: 'IN',
       },
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'sales',
+        email: CONTACT_EMAIL_ADDRESS,
+        telephone: '+91-9351267228',
+        url: `${SITE_URL}/contact`,
+      },
+      knowsAbout: [
+        'Cloud infrastructure',
+        'DevOps',
+        'Kubernetes',
+        'Infrastructure as Code',
+        'Terraform',
+        'CI/CD',
+        'DevSecOps',
+        'Cloud security',
+        'Observability',
+        'Site reliability engineering',
+        'Cloud cost optimization',
+        'Cloud migration',
+      ],
       sameAs: ORGANIZATION_SAME_AS,
     },
     {
       '@type': 'WebSite',
-      '@id': `${SITE_URL}/#website`,
+      '@id': WEBSITE_ID,
       url: SITE_URL,
-      name: 'Isha Technologies',
+      name: SITE_NAME,
       description,
-      publisher: { '@id': `${SITE_URL}/#organization` },
+      inLanguage: 'en',
+      publisher: { '@id': ORGANIZATION_ID },
     },
   ],
 };
@@ -134,10 +180,7 @@ export default function RootLayout({
           </>
         )}
         <GoogleAnalytics />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+        <JsonLd data={jsonLd} />
         <Navbar />
         {children}
         <Footer />

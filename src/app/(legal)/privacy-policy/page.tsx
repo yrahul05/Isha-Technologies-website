@@ -4,15 +4,12 @@ import { LegalLayout, type LegalSection } from '@/components/legal/LegalLayout';
 import { LegalContent } from '@/components/legal/LegalContent';
 import { buildMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  ...buildMetadata({
+export const metadata: Metadata = buildMetadata({
     title: 'Privacy Policy | Isha Technologies',
     description:
       "Read the Isha Technologies Privacy Policy to understand how information submitted through our website is collected, used, protected and handled.",
     path: '/privacy-policy',
-  }),
-  robots: 'index, follow',
-};
+  });
 
 const sections: LegalSection[] = [
   { id: 'section-1', number: '1', title: 'Information We Collect' },

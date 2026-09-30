@@ -2,7 +2,7 @@ import { OG_IMAGE_CONTENT_TYPE, OG_IMAGE_SIZE, OgImageCard } from '@/lib/og-imag
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'nodejs';
-export const alt = 'Isha Technologies — Managed Cloud & DevOps Solutions';
+export const alt = 'Isha Technologies — Cloud & DevOps Infrastructure Engineering';
 export const size = OG_IMAGE_SIZE;
 export const contentType = OG_IMAGE_CONTENT_TYPE;
 
@@ -15,7 +15,7 @@ export const contentType = OG_IMAGE_CONTENT_TYPE;
  */
 export default async function Image() {
   return new ImageResponse(
-    <OgImageCard eyebrow="Managed Cloud & DevOps" title="Isha Technologies" />,
+    <OgImageCard eyebrow="Cloud & DevOps Engineering" title="Isha Technologies" />,
     { ...size }
   );
 }

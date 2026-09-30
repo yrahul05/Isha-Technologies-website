@@ -4,6 +4,7 @@ import { blogCategoryIcons } from '@/data/blog-category-icons';
 import { formatBlogDate } from '@/data/blog-posts';
 import type { BLOG_VARIANT_STYLES } from '@/data/blog-variants';
 import type { BlogPost } from '@/types/blog';
+import { getAuthor } from '@/data/authors';
 import { Clock, User } from 'lucide-react';
 
 type VariantStyle = (typeof BLOG_VARIANT_STYLES)[keyof typeof BLOG_VARIANT_STYLES];
@@ -41,7 +42,7 @@ export function BlogHero({ post, variant }: { post: BlogPost; variant: VariantSt
         <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-y border-gray-100 py-4 text-sm text-gray-500">
           <span className="inline-flex items-center gap-1.5">
             <User className="h-4 w-4" />
-            {post.author}
+            {getAuthor(post.authorId).name}
           </span>
           <span>Published {formatBlogDate(post.publishedAt)}</span>
           {hasBeenUpdated && <span>Updated {formatBlogDate(post.updatedAt)}</span>}

@@ -10,6 +10,8 @@ export const services: Service[] = [
   {
     slug: 'cloud-solutions',
     title: 'Cloud Solutions',
+    definition:
+      'Cloud solutions cover the design and build of the infrastructure an application runs on in a public cloud — networking (VPC/VNet), identity and access, compute, storage, databases, high availability and backup — defined so the environment is secure, repeatable and able to grow with the workload.',
     category: 'Cloud & Infrastructure',
     eyebrow: 'CLOUD INFRASTRUCTURE',
     heading: 'Cloud Infrastructure Designed for Scale and Control',
@@ -147,7 +149,7 @@ export const services: Service[] = [
     seo: {
       title: 'Cloud Solutions | Isha Technologies',
       description:
-        'Cloud architecture and infrastructure solutions across AWS, Microsoft Azure, Google Cloud, DigitalOcean and Hetzner, designed for secure, reliable and scalable environments.',
+        'Cloud architecture and infrastructure across AWS, Azure, Google Cloud, DigitalOcean and Hetzner — designed for secure, reliable and scalable environments.',
     },
   },
 
@@ -155,6 +157,8 @@ export const services: Service[] = [
   {
     slug: 'cloud-migration-modernization',
     title: 'Cloud Migration & Modernization',
+    definition:
+      'Cloud migration is the structured process of moving applications, data and infrastructure from on-premises or another provider into the cloud. Modernization goes further, adapting workloads — for example containerizing services or adopting managed databases — so they benefit from cloud capabilities instead of being copied as-is.',
     category: 'Cloud & Infrastructure',
     eyebrow: 'CLOUD TRANSFORMATION',
     heading: 'Move to the Cloud With a Structured Migration Strategy',
@@ -295,6 +299,8 @@ export const services: Service[] = [
   {
     slug: 'managed-cloud',
     title: 'Managed Cloud',
+    definition:
+      'Managed cloud is an operating model in which an external engineering team takes ongoing responsibility for running cloud infrastructure — monitoring, incident response, patching, backups, capacity and cost visibility — so the in-house team can focus on the product rather than day-to-day operations.',
     category: 'Cloud & Infrastructure',
     eyebrow: 'CLOUD OPERATIONS',
     heading: 'Reliable Infrastructure Operations Without the Operational Overhead',
@@ -431,6 +437,8 @@ export const services: Service[] = [
   {
     slug: 'cloud-cost-optimization-finops',
     title: 'Cloud Cost Optimization & FinOps',
+    definition:
+      'Cloud cost optimization is the practice of removing cloud spend that doesn’t deliver value — idle resources, over-provisioned compute, unmanaged storage — without hurting performance. FinOps is the ongoing discipline around it: shared cost visibility, clear ownership and regular review between engineering and finance.',
     category: 'Cloud & Infrastructure',
     eyebrow: 'CLOUD EFFICIENCY',
     heading: 'Improve Cloud Efficiency Without Compromising Performance',
@@ -574,6 +582,8 @@ export const services: Service[] = [
   {
     slug: 'devops-solutions',
     title: 'DevOps Solutions',
+    definition:
+      'DevOps is a set of engineering practices that shorten the path from a code change to production safely — version control, automated build and test, CI/CD pipelines, infrastructure as code and monitoring — so releases become frequent, repeatable and easy to roll back.',
     category: 'DevOps & Platform',
     eyebrow: 'DELIVERY AUTOMATION',
     heading: 'Automate the Path From Code to Production',
@@ -713,6 +723,8 @@ export const services: Service[] = [
   {
     slug: 'devsecops',
     title: 'DevSecOps',
+    definition:
+      'DevSecOps integrates security checks directly into the software delivery pipeline — static analysis (SAST), dependency and container image scanning, secret detection, dynamic testing (DAST) and policy gates — so vulnerabilities are found and fixed before code reaches production rather than after.',
     category: 'DevOps & Platform',
     eyebrow: 'SECURE DELIVERY',
     heading: 'Security Integrated Into the Delivery Lifecycle',
@@ -849,6 +861,8 @@ export const services: Service[] = [
   {
     slug: 'platform-engineering',
     title: 'Platform Engineering',
+    definition:
+      'Platform engineering is the discipline of building an internal developer platform: self-service, standardized paths — templates, pipelines and reusable infrastructure modules — that let product teams provision and deploy without needing deep infrastructure expertise for every change.',
     category: 'DevOps & Platform',
     eyebrow: 'PLATFORM ENGINEERING',
     heading: 'Build Internal Platforms That Make Infrastructure Easier to Operate',
@@ -982,6 +996,8 @@ export const services: Service[] = [
   {
     slug: 'infrastructure-as-code-gitops',
     title: 'Infrastructure as Code & GitOps',
+    definition:
+      'Infrastructure as Code (IaC) defines cloud resources in version-controlled files, using tools such as Terraform or Ansible, instead of manual console changes. GitOps extends this by making Git the source of truth: changes are proposed as pull requests, reviewed, and applied automatically, so each environment matches its repository.',
     category: 'DevOps & Platform',
     eyebrow: 'INFRASTRUCTURE AS CODE',
     heading: 'Infrastructure Defined, Reviewed and Versioned as Code',
@@ -1123,6 +1139,8 @@ export const services: Service[] = [
   {
     slug: 'kubernetes-container-platforms',
     title: 'Kubernetes & Container Platforms',
+    definition:
+      'Kubernetes is an open-source container orchestration platform that schedules, scales and restarts containerized applications across a cluster of machines. A production Kubernetes platform adds what surrounds it — networking, ingress, autoscaling, RBAC, secrets, monitoring, logging and an upgrade process — so teams can run workloads on it reliably.',
     category: 'Cloud-Native',
     eyebrow: 'CONTAINER PLATFORM ENGINEERING',
     heading: 'Kubernetes Platforms Built for Production Workloads',
@@ -1266,6 +1284,8 @@ export const services: Service[] = [
   {
     slug: 'observability-monitoring',
     title: 'Observability & Monitoring',
+    definition:
+      'Observability is the ability to understand what a system is doing from the signals it emits — metrics, logs and traces. Monitoring is the part that watches known conditions and alerts on them; observability also lets engineers investigate failures nobody anticipated.',
     category: 'Cloud-Native',
     eyebrow: 'OPERATIONAL VISIBILITY',
     heading: 'Turn Infrastructure Signals Into Operational Visibility',
@@ -1402,6 +1422,8 @@ export const services: Service[] = [
   {
     slug: 'site-reliability-engineering',
     title: 'Site Reliability Engineering',
+    definition:
+      'Site Reliability Engineering (SRE) applies software-engineering practices to operations. Reliability is defined with measurable service level indicators (SLIs) and objectives (SLOs), managed through error budgets, and supported by incident response, capacity planning and blameless post-incident reviews.',
     category: 'Cloud-Native',
     eyebrow: 'RELIABILITY ENGINEERING',
     heading: 'Reliability Designed Into Production Systems',
@@ -1540,6 +1562,8 @@ export const services: Service[] = [
   {
     slug: 'ai-powered-devops-aiops',
     title: 'AI-Powered DevOps & AIOps',
+    definition:
+      'AIOps (AI for IT operations) uses machine learning and large language models to help engineers work through operational data — correlating alerts, summarizing logs and suggesting likely causes during an incident. Used well, it speeds up investigation while engineers stay in control of decisions and changes.',
     category: 'AI & Security',
     eyebrow: 'AI-ASSISTED OPERATIONS',
     heading: 'AI-Assisted Investigation, Not Unsupervised Automation',
@@ -1675,6 +1699,8 @@ export const services: Service[] = [
   {
     slug: 'ai-cloud-infrastructure',
     title: 'AI Cloud Infrastructure',
+    definition:
+      'AI cloud infrastructure is the compute, storage, networking and orchestration layer that AI workloads run on — GPU or accelerator capacity, containerized model serving, Kubernetes-based scheduling and data pipelines — together with the monitoring and cost controls needed to operate them in production.',
     category: 'AI & Security',
     eyebrow: 'INFRASTRUCTURE FOR AI WORKLOADS',
     heading: 'Cloud Infrastructure Built for AI and Model Workloads',
@@ -1812,6 +1838,8 @@ export const services: Service[] = [
   {
     slug: 'cloud-security',
     title: 'Cloud Security',
+    definition:
+      'Cloud security is the set of controls that protect cloud workloads and data — identity and access management, network segmentation, encryption at rest and in transit, secrets management, audit logging and continuous configuration review — under the shared responsibility model, where the provider secures the platform and the customer secures what runs on it.',
     category: 'AI & Security',
     eyebrow: 'INFRASTRUCTURE & CLOUD SECURITY',
     heading: 'Security Built Into Your Cloud Infrastructure',

@@ -1,3 +1,5 @@
+'use client';
+
 import { iconMap } from '@/data/icon-map';
 import type { ServiceProblem } from '@/types/types';
 import { motion } from 'framer-motion';

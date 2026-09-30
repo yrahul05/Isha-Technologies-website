@@ -93,7 +93,7 @@ export const caseStudies: CaseStudy[] = [
     relatedService: 'devops-solutions',
     ctaLabel: 'Explore DevOps Solutions',
     seo: {
-      title: 'CI/CD Automation Case Study | Isha Technologies',
+      title: 'CI/CD Automation — Technical Scenario | Isha Technologies',
       description:
         'A representative engineering scenario on replacing manual deployments with a standardized CI/CD workflow — build, test, security scanning and automated deployment.',
     },
@@ -166,7 +166,7 @@ export const caseStudies: CaseStudy[] = [
     relatedService: 'cloud-solutions',
     ctaLabel: 'Explore Cloud Solutions',
     seo: {
-      title: 'Cloud Infrastructure Case Study | Isha Technologies',
+      title: 'Cloud Infrastructure — Technical Scenario | Isha Technologies',
       description:
         'A representative engineering scenario on designing a scalable, secure cloud infrastructure foundation across networking, identity, compute and data.',
     },
@@ -245,7 +245,7 @@ export const caseStudies: CaseStudy[] = [
     relatedService: 'kubernetes-container-platforms',
     ctaLabel: 'Explore Kubernetes Solutions',
     seo: {
-      title: 'Kubernetes Platform Case Study | Isha Technologies',
+      title: 'Kubernetes Platform — Technical Scenario | Isha Technologies',
       description:
         'A representative engineering scenario on building a production-ready Kubernetes platform — cluster architecture, networking, scaling, security and observability.',
     },
@@ -316,7 +316,7 @@ export const caseStudies: CaseStudy[] = [
     relatedService: 'platform-engineering',
     ctaLabel: 'Explore Platform Solutions',
     seo: {
-      title: 'Terraform Automation Case Study | Isha Technologies',
+      title: 'Terraform Automation — Technical Scenario | Isha Technologies',
       description:
         'A representative engineering scenario on modernizing infrastructure through version-controlled, reviewable Terraform modules and Git-based workflows.',
     },
@@ -388,7 +388,7 @@ export const caseStudies: CaseStudy[] = [
     relatedService: 'cloud-migration-modernization',
     ctaLabel: 'Explore Cloud Migration',
     seo: {
-      title: 'Cloud Migration Case Study | Isha Technologies',
+      title: 'Cloud Migration — Technical Scenario | Isha Technologies',
       description:
         'A representative engineering scenario on planning a structured, dependency-aware cloud migration from assessment through validation and optimization.',
     },
@@ -461,7 +461,7 @@ export const caseStudies: CaseStudy[] = [
     relatedService: 'cloud-cost-optimization-finops',
     ctaLabel: 'Explore Cloud Cost Optimization',
     seo: {
-      title: 'Cloud Cost Optimization Case Study | Isha Technologies',
+      title: 'Cloud Cost Optimization — Technical Scenario | Isha Technologies',
       description:
         'A representative engineering scenario on improving cloud efficiency through resource analysis, rightsizing and architecture review.',
     },
@@ -533,7 +533,7 @@ export const caseStudies: CaseStudy[] = [
     relatedService: 'devsecops',
     ctaLabel: 'Explore DevSecOps',
     seo: {
-      title: 'DevSecOps Case Study | Isha Technologies',
+      title: 'DevSecOps — Technical Scenario | Isha Technologies',
       description:
         'A representative engineering scenario on integrating SAST, dependency scanning, container scanning and security gates into the CI/CD lifecycle.',
     },
@@ -603,7 +603,7 @@ export const caseStudies: CaseStudy[] = [
     relatedService: 'observability-monitoring',
     ctaLabel: 'Explore Observability',
     seo: {
-      title: 'Observability Case Study | Isha Technologies',
+      title: 'Observability — Technical Scenario | Isha Technologies',
       description:
         'A representative engineering scenario on building correlated observability across metrics, logs, traces, dashboards and alerting.',
     },
@@ -678,7 +678,7 @@ export const caseStudies: CaseStudy[] = [
     relatedService: 'site-reliability-engineering',
     ctaLabel: 'Explore Site Reliability',
     seo: {
-      title: 'Site Reliability Case Study | Isha Technologies',
+      title: 'Site Reliability — Technical Scenario | Isha Technologies',
       description:
         'A representative engineering scenario on designing production reliability through SLOs, capacity planning, resilience and incident response.',
     },
@@ -711,6 +711,7 @@ export function buildCaseStudyMetadata(study: CaseStudy): Metadata {
     alternates: { canonical: path },
     openGraph: {
       type: 'article',
+      locale: 'en_IN',
       url: path,
       siteName: 'Isha Technologies',
       title: study.seo.title,

@@ -9,10 +9,9 @@
 
 // Cloud platforms (AWS / Microsoft Azure / Google Cloud) are deliberately
 // NOT listed here. This row represents open tools and technologies —
-// cloud platforms get their own "Cloud Platforms" category below, and
-// formal cloud partnerships (AWS Advanced Tier Services Partner, Google
-// Cloud Partner, Microsoft Azure Partner) are represented separately on
-// the homepage, never mixed in with generic technology chips.
+// cloud platforms get their own "Cloud" category below. No cloud
+// partner-program status is claimed anywhere on the site — none is
+// verified — so platform experience is never presented as a partnership.
 export const CORE_TECHNOLOGIES: string[] = [
   'Kubernetes',
   'Docker',

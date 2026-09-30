@@ -16,16 +16,12 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import React from 'react';
 
-export const metadata: Metadata = {
-  ...buildMetadata({
-    title: 'About | Isha Technologies',
-    description:
-      'Isha Technologies focuses on the infrastructure layer behind modern digital products — cloud platforms, deployment automation, containers, security, observability and reliable operations.',
-    path: '/about',
-  }),
-  keywords:
-    'About Isha Technologies, Cloud Infrastructure, DevOps, Automation, Reliability, Observability, Infrastructure Architecture, AWS, Google Cloud, Microsoft Azure, Hetzner, DigitalOcean, BigRock',
-};
+export const metadata: Metadata = buildMetadata({
+  title: 'About Isha Technologies | Cloud & DevOps Team in Jaipur',
+  description:
+    'Isha Technologies is a cloud and DevOps solutions provider in Jaipur, Rajasthan, India — cloud architecture, automation, Kubernetes, security and operations.',
+  path: '/about',
+});
 
 export default function Page() {
   return (

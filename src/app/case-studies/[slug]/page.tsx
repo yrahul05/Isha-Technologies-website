@@ -1,5 +1,7 @@
 import { CaseStudyDetailTemplate } from '@/components/case-studies/CaseStudyDetailTemplate';
 import { buildCaseStudyMetadata, caseStudies, getCaseStudyBySlug } from '@/data/case-studies';
+import { JsonLd } from '@/components/JsonLd';
+import { LOGO_URL, WEBSITE_ID, absoluteUrl, organizationReference } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -27,41 +29,32 @@ export default async function Page({
   const study = getCaseStudyBySlug(slug);
   if (!study) notFound();
 
-  const canonicalUrl = `https://www.ishatechnologies.in/case-studies/${study.slug}`;
+  const canonicalUrl = absoluteUrl(`/case-studies/${study.slug}`);
 
+  // TechArticle, deliberately not a client case study / Review: these are
+  // representative engineering scenarios with no client, dates or results.
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'TechArticle',
+    '@id': `${canonicalUrl}#article`,
     headline: study.title,
     description: study.seo.description,
+    disambiguatingDescription:
+      'Representative engineering scenario (reference architecture) — not a verified client engagement.',
+    image: `${canonicalUrl}/opengraph-image`,
     url: canonicalUrl,
+    inLanguage: 'en',
     articleSection: study.displayCategory,
-    about: 'Representative engineering scenario — not a verified client engagement.',
-    author: {
-      '@type': 'Organization',
-      name: 'Isha Technologies',
-      url: 'https://www.ishatechnologies.in',
-    },
-    publisher: {
-      '@type': 'Organization',
-      name: 'Isha Technologies',
-      logo: {
-        '@type': 'ImageObject',
-        url: 'https://www.ishatechnologies.in/ISHA-TECHNO-LG.png',
-      },
-    },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': canonicalUrl,
-    },
+    keywords: study.technologies,
+    author: organizationReference,
+    publisher: { ...organizationReference, logo: { '@type': 'ImageObject', url: LOGO_URL } },
+    isPartOf: { '@id': WEBSITE_ID },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
   };
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <CaseStudyDetailTemplate study={study} />
     </>
   );

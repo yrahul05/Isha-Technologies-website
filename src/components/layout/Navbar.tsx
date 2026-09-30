@@ -136,12 +136,7 @@ export const Navbar = () => {
       <header className="w-full border-b border-b-black/5 bg-white sticky top-0 z-50 transition duration-300">
         <div className="max-w-full mx-auto flex h-16 items-center justify-between px-4">
           {/* Logo — left of the navbar */}
-          <Logo
-            src="/ISHA-TECHNO-LG.png"
-            width={2172}
-            height={724}
-            imgClassName="h-9 lg:h-11 w-auto"
-          />
+          <Logo src="/ISHA-TECHNO-LG.png" imgClassName="h-9 lg:h-11 w-auto" priority />
 
           {/* Navigation */}
           <NavigationMenu viewport={false} className="hidden lg:flex">
@@ -305,12 +300,7 @@ export const Navbar = () => {
                 className="bg-white gap-0 space-y-0 overflow-y-auto"
               >
                 <SheetHeader className="bg-brand/5 py-5">
-                  <Logo
-                    src="/ISHA-TECHNO-LG.png"
-                    width={2172}
-                    height={724}
-                    imgClassName="h-10 w-auto"
-                  />
+                  <Logo src="/ISHA-TECHNO-LG.png" imgClassName="h-10 w-auto" />
                 </SheetHeader>
                 <nav className="flex flex-col gap-6 p-6 border-t border-t-black/5">
                   <Link

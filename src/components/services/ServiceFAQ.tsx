@@ -1,4 +1,5 @@
 import { FAQSection, type Faq } from '@/components/blog/FAQSection';
+import { JsonLd } from '@/components/JsonLd';
 
 /** Wraps the shared blog FAQ accordion with the service-page section
  * chrome (eyebrow + heading) and emits FAQPage structured data, matching
@@ -21,10 +22,7 @@ export function ServiceFAQ({ faqs }: { faqs: Faq[] }) {
 
   return (
     <section className="bg-white py-16">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <div className="mx-auto max-w-[1280px] px-4">
         <div className="mb-6">
           <span className="text-xs font-semibold uppercase tracking-wide text-brand">FAQ</span>

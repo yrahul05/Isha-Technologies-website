@@ -196,3 +196,24 @@ body {
     }
   }
 }
+
+/* ------------------------------------------------------------------
+   Above-the-fold hero entrance (service pages, homepage). A CSS
+   animation rather than a Framer Motion `initial={{ opacity: 0 }}`:
+   CSS starts at first paint, whereas a JS-driven entrance keeps the H1
+   (the page's LCP element) invisible until hydration finishes. Applied
+   via `motion-safe:` so reduced-motion users get static content.
+------------------------------------------------------------------ */
+@theme inline {
+  --animate-hero-rise: hero-rise 0.5s ease-out both;
+  @keyframes hero-rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

@@ -6,6 +6,14 @@ import {
   getRelatedPosts,
   toBlogPostSummary,
 } from '@/data/blog-posts';
+import { JsonLd } from '@/components/JsonLd';
+import { authorJsonLd, getAuthor } from '@/data/authors';
+import {
+  LOGO_URL,
+  WEBSITE_ID,
+  absoluteUrl,
+  organizationReference,
+} from '@/lib/seo';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -37,45 +45,61 @@ export default async function Page({
 
   const related = getRelatedPosts(post, 3).map(toBlogPostSummary);
 
-  const canonicalUrl = `https://www.ishatechnologies.in/resources/blogs/${post.slug}`;
+  const canonicalUrl = absoluteUrl(`/resources/blogs/${post.slug}`);
 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
+    '@id': `${canonicalUrl}#article`,
     headline: post.title,
     description: post.metaDescription ?? post.excerpt,
-    image: `${canonicalUrl}/opengraph-image`,
+    image: {
+      '@type': 'ImageObject',
+      url: `${canonicalUrl}/opengraph-image`,
+      width: 1200,
+      height: 630,
+    },
     url: canonicalUrl,
     datePublished: post.publishedAt,
     dateModified: post.updatedAt,
-    keywords: [post.primaryKeyword, ...post.secondaryKeywords].join(', '),
+    inLanguage: 'en',
     articleSection: post.category,
-    author: {
-      '@type': 'Organization',
-      name: 'Isha Technologies',
-      url: 'https://www.ishatechnologies.in',
-    },
+    keywords: post.tags,
+    timeRequired: readingTimeToIsoDuration(post.readingTime),
+    author: authorJsonLd(getAuthor(post.authorId)),
     publisher: {
-      '@type': 'Organization',
-      name: 'Isha Technologies',
-      logo: {
-        '@type': 'ImageObject',
-        url: 'https://www.ishatechnologies.in/ISHA-TECHNO-LG.png',
-      },
+      ...organizationReference,
+      logo: { '@type': 'ImageObject', url: LOGO_URL },
     },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': canonicalUrl,
-    },
+    isPartOf: { '@id': WEBSITE_ID },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
   };
+
+  // FAQPage only when the post has FAQs, which FAQSection renders visibly
+  // in the server HTML — the schema always mirrors on-page content exactly.
+  const faqJsonLd = post.faqs?.length
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: post.faqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+        })),
+      }
+    : null;
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
+      {faqJsonLd && <JsonLd data={faqJsonLd} />}
       <BlogArticleLayout post={post} related={related} />
     </>
   );
+}
+
+/** "11 min read" → "PT11M" (schema.org timeRequired); undefined if unparseable. */
+function readingTimeToIsoDuration(readingTime: string): string | undefined {
+  const minutes = Number.parseInt(readingTime, 10);
+  return Number.isFinite(minutes) && minutes > 0 ? `PT${minutes}M` : undefined;
 }

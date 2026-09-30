@@ -37,34 +37,30 @@ export function HomePage() {
       {/* hero */}
       <section className="bg-white py-12 md:py-20">
         <div className="px-4 max-w-[1280px] mx-auto grid lg:grid-cols-2 grid-cols-1 gap-8">
-          {/* Left Side Content */}
-          <div className="flex flex-col items-start gap-5">
-            <div data-aos="fade-up" data-aos-delay="50">
+          {/* Left Side Content — rendered visible immediately (no AOS
+              fade-in): the H1 is the page's LCP element, and AOS keeps
+              elements at opacity:0 until its script has loaded and run.
+              A CSS entrance starts at first paint instead. */}
+          <div className="flex flex-col items-start gap-5 motion-safe:animate-hero-rise">
+            <div>
               <span className="inline-block text-xs font-semibold uppercase tracking-widest text-brand border border-brand/30 bg-brand/5 px-3 py-1 rounded-full mb-3">
                 Cloud Infrastructure &amp; DevOps Solutions
               </span>
               <h1 className="font-bold text-3xl lg:text-5xl tracking-tighter text-black leading-tight">
-                Expert Infrastructure Engineering —{' '}
+                Cloud &amp; DevOps Infrastructure Engineering —{' '}
                 <span className="text-brand">Without Building It All In-House</span>
               </h1>
             </div>
 
-            <p
-              data-aos="fade-up"
-              data-aos-delay="150"
-              className="text-base text-gray-600 leading-relaxed"
-            >
-              We build and manage the cloud foundations behind modern
-              applications — from infrastructure and automation to Kubernetes,
-              security and reliable operations.
+            <p className="text-base text-gray-600 leading-relaxed">
+              Isha Technologies is a cloud and DevOps engineering team based in
+              Jaipur, India. We build and manage the cloud foundations behind
+              modern applications — from infrastructure and automation to
+              Kubernetes, security and reliable operations.
             </p>
 
             {/* Static capabilities */}
-            <div
-              data-aos="fade-up"
-              data-aos-delay="200"
-              className="grid grid-cols-2 gap-2 w-full"
-            >
+            <div className="grid grid-cols-2 gap-2 w-full">
               {[
                 'Cloud architecture & migration',
                 'CI/CD & infrastructure automation',
@@ -82,11 +78,7 @@ export function HomePage() {
             </div>
 
             {/* Dual CTAs */}
-            <div
-              data-aos="fade-up"
-              data-aos-delay="300"
-              className="flex flex-wrap gap-3"
-            >
+            <div className="flex flex-wrap gap-3">
               <Button
                 asChild
                 variant="primary"
@@ -105,35 +97,35 @@ export function HomePage() {
               </Button>
             </div>
 
-            {/* Cloud partners */}
-            <div
-              data-aos="fade-up"
-              data-aos-delay="400"
-              className="w-full pt-3 border-t border-gray-100"
-            >
+            {/* Cloud platforms — hands-on platform experience, not a claim of
+                any formal partner-program status (none is verified). */}
+            <div className="w-full pt-3 border-t border-gray-100">
               <p className="text-xs font-semibold uppercase tracking-widest text-brand mb-3">
-                Our Cloud Partners
+                Cloud Platforms We Work With
               </p>
               <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
                 <Image
                   src="/brand-partners/aws-partner-logo.webp"
-                  alt="AWS logo"
+                  alt="Amazon Web Services (AWS)"
                   width={160}
                   height={72}
+                  sizes="(min-width: 768px) 98px, 80px"
                   className="h-9 w-auto object-contain sm:h-10 md:h-11"
                 />
                 <Image
                   src="/brand-partners/azure-logo.svg"
-                  alt="Microsoft Azure logo"
+                  alt="Microsoft Azure"
                   width={160}
                   height={46}
+                  sizes="(min-width: 768px) 153px, 125px"
                   className="h-9 w-auto object-contain sm:h-10 md:h-11"
                 />
                 <Image
                   src="/brand-partners/Google-cloud-logo.jpg"
-                  alt="Google Cloud logo"
+                  alt="Google Cloud"
                   width={160}
                   height={72}
+                  sizes="(min-width: 768px) 98px, 80px"
                   className="h-9 w-auto object-contain sm:h-10 md:h-11"
                 />
               </div>
@@ -333,15 +325,17 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* focus areas */}
+      {/* at a glance — factual, verifiable statements only. The previous
+          "40%+ cost reduction / 3× faster deployments / 99.9% uptime / 24/7"
+          figures had no supporting source and were removed. */}
       <section className="py-14 bg-brand text-white">
         <div className="max-w-[1280px] mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { stat: '40%+', label: 'Average cloud cost reduction' },
-              { stat: '3×', label: 'Faster deployment cycles' },
-              { stat: '99.9%', label: 'Platform uptime maintained' },
-              { stat: '24/7', label: 'Monitoring & incident response' },
+              { stat: '14', label: 'Cloud, DevOps & AI infrastructure services' },
+              { stat: '10', label: 'Team members across engineering & delivery' },
+              { stat: '3', label: 'Major clouds: AWS, Azure & Google Cloud' },
+              { stat: 'IaC', label: 'Terraform, Kubernetes & CI/CD automation' },
             ].map((item, i) => (
               <div key={i} data-aos="fade-up" data-aos-delay={i * 100}>
                 <div className="text-3xl font-bold tracking-tight">
@@ -380,14 +374,14 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* partner network — company partners and cloud partnerships in ONE
-          unified section, never split into separate sections */}
+      {/* companies we've worked with — neutral wording only: no "partner"
+          designation is claimed for any company without documentation */}
       <section className="py-14 bg-gray-50">
         <div className="max-w-[1280px] mx-auto px-4">
           <SectionHeader
-            badge="Our Partner Network"
-            title="Technology & Cloud Partners"
-            description="We work with trusted technology and cloud partners to build secure, reliable and scalable infrastructure."
+            badge="Our Network"
+            title="Companies We've Worked With"
+            description="Teams we've collaborated with on cloud infrastructure, automation and platform engineering."
             alignment="center"
           />
           <PartnerNetwork />

@@ -5,16 +5,12 @@ import { getSortedPublishedBlogPosts, toBlogPostSummary } from '@/data/blog-post
 import { buildMetadata } from '@/lib/seo';
 import { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  ...buildMetadata({
-    title: 'Technical Resources | Isha Technologies',
-    description:
-      'Engineering insights on cloud infrastructure, DevOps automation, Kubernetes, Terraform, security, cost optimization, observability and site reliability from Isha Technologies.',
-    path: '/resources/blogs',
-  }),
-  keywords:
-    'Cloud Infrastructure, DevOps, Kubernetes, Terraform, CI/CD, DevSecOps, Cloud Security, Cloud Cost Optimization, Observability, Site Reliability, Platform Engineering',
-};
+export const metadata: Metadata = buildMetadata({
+  title: 'Cloud & DevOps Engineering Blog | Isha Technologies',
+  description:
+    'Practical engineering articles on cloud infrastructure, DevOps automation, Kubernetes, Terraform, DevSecOps, cost optimization, observability and site reliability.',
+  path: '/resources/blogs',
+});
 
 export default function Page() {
   // Newest publishedAt first — the featured slot and grid order both follow

@@ -1,4 +1,10 @@
-# Footer "Website Visitors" stat, and the internal /analytics dashboard
+# Visitor analytics: the internal /analytics dashboard (and the retired footer stat)
+
+> **Update:** the public footer "Website Visitors" card (`FooterVisitorStat`) was removed.
+> A small, public 30-day visit count reads as a low-trust signal on a B2B site and gave
+> visitors nothing useful. GA4 tracking and the password-gated `/analytics` dashboard are
+> unchanged. `/api/analytics/visitors` is still deployed but no longer called by the site;
+> the sections below describe the original footer integration for reference.
 
 ## Current
 

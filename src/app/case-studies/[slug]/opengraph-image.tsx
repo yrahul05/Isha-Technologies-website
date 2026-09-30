@@ -3,7 +3,7 @@ import { OG_IMAGE_CONTENT_TYPE, OG_IMAGE_SIZE, OgImageCard } from '@/lib/og-imag
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'nodejs';
-export const alt = 'Isha Technologies — Case Study';
+export const alt = 'Isha Technologies — Technical Scenario';
 export const size = OG_IMAGE_SIZE;
 export const contentType = OG_IMAGE_CONTENT_TYPE;
 
@@ -14,7 +14,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   return new ImageResponse(
     (
       <OgImageCard
-        eyebrow={study?.displayCategory ?? 'Case Study'}
+        eyebrow={study?.displayCategory ?? 'Technical Scenario'}
         title={study?.title ?? 'Isha Technologies'}
       />
     ),

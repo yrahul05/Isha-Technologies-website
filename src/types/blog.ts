@@ -1,3 +1,5 @@
+import type { AuthorId } from '@/data/authors';
+
 /** One entry in an article's table of contents. `id` must match the
  * `id` attribute of the matching `<h2 id="...">` in `contentHtml`. */
 export type BlogTocEntry = {
@@ -27,14 +29,16 @@ export type BlogPost = {
   tags: string[];
   excerpt: string;
   introduction: string;
-  /** The main search term this article targets. Used to inform the meta
-   * keywords tag; should already read naturally in the title/body — never
-   * stuffed in artificially. */
+  /** The main search term this article targets — editorial guidance for
+   * the title/body only. Not emitted as a meta keywords tag (search engines
+   * ignore it); should read naturally, never stuffed in artificially. */
   primaryKeyword: string;
   /** A handful of related search terms, same rules as `primaryKeyword`. */
   secondaryKeywords: string[];
   readingTime: string;
-  author: string;
+  /** Key into the author registry (src/data/authors.ts). Only a real,
+   * identified writer ever gets a person entry — see the rule there. */
+  authorId: AuthorId;
   /** Only 'published' posts are ever reachable publicly — via the listing
    * page, sitemap, related-posts, or a direct slug URL. A 'draft' post
    * stays in this file (so it's easy to review in a PR) but 404s and is

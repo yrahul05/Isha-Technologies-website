@@ -41,6 +41,17 @@ const nextConfig: NextConfig = {
   // outside the site, so they must keep resolving, not 404.
   async redirects() {
     return [
+      // Canonical host: the bare apex domain was serving a full duplicate of
+      // the site (HTTP 200) instead of redirecting. Scoped to the apex host
+      // only, so it can never loop with www — and it's harmless if a
+      // Vercel domain-level redirect is added later (that runs first).
+      // Preserves the path, e.g. ishatechnologies.in/about → www…/about.
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'ishatechnologies.in' }],
+        destination: 'https://www.ishatechnologies.in/:path*',
+        permanent: true,
+      },
       {
         source: '/services/cloud-migration',
         destination: '/services/cloud-migration-modernization',

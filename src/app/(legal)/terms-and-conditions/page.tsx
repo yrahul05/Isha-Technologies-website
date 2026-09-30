@@ -4,15 +4,12 @@ import { LegalLayout, type LegalSection } from '@/components/legal/LegalLayout';
 import { LegalContent } from '@/components/legal/LegalContent';
 import { buildMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  ...buildMetadata({
-    title: 'Terms & Conditions | Isha Technologies',
-    description:
-      'Review the Terms & Conditions governing use of the Isha Technologies website and its publicly available information and resources.',
-    path: '/terms-and-conditions',
-  }),
-  robots: 'index, follow',
-};
+export const metadata: Metadata = buildMetadata({
+  title: 'Terms & Conditions | Isha Technologies',
+  description:
+    'Review the Terms & Conditions governing use of the Isha Technologies website and its publicly available information and resources.',
+  path: '/terms-and-conditions',
+});
 
 const sections: LegalSection[] = [
   { id: 'section-1', number: '1', title: 'About These Terms' },

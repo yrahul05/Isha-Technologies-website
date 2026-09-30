@@ -2,32 +2,15 @@ import { CaseStudiesFinalCTA } from '@/components/case-studies/CaseStudiesFinalC
 import { CaseStudiesHero } from '@/components/case-studies/CaseStudiesHero';
 import { CaseStudiesIntro } from '@/components/case-studies/CaseStudiesIntro';
 import { CaseStudyExplorer } from '@/components/case-studies/CaseStudyExplorer';
+import { buildMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 
-const description =
-  'Representative engineering scenarios from Isha Technologies covering cloud infrastructure, DevOps automation, Kubernetes, Terraform, cloud migration, cost optimization, DevSecOps, observability and site reliability. Technical demonstrations, not fabricated client case studies.';
-
-export const metadata: Metadata = {
-  title: 'Case Studies | Isha Technologies',
-  description,
-  keywords:
-    'Isha Technologies case studies, cloud infrastructure engineering, DevOps automation, Kubernetes platform engineering, Terraform automation, cloud migration, cloud cost optimization, DevSecOps, observability, site reliability',
-  alternates: {
-    canonical: '/case-studies',
-  },
-  openGraph: {
-    type: 'website',
-    url: '/case-studies',
-    siteName: 'Isha Technologies',
-    title: 'Case Studies | Isha Technologies',
-    description,
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Case Studies | Isha Technologies',
-    description,
-  },
-};
+export const metadata: Metadata = buildMetadata({
+  title: 'Technical Scenarios & Case Studies | Isha Technologies',
+  description:
+    'Representative engineering scenarios, not client case studies, showing how Isha Technologies approaches CI/CD, Kubernetes, Terraform, migration and security.',
+  path: '/case-studies',
+});
 
 export default function Page() {
   return (

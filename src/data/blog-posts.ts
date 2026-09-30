@@ -1,16 +1,20 @@
 import type { BlogPost, BlogPostSummary } from '@/types/blog';
 import type { Metadata } from 'next';
+import { DEFAULT_AUTHOR_ID, getAuthor } from '@/data/authors';
 
 // Original Isha Technologies technical resources. These are educational
 // engineering articles, not client case studies — no client names, no
 // invented metrics, no fabricated history. `publishedAt`/`updatedAt` below
 // are real dates sourced from the git commit that introduced each post
 // (`git log -S'<slug>' -- src/data/blog-posts.ts`), not invented ones.
-const AUTHOR = 'Isha Technologies — Technical Engineering Team';
+// Every current post is attributed to the engineering team: none has
+// documented individual authorship (see the rule in src/data/authors.ts).
+const AUTHOR_ID = DEFAULT_AUTHOR_ID;
 
 export const blogPosts: BlogPost[] = [
   {
     slug: 'production-ready-cloud-infrastructure',
+    seoTitle: 'Building Production-Ready Cloud Infrastructure',
     title: 'How to Build a Production-Ready Cloud Infrastructure',
     category: 'Cloud Infrastructure',
     tags: ['Cloud Infrastructure', 'AWS', 'High Availability', 'Disaster Recovery', 'Cloud Security'],
@@ -26,10 +30,10 @@ export const blogPosts: BlogPost[] = [
     introduction:
       'Production-ready infrastructure is not a specific tool or a single deployment step — it is a set of decisions made across networking, identity, compute, data and operations that hold up under real traffic, real failures and real change. This guide walks through those decisions in the order they usually need to be made.',
     readingTime: '11 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
-    updatedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-30T00:00:00.000Z',
     visualSlug: 'cloud-solutions',
     ctaLabel: 'Explore Cloud Solutions',
     ctaHref: '/services/cloud-solutions',
@@ -112,10 +116,28 @@ export const blogPosts: BlogPost[] = [
       'Backups and disaster recovery are different guarantees with different targets (RPO and RTO) — both need testing, not just configuration.',
       'Infrastructure as Code turns "what changed" into a traceable question instead of a guessing exercise.',
     ],
+    faqs: [
+      {
+        question: 'What does “production-ready” mean for cloud infrastructure?',
+        answer:
+          'It means the environment can handle real traffic, failures and change safely: a segmented network across multiple availability zones, least-privilege IAM, a database with a tested failover path, backups with defined RPO and RTO, baseline security controls, monitoring, and infrastructure defined as code.',
+      },
+      {
+        question: 'Do I need multiple availability zones from day one?',
+        answer:
+          'For any workload where downtime matters, yes. Spreading subnets, compute and databases across at least two availability zones is the baseline protection against a single data-center failure, and it is far harder to retrofit later than to design in from the start.',
+      },
+      {
+        question: 'What is the difference between backups and disaster recovery?',
+        answer:
+          'Backups protect against data loss or corruption and are sized by RPO — how much data you can afford to lose. Disaster recovery protects against losing a whole environment or region and is sized by RTO — how quickly you must be running again. Both need periodic restore tests to be trusted.',
+      },
+    ],
   },
 
   {
     slug: 'reliable-cicd-pipeline',
+    seoTitle: 'Building a Reliable CI/CD Pipeline',
     title: 'From Code to Production: Building a Reliable CI/CD Pipeline',
     category: 'DevOps',
     tags: ['CI/CD', 'DevOps', 'Deployment Automation', 'Pipeline Security'],
@@ -131,10 +153,10 @@ export const blogPosts: BlogPost[] = [
     introduction:
       'A CI/CD pipeline is the automated path a change takes from a developer’s commit to running in production. A reliable pipeline is judged less by how fast it runs and more by whether every release it produces is consistent, verifiable and reversible.',
     readingTime: '10 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
-    updatedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-30T00:00:00.000Z',
     visualSlug: 'devops-solutions',
     ctaLabel: 'Explore DevOps Solutions',
     ctaHref: '/services/devops-solutions',
@@ -192,10 +214,28 @@ export const blogPosts: BlogPost[] = [
       'Define your rollback path before you need it — not while a bad release is affecting users.',
       'Rolling, blue-green and canary strategies exist to reduce the blast radius of a bad deployment.',
     ],
+    faqs: [
+      {
+        question: 'What is the difference between continuous integration and continuous delivery?',
+        answer:
+          'Continuous integration (CI) automatically builds and tests every change merged into the main branch. Continuous delivery (CD) extends that by keeping every passing build deployable and automating the release to each environment, so shipping becomes a routine, low-risk step.',
+      },
+      {
+        question: 'Should the same build artifact be deployed to every environment?',
+        answer:
+          'Yes. Building once and promoting the same versioned artifact — for example a container image — through staging and production, with environment-specific configuration supplied at deploy time, ensures that what you tested is exactly what you release.',
+      },
+      {
+        question: 'How do you make deployments easy to roll back?',
+        answer:
+          'Keep previous artifacts versioned and available, make rollback a first-class pipeline action rather than a manual procedure, and use strategies such as blue-green or canary deployments so traffic can be shifted back to the known-good version quickly.',
+      },
+    ],
   },
 
   {
     slug: 'kubernetes-production',
+    seoTitle: 'Kubernetes in Production: What to Get Right',
     title: 'Kubernetes in Production: What Teams Need to Get Right',
     category: 'Kubernetes',
     tags: ['Kubernetes', 'Container Orchestration', 'Helm', 'Cloud Native'],
@@ -211,10 +251,10 @@ export const blogPosts: BlogPost[] = [
     introduction:
       'Creating a Kubernetes cluster takes minutes. Operating one reliably in production is a different exercise entirely — it depends on decisions about workload architecture, networking, resource management, security and observability that aren’t visible on day one but matter enormously by month three.',
     readingTime: '12 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
-    updatedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-30T00:00:00.000Z',
     visualSlug: 'kubernetes-container-platforms',
     ctaLabel: 'Explore Kubernetes & Container Platforms',
     ctaHref: '/services/kubernetes-container-platforms',
@@ -283,10 +323,28 @@ spec:
       'Secrets need encryption at rest and, ideally, integration with an external secrets manager.',
       'Cluster state (persistent volumes, etcd if self-managed) needs its own backup plan, separate from workload replicas.',
     ],
+    faqs: [
+      {
+        question: 'When is Kubernetes the right choice?',
+        answer:
+          'Kubernetes fits teams running several containerized services that need consistent deployment, autoscaling and self-healing. For a single, simple application, a managed container service or platform-as-a-service is often easier to operate.',
+      },
+      {
+        question: 'Why do resource requests and limits matter?',
+        answer:
+          'Requests tell the scheduler how much CPU and memory a pod needs, so it can place pods on nodes with capacity; limits cap how much a container can consume. Without them, one workload can starve others and autoscaling decisions become unreliable.',
+      },
+      {
+        question: 'Should we use a managed Kubernetes service such as Amazon EKS?',
+        answer:
+          'For most teams, yes. A managed control plane removes the work of running and upgrading the API server and etcd. The team still owns node groups, networking, add-ons, security policy and the application workloads themselves.',
+      },
+    ],
   },
 
   {
     slug: 'terraform-cloud-operations',
+    seoTitle: 'Why Terraform Changes Cloud Operations',
     title: 'Infrastructure as Code: Why Terraform Changes Cloud Operations',
     category: 'Terraform & IaC',
     tags: ['Terraform', 'Infrastructure as Code', 'DevOps', 'Cloud Automation'],
@@ -302,10 +360,10 @@ spec:
     introduction:
       'Manually configured infrastructure works until it needs to be reproduced, audited, or changed under pressure. Infrastructure as Code (IaC) replaces manual configuration with declarative definitions that can be versioned, reviewed and applied consistently — and Terraform has become one of the most widely used ways to do it across cloud providers.',
     readingTime: '10 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
-    updatedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-30T00:00:00.000Z',
     visualSlug: 'infrastructure-as-code-gitops',
     ctaLabel: 'Explore Infrastructure as Code & GitOps',
     ctaHref: '/services/infrastructure-as-code-gitops',
@@ -359,10 +417,28 @@ resource "aws_s3_bucket" "assets" {
       'Separate environments should use separate state files, not shared state with different variables.',
       'Terraform changes can go through the same review and CI process as application code.',
     ],
+    faqs: [
+      {
+        question: 'What is Terraform state and why does it matter?',
+        answer:
+          'Terraform state is the record that maps your configuration to the real cloud resources it manages. It should be stored remotely with locking enabled, so a team can work on the same infrastructure without overwriting each other’s changes.',
+      },
+      {
+        question: 'What is configuration drift?',
+        answer:
+          'Drift is any difference between what your code defines and what actually exists, usually caused by manual console changes. Running terraform plan regularly surfaces drift so it can be corrected in code instead of silently accumulating.',
+      },
+      {
+        question: 'Terraform or Ansible — which should we use?',
+        answer:
+          'They solve different problems and are often used together: Terraform provisions infrastructure such as networks, clusters and databases, while Ansible configures what runs on servers — packages, files and services.',
+      },
+    ],
   },
 
   {
     slug: 'cloud-migration-assessment-to-optimization',
+    seoTitle: 'Cloud Migration: From Assessment to Optimization',
     title: 'Cloud Migration: A Practical Approach from Assessment to Optimization',
     category: 'Cloud Migration',
     tags: ['Cloud Migration', 'Cloud Infrastructure', 'AWS', 'Cloud Strategy'],
@@ -378,10 +454,10 @@ resource "aws_s3_bucket" "assets" {
     introduction:
       'Cloud migrations that run into trouble usually don’t fail because of the cloud platform — they fail because the applications, dependencies and data involved weren’t properly understood before the move started. A structured approach reduces that risk considerably.',
     readingTime: '10 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
-    updatedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-30T00:00:00.000Z',
     visualSlug: 'cloud-migration-modernization',
     ctaLabel: 'Explore Cloud Migration & Modernization',
     ctaHref: '/services/cloud-migration-modernization',
@@ -428,10 +504,28 @@ resource "aws_s3_bucket" "assets" {
       'Performance assumptions from the old environment should be re-verified, not carried over.',
       'Optimization (rightsizing, cleanup) happens after cutover, not as an afterthought months later.',
     ],
+    faqs: [
+      {
+        question: 'What are the common cloud migration strategies?',
+        answer:
+          'The widely used “6 Rs” are rehost (lift and shift), replatform, refactor, repurchase, retire and retain. Most migrations combine several, chosen workload by workload based on complexity and business value.',
+      },
+      {
+        question: 'How long does a cloud migration take?',
+        answer:
+          'It depends on the number of workloads, their dependencies and how much modernization is included. A discovery and assessment phase is what produces a realistic, workload-by-workload plan and timeline.',
+      },
+      {
+        question: 'What should happen after cutover?',
+        answer:
+          'Validate behavior against agreed success criteria, keep a rollback path until the new environment is stable, then optimize — rightsizing resources, tightening security and decommissioning the old environment.',
+      },
+    ],
   },
 
   {
     slug: 'reduce-cloud-waste-without-sacrificing-performance',
+    seoTitle: 'Reduce Cloud Waste Without Losing Performance',
     title: 'How to Reduce Cloud Waste Without Sacrificing Performance',
     category: 'Cloud Cost Optimization',
     tags: ['Cloud Cost Optimization', 'FinOps', 'AWS', 'Kubernetes'],
@@ -447,10 +541,10 @@ resource "aws_s3_bucket" "assets" {
     introduction:
       'Cloud cost optimization is often reduced to "turn off what you don’t need," which catches the obvious waste but misses most of the actual spend. Real optimization comes from matching resources to workload behavior and having enough visibility to know where money is actually going.',
     readingTime: '9 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
-    updatedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-30T00:00:00.000Z',
     visualSlug: 'cloud-cost-optimization-finops',
     ctaLabel: 'Explore Cloud Cost Optimization & FinOps',
     ctaHref: '/services/cloud-cost-optimization-finops',
@@ -496,10 +590,28 @@ resource "aws_s3_bucket" "assets" {
       'Reserved capacity should match your stable baseline usage — not your full, worst-case footprint.',
       'Cost optimization needs ongoing visibility and review; it is a practice, not a one-time project.',
     ],
+    faqs: [
+      {
+        question: 'What are the most common sources of cloud waste?',
+        answer:
+          'Idle or forgotten resources (unattached volumes, old snapshots, unused load balancers), over-provisioned compute, non-production environments running around the clock, and data kept in expensive storage tiers longer than necessary.',
+      },
+      {
+        question: 'Does reducing cloud cost hurt performance?',
+        answer:
+          'Not when it is driven by data. Rightsizing is based on real utilization metrics and validated under load, and waste removal targets resources nothing depends on — the goal is to remove spend that isn’t delivering value.',
+      },
+      {
+        question: 'What is FinOps?',
+        answer:
+          'FinOps is an operating practice in which engineering, finance and product teams share responsibility for cloud cost, supported by visibility (tagging and reporting), clear ownership and regular review — instead of treating the bill as a one-off cleanup.',
+      },
+    ],
   },
 
   {
     slug: 'devsecops-secure-delivery-pipeline',
+    seoTitle: 'DevSecOps: Security in the Delivery Pipeline',
     title: 'DevSecOps: Integrating Security Into the Delivery Pipeline',
     category: 'DevSecOps',
     tags: ['DevSecOps', 'CI/CD', 'Cloud Security', 'DevOps'],
@@ -515,10 +627,10 @@ resource "aws_s3_bucket" "assets" {
     introduction:
       "Treating security as a final review before release means problems are found late, when they're most expensive to fix and most likely to delay a launch. DevSecOps moves security checks earlier and spreads them across the pipeline, so issues surface while they're still cheap to address.",
     readingTime: '9 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
-    updatedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-30T00:00:00.000Z',
     visualSlug: 'devsecops',
     ctaLabel: 'Explore DevSecOps',
     ctaHref: '/services/devsecops',
@@ -564,10 +676,28 @@ resource "aws_s3_bucket" "assets" {
       'Scan results only have value if there’s a defined triage and remediation process behind them.',
       'Pipeline permissions deserve the same least-privilege treatment as application and infrastructure IAM.',
     ],
+    faqs: [
+      {
+        question: 'What is the difference between SAST and DAST?',
+        answer:
+          'SAST (static application security testing) analyzes source code for vulnerabilities without running it, early in the pipeline. DAST (dynamic application security testing) probes a running application from the outside, typically in a test environment.',
+      },
+      {
+        question: 'Will security scanning slow down our pipeline?',
+        answer:
+          'It can if every check blocks every build. Run fast checks such as secret detection and dependency scanning on each change, heavier scans on merges or on a schedule, and block deployment only on findings above an agreed severity.',
+      },
+      {
+        question: 'What should a security gate block?',
+        answer:
+          'Typically committed secrets, critical or high-severity vulnerabilities that have an available fix, and policy violations such as containers running as root — with a documented exception process so the gate stays trusted rather than bypassed.',
+      },
+    ],
   },
 
   {
     slug: 'observability-metrics-logs-traces',
+    seoTitle: 'Observability With Metrics, Logs and Traces',
     title: 'Designing Observability With Metrics, Logs and Traces',
     category: 'Observability',
     tags: ['Observability', 'Monitoring', 'AWS', 'Site Reliability'],
@@ -583,10 +713,10 @@ resource "aws_s3_bucket" "assets" {
     introduction:
       'Monitoring tells you something is wrong. Observability helps you figure out why. As systems become more distributed, the gap between those two grows, and closing it depends on combining three complementary signal types: metrics, logs and traces.',
     readingTime: '9 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
-    updatedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-30T00:00:00.000Z',
     visualSlug: 'observability-monitoring',
     ctaLabel: 'Explore Observability & Monitoring',
     ctaHref: '/services/observability-monitoring',
@@ -628,10 +758,28 @@ resource "aws_s3_bucket" "assets" {
       'Dashboards should answer specific operational questions, not display every available metric at once.',
       'Observability should be in place before an incident, not assembled during one.',
     ],
+    faqs: [
+      {
+        question: 'What is the difference between monitoring and observability?',
+        answer:
+          'Monitoring checks known conditions and alerts when thresholds are crossed. Observability is the broader ability to ask new questions of a system using its metrics, logs and traces — including about failures nobody anticipated.',
+      },
+      {
+        question: 'When do you need distributed tracing?',
+        answer:
+          'When a single request passes through several services and you need to see where time is spent or where it fails. For a single monolithic application, metrics and logs usually cover most investigations.',
+      },
+      {
+        question: 'How do you reduce alert fatigue?',
+        answer:
+          'Alert on user-facing symptoms — error rate, latency, availability — rather than every internal metric, make each alert actionable with a clear owner and runbook, and regularly remove alerts nobody acts on.',
+      },
+    ],
   },
 
   {
     slug: 'production-reliability-engineering',
+    seoTitle: 'Production Reliability: Systems Easier to Operate',
     title: 'Production Reliability: Designing Systems That Are Easier to Operate',
     category: 'Site Reliability',
     tags: ['Site Reliability', 'SRE', 'Incident Response', 'Cloud Infrastructure'],
@@ -647,10 +795,10 @@ resource "aws_s3_bucket" "assets" {
     introduction:
       'Reliability is not something added after a system is built — it’s a set of decisions made during design about how the system behaves under load, how it fails, and how quickly a team can understand and recover when something goes wrong.',
     readingTime: '10 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
-    updatedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-30T00:00:00.000Z',
     visualSlug: 'site-reliability-engineering',
     ctaLabel: 'Explore Site Reliability Engineering',
     ctaHref: '/services/site-reliability-engineering',
@@ -696,6 +844,23 @@ resource "aws_s3_bucket" "assets" {
       'Post-incident reviews should focus on systemic improvement, not blame.',
       'Disaster recovery plans are only as good as the last time they were actually tested.',
     ],
+    faqs: [
+      {
+        question: 'What are SLIs and SLOs?',
+        answer:
+          'A service level indicator (SLI) is a measured signal of user experience, such as the percentage of successful requests. A service level objective (SLO) is the target for that signal over a time window — for example, 99.9% of requests succeeding over 30 days.',
+      },
+      {
+        question: 'What is an error budget?',
+        answer:
+          'The error budget is the amount of unreliability an SLO allows: with a 99.9% target, 0.1% of requests may fail within the window. Teams use it to balance the pace of releases against reliability work.',
+      },
+      {
+        question: 'What makes a system easier to operate?',
+        answer:
+          'Clear ownership, meaningful health checks, observability that shows recent changes, safe and repeatable deployments, documented runbooks, and graceful degradation when a dependency fails.',
+      },
+    ],
   },
 
   {
@@ -715,10 +880,10 @@ resource "aws_s3_bucket" "assets" {
     introduction:
       'AWS offers a very large service catalog, but most production workloads are built from a consistent, well-understood set of core services. Understanding how they fit together is more valuable than knowing every service that exists.',
     readingTime: '11 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
-    updatedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-30T00:00:00.000Z',
     visualSlug: 'cloud-solutions',
     ctaLabel: 'Explore Cloud Solutions',
     ctaHref: '/services/cloud-solutions',
@@ -764,10 +929,28 @@ resource "aws_s3_bucket" "assets" {
       'CloudWatch and CloudTrail together cover operational monitoring and security audit — both are needed.',
       'Defining AWS infrastructure as code applies the same review and repeatability benefits as on any other cloud.',
     ],
+    faqs: [
+      {
+        question: 'What is the AWS Well-Architected Framework?',
+        answer:
+          'It is AWS’s set of design principles and best practices organized into six pillars — operational excellence, security, reliability, performance efficiency, cost optimization and sustainability — and a useful checklist for reviewing an architecture.',
+      },
+      {
+        question: 'Should we use multiple AWS accounts?',
+        answer:
+          'For most organizations, yes. Separate accounts for production, non-production and shared services, managed with AWS Organizations, create strong isolation boundaries for security, billing and blast radius.',
+      },
+      {
+        question: 'How do you secure access to AWS?',
+        answer:
+          'Use IAM roles and short-lived credentials instead of long-lived access keys, apply least-privilege policies, enforce MFA for people (ideally through single sign-on), and enable CloudTrail audit logging across every account.',
+      },
+    ],
   },
 
   {
     slug: 'platform-engineering-for-developers',
+    seoTitle: 'Platform Engineering for Developer Self-Service',
     title: 'Platform Engineering: Making Infrastructure Easier for Developers',
     category: 'Platform Engineering',
     tags: ['Platform Engineering', 'Kubernetes', 'DevOps', 'Developer Experience'],
@@ -783,10 +966,10 @@ resource "aws_s3_bucket" "assets" {
     introduction:
       'As infrastructure grows more capable, it also grows more complex — and asking every application team to understand all of it directly doesn’t scale. Platform engineering addresses this by building an internal platform that gives developers standardized, self-service ways to get what they need without becoming infrastructure experts themselves.',
     readingTime: '9 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
-    updatedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-30T00:00:00.000Z',
     visualSlug: 'platform-engineering',
     ctaLabel: 'Explore Platform Engineering',
     ctaHref: '/services/platform-engineering',
@@ -828,10 +1011,28 @@ resource "aws_s3_bucket" "assets" {
       'Kubernetes’ extensible API makes it a natural foundation for higher-level, developer-friendly abstractions.',
       'A platform needs an owner treating it as a product — with real users and ongoing iteration — not a one-time setup.',
     ],
+    faqs: [
+      {
+        question: 'What is an internal developer platform?',
+        answer:
+          'An internal developer platform (IDP) is a set of self-service tools, templates and automated workflows, maintained by a platform team, that let developers provision environments and deploy applications without filing a ticket for every change.',
+      },
+      {
+        question: 'How is platform engineering different from DevOps?',
+        answer:
+          'DevOps is a culture and set of practices for shared ownership of software delivery. Platform engineering is one way to apply those practices at scale: a dedicated team builds paved paths so each product team doesn’t have to reinvent its infrastructure.',
+      },
+      {
+        question: 'What is a golden path?',
+        answer:
+          'A golden path is a supported, well-documented default way to do a common task — such as creating a new service together with its pipeline, monitoring and infrastructure — that teams can follow without being forced to.',
+      },
+    ],
   },
 
   {
     slug: 'what-production-ready-infrastructure-means',
+    seoTitle: 'What Production-Ready Infrastructure Means',
     title: 'What Production-Ready Infrastructure Actually Means',
     category: 'Cloud Infrastructure',
     tags: ['Cloud Infrastructure', 'DevOps', 'Site Reliability', 'Cloud Security'],
@@ -847,10 +1048,10 @@ resource "aws_s3_bucket" "assets" {
     introduction:
       `Teams often ask what it takes for infrastructure to be "production-ready," expecting a short checklist. In practice it's a combination of several disciplines working together — and it's worth understanding how they connect, not just what each one covers individually.`,
     readingTime: '9 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-12T17:14:38.000Z',
-    updatedAt: '2026-09-12T17:14:38.000Z',
+    updatedAt: '2026-09-30T00:00:00.000Z',
     visualSlug: 'managed-cloud',
     ctaLabel: 'Talk to an Expert',
     ctaHref: '/contact',
@@ -896,10 +1097,28 @@ resource "aws_s3_bucket" "assets" {
       'Access should be reviewed periodically — access accumulated over time is a common security review finding.',
       'These disciplines need to be revisited as the system evolves, not treated as a one-time launch checklist.',
     ],
+    faqs: [
+      {
+        question: 'Is “production-ready” the same as “highly available”?',
+        answer:
+          'No. High availability is one part of it. Production readiness also covers security, observability, backup and recovery, deployment safety, documentation and clear ownership.',
+      },
+      {
+        question: 'How can a team check whether its infrastructure is production-ready?',
+        answer:
+          'Run a readiness review: can you deploy and roll back safely, restore from backup, see what is happening during an incident, and name the owner of each component? Every “no” is a gap to close before relying on the system.',
+      },
+      {
+        question: 'Does production-ready infrastructure require Kubernetes?',
+        answer:
+          'No. Production readiness is about practices, not a particular platform — virtual machines or managed services can be production-ready, and a Kubernetes cluster can fall well short of it.',
+      },
+    ],
   },
 
   {
     slug: 'amazon-cloudwatch-omni-ai-observability',
+    seoTitle: 'Amazon CloudWatch Omni: AI-Powered Observability',
     title:
       'Amazon CloudWatch Omni: AI-Powered Observability for Applications and AI Agents',
     category: 'Observability',
@@ -916,7 +1135,7 @@ resource "aws_s3_bucket" "assets" {
     introduction:
       'CloudWatch has been the default place AWS customers look for metrics, logs and alarms for over a decade. Amazon CloudWatch Omni, announced by AWS in September 2026, is the newest evolution of that service — an AI-powered observability workspace that watches applications and AI agents together, discovers your architecture automatically, and brings an AI agent into the investigation alongside your team. This guide covers what it is, how it works end to end, and where it fits next to the CloudWatch you already run.',
     readingTime: '16 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-28T05:30:34.000Z',
     updatedAt: '2026-09-28T05:30:34.000Z',
@@ -1094,7 +1313,7 @@ resource "aws_s3_bucket" "assets" {
   {
     slug: 'aws-agent-registry-ai-agent-governance',
     title: 'AWS Agent Registry: The New Way to Govern Enterprise AI Agents',
-    seoTitle: 'AWS Agent Registry: AI Agent Governance for Enterprises',
+    seoTitle: 'AWS Agent Registry for AI Agent Governance',
     category: 'AI-Powered DevOps & AIOps',
     tags: ['AWS', 'AI Agent Governance', 'Cloud Security', 'Platform Engineering', 'MCP'],
     primaryKeyword: 'AWS Agent Registry',
@@ -1122,7 +1341,7 @@ resource "aws_s3_bucket" "assets" {
     introduction:
       'AI agents are moving from isolated experiments to production systems. As organizations deploy agents, MCP servers, tools and reusable skills across teams, another infrastructure problem appears: how do you know what already exists, who owns it, who approved it, and how developers are supposed to find it without rebuilding it from scratch. AWS Agent Registry, generally available since August 31, 2026, introduces a centralized discovery and governance layer for exactly these resources — less a new way to build an agent, and more a control and discovery layer around the agent ecosystem an organization already has.',
     readingTime: '13 min read',
-    author: AUTHOR,
+    authorId: AUTHOR_ID,
     status: 'published',
     publishedAt: '2026-09-29T00:00:00.000Z',
     updatedAt: '2026-09-29T00:00:00.000Z',
@@ -1431,11 +1650,9 @@ export function buildBlogPostMetadata(post: BlogPost): Metadata {
   const path = `/resources/blogs/${post.slug}`;
   const title = `${post.seoTitle ?? post.title} | Isha Technologies`;
   const description = post.metaDescription ?? post.excerpt;
-  const keywords = [post.primaryKeyword, ...post.secondaryKeywords].join(', ');
   return {
     title,
     description,
-    keywords,
     alternates: { canonical: path },
     // No `images` here: opengraph-image.tsx in this route segment
     // generates a unique per-post image, and Next.js applies it to both
@@ -1446,9 +1663,10 @@ export function buildBlogPostMetadata(post: BlogPost): Metadata {
       type: 'article',
       url: path,
       siteName: 'Isha Technologies',
+      locale: 'en_IN',
       title,
       description,
-      authors: [post.author],
+      authors: [getAuthor(post.authorId).name],
       tags: post.tags,
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt,

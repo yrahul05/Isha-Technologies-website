@@ -17,12 +17,8 @@ export function ContactHero() {
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-white to-brand/5">
       <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-4 py-14 md:py-16 lg:grid-cols-2 lg:gap-14">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="space-y-5"
-        >
+        {/* CSS entrance so the H1 (LCP element) paints before hydration. */}
+        <div className="space-y-5 motion-safe:animate-hero-rise">
           <span className="inline-flex rounded-full border border-brand bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand">
             Let&apos;s Connect
           </span>
@@ -77,7 +73,7 @@ export function ContactHero() {
               </span>
             </span>
           )}
-        </motion.div>
+        </div>
 
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}

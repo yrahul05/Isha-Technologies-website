@@ -80,6 +80,7 @@ export function ServicesSlider() {
                       src={service.image}
                       alt=""
                       fill
+                      sizes="44px"
                       className="object-contain p-2"
                     />
                   </div>

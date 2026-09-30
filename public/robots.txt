@@ -1,16 +1,17 @@
+# robots.txt for https://www.ishatechnologies.in
+#
+# All public pages (services, blogs, case studies) and the static assets
+# needed to render them (/_next/) are crawlable. Only server endpoints and
+# the private, password-gated analytics dashboard are excluded.
+#
+# Search engines (Googlebot, Bingbot) and AI/answer-engine crawlers
+# (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) are intentionally
+# allowed through the default group below — no crawler-specific group is
+# defined, because a named group would replace (not extend) these rules.
+
 User-agent: *
 Allow: /
-Disallow: /_next/
 Disallow: /api/
+Disallow: /analytics
 
-# Prioritize crawling important pages
-User-agent: Googlebot
-Allow: /
-Crawl-delay: 5
-
-User-agent: Bingbot
-Allow: /
-Crawl-delay: 10
-
-# Sitemap
 Sitemap: https://www.ishatechnologies.in/sitemap.xml

@@ -4,32 +4,15 @@ import { ContactInfoPanel } from '@/components/contact/ContactInfoPanel';
 import { ContactLocation } from '@/components/contact/ContactLocation';
 import { ContactServicesArea } from '@/components/contact/ContactServicesArea';
 import { ContactForm } from '@/components/forms/ContactForm';
+import { buildMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 
-const description =
-  'Talk to Isha Technologies about cloud infrastructure, DevOps automation, Kubernetes, cloud migration, security, reliability and observability.';
-
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: 'Contact Isha Technologies | Cloud & DevOps Solutions',
-  description,
-  keywords:
-    'Contact Isha Technologies, Cloud Infrastructure, DevOps Solutions, Kubernetes, Cloud Migration, Observability',
-  alternates: {
-    canonical: '/contact',
-  },
-  openGraph: {
-    type: 'website',
-    url: '/contact',
-    siteName: 'Isha Technologies',
-    title: 'Contact Isha Technologies | Cloud & DevOps Solutions',
-    description,
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Contact Isha Technologies | Cloud & DevOps Solutions',
-    description,
-  },
-};
+  description:
+    'Talk to Isha Technologies in Jaipur, Rajasthan about cloud infrastructure, DevOps automation, Kubernetes, cloud migration, security, reliability and observability.',
+  path: '/contact',
+});
 
 export default function Page() {
   return (

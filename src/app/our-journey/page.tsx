@@ -9,16 +9,12 @@ import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 
-export const metadata: Metadata = {
-  ...buildMetadata({
-    title: 'Our Journey | Isha Technologies',
-    description:
-      'Isha Technologies was founded in 2026 to focus on the infrastructure layer behind modern digital products — cloud platforms, deployment automation, containers, security, observability and reliable operations.',
-    path: '/our-journey',
-  }),
-  keywords:
-    'Isha Technologies, Our Journey, Cloud Infrastructure, Automation, Reliability, Founded 2026',
-};
+export const metadata: Metadata = buildMetadata({
+  title: 'Our Journey | Isha Technologies',
+  description:
+    'How Isha Technologies started: founded in 2026 in Jaipur, Rajasthan to build cloud infrastructure, DevOps automation and reliable operations for modern teams.',
+  path: '/our-journey',
+});
 
 export default function Page() {
   return (

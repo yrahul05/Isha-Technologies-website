@@ -1,17 +1,11 @@
-'use client';
-
 import { ShieldCheck } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 export function CaseStudiesHero() {
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-white to-brand/5 py-16 md:py-20">
       <div className="mx-auto max-w-[840px] px-4 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
+        {/* CSS entrance so the H1 (LCP element) paints before hydration. */}
+        <div className="motion-safe:animate-hero-rise">
           <span className="inline-flex rounded-full border border-brand bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand">
             Case Studies
           </span>
@@ -35,7 +29,7 @@ export function CaseStudiesHero() {
             <ShieldCheck className="h-3.5 w-3.5 text-brand" strokeWidth={1.75} />
             Technical Engineering Demonstrations
           </span>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

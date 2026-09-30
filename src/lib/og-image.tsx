@@ -70,7 +70,7 @@ export function OgImageCard({ eyebrow, title }: { eyebrow: string; title: string
         <div style={{ display: 'flex', fontSize: 30, fontWeight: 700, color: '#0a0a0a' }}>
           Isha Technologies
         </div>
-        <div style={{ display: 'flex', fontSize: 24, color: '#6b7280' }}>ishatechnologies.in</div>
+        <div style={{ display: 'flex', fontSize: 24, color: '#6b7280' }}>www.ishatechnologies.in</div>
       </div>
     </div>
   );

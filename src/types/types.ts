@@ -119,6 +119,9 @@ export type Service = {
   eyebrow: string;
   heading: string;
   description: string;
+  /** A concise, neutral answer to "What is <service>?" — an industry
+   * definition, not a sales claim. Rendered at the top of the overview. */
+  definition: string;
   overview: {
     heading: string;
     paragraphs: string[];

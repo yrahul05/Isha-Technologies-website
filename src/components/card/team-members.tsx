@@ -9,6 +9,13 @@ import { TeamPortrait } from './team-portrait';
 
 const isConfiguredLink = (url?: string) => Boolean(url) && url !== '#';
 
+/**
+ * Team cards. Only real data is shown: a social icon appears only when that
+ * person has a real profile URL (no greyed-out "coming soon" placeholders),
+ * and the "View Certificates" flip side exists only for a member with
+ * actual certificate records — never an empty "No certificates found"
+ * state, and never a certificate image not verified as that person's.
+ */
 export const TeamMembers = ({ data }: { data: PROFILE[] }) => {
   const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
 
@@ -16,11 +23,14 @@ export const TeamMembers = ({ data }: { data: PROFILE[] }) => {
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 md:px-0 px-4">
       {data.map((member, idx) => {
         const isFlipped = flippedIndex === idx;
+        const hasCertificates = Boolean(member.certificates?.length);
+        const hasLinkedIn = isConfiguredLink(member.linkedin);
+        const hasGitHub = isConfiguredLink(member.github);
         return (
           <div key={idx} className="group perspective">
             {/* Card wrapper */}
             <div
-              className={`relative h-[300px] w-full duration-700 preserve-3d ${
+              className={`relative w-full duration-700 preserve-3d ${hasCertificates ? 'h-[300px]' : 'h-[252px]'} ${
                 isFlipped ? 'rotate-y-180' : ''
               }`}
             >
@@ -38,98 +48,81 @@ export const TeamMembers = ({ data }: { data: PROFILE[] }) => {
                   {member.role}
                 </p>
 
-                {/* LinkedIn & GitHub */}
-                <div className="mt-2.5 flex justify-center space-x-3">
-                  {isConfiguredLink(member.linkedin) ? (
-                    <a
-                      href={member.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-gray-400 transition hover:text-brand"
-                      aria-label={`${member.name} on LinkedIn`}
-                    >
-                      <FaLinkedin className="h-4 w-4" />
-                    </a>
-                  ) : (
-                    <span
-                      aria-disabled="true"
-                      title="LinkedIn — coming soon"
-                      className="cursor-not-allowed text-gray-200"
-                    >
-                      <FaLinkedin className="h-4 w-4" />
-                    </span>
-                  )}
-                  {isConfiguredLink(member.github) ? (
-                    <a
-                      href={member.github}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-gray-400 transition hover:text-brand"
-                      aria-label={`${member.name} on GitHub`}
-                    >
-                      <FaGithub className="h-4 w-4" />
-                    </a>
-                  ) : (
-                    <span
-                      aria-disabled="true"
-                      title="GitHub — coming soon"
-                      className="cursor-not-allowed text-gray-200"
-                    >
-                      <FaGithub className="h-4 w-4" />
-                    </span>
-                  )}
-                </div>
+                {/* LinkedIn & GitHub — only real, configured profiles */}
+                {(hasLinkedIn || hasGitHub) && (
+                  <div className="mt-2.5 flex justify-center space-x-3">
+                    {hasLinkedIn && (
+                      <a
+                        href={member.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-400 transition hover:text-brand"
+                        aria-label={`${member.name} on LinkedIn`}
+                      >
+                        <FaLinkedin className="h-4 w-4" />
+                      </a>
+                    )}
+                    {hasGitHub && (
+                      <a
+                        href={member.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-400 transition hover:text-brand"
+                        aria-label={`${member.name} on GitHub`}
+                      >
+                        <FaGithub className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
+                )}
 
-                {/* Flip Button */}
-                <div className="mt-auto w-full border-t border-gray-100 pt-2.5">
-                  <Button
-                    onClick={() => setFlippedIndex(idx)}
-                    variant="secondary"
-                    className="h-7 w-full text-[11px]"
-                  >
-                    View Certificates
-                  </Button>
-                </div>
+                {/* Flip Button — only when there are real certificates */}
+                {hasCertificates && (
+                  <div className="mt-auto w-full border-t border-gray-100 pt-2.5">
+                    <Button
+                      onClick={() => setFlippedIndex(idx)}
+                      variant="secondary"
+                      className="h-7 w-full text-[11px]"
+                    >
+                      View Certificates
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* BACK */}
-              <div className="absolute inset-0 flex flex-col rounded-2xl border border-gray-200 bg-white p-4 backface-hidden rotate-y-180">
-                <div className="flex-1 overflow-y-auto">
-                  <div className="grid grid-cols-2 gap-2">
-                    {member.certificates?.length ? (
-                      <>
-                        {member.certificates?.map((cert, cidx) => (
-                          <div
-                            key={cidx}
-                            className="relative flex h-24 flex-col items-center overflow-hidden rounded-lg p-2"
-                          >
-                            <Image
-                              src={cert.image}
-                              alt={cert.title}
-                              fill
-                              className="rounded-lg object-contain h-full w-full"
-                            />
-                          </div>
-                        ))}
-                      </>
-                    ) : (
-                      <p className="col-span-2 mt-4 text-center text-xs text-gray-500">
-                        No certificates found.
-                      </p>
-                    )}
+              {hasCertificates && (
+                <div className="absolute inset-0 flex flex-col rounded-2xl border border-gray-200 bg-white p-4 backface-hidden rotate-y-180">
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-2">
+                      {member.certificates?.map((cert, cidx) => (
+                        <div
+                          key={cidx}
+                          className="relative flex h-24 flex-col items-center overflow-hidden rounded-lg p-2"
+                        >
+                          <Image
+                            src={cert.image}
+                            alt={cert.title}
+                            fill
+                            sizes="120px"
+                            className="rounded-lg object-contain h-full w-full"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Back Button */}
+                  <div className="mt-3 w-full border-t border-gray-100 pt-3">
+                    <Button
+                      onClick={() => setFlippedIndex(null)}
+                      variant="secondary"
+                      className="h-7 w-full text-[11px]"
+                    >
+                      Back to Profile
+                    </Button>
                   </div>
                 </div>
-                {/* Back Button */}
-                <div className="mt-3 w-full border-t border-gray-100 pt-3">
-                  <Button
-                    onClick={() => setFlippedIndex(null)}
-                    variant="secondary"
-                    className="h-7 w-full text-[11px]"
-                  >
-                    Back to Profile
-                  </Button>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         );

@@ -1,5 +1,3 @@
-'use client';
-
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ArchitectureVisual } from '@/components/services/ArchitectureVisual';
 import { ServiceCTA } from '@/components/services/ServiceCTA';
@@ -8,7 +6,10 @@ import { getAdjacentCaseStudies } from '@/data/case-studies';
 import { getCaseStudyVariant } from '@/data/case-study-variants';
 import { getServiceBySlug } from '@/data/services';
 import type { CaseStudy } from '@/types/case-study';
-import { MotionConfig } from 'framer-motion';
+import { MotionProvider } from '@/components/MotionProvider';
+import { RelatedBlogs } from '@/components/blog/RelatedBlogs';
+import { getRelatedVisualSlugForCaseStudy } from '@/data/blog-case-study-links';
+import { getPublishedBlogPosts, toBlogPostSummary } from '@/data/blog-posts';
 import { CaseStudyApproach } from './CaseStudyApproach';
 import { CaseStudyBenefits } from './CaseStudyBenefits';
 import { CaseStudyConsiderations } from './CaseStudyConsiderations';
@@ -31,9 +32,18 @@ export function CaseStudyDetailTemplate({ study }: { study: CaseStudy }) {
   const { previous, next } = getAdjacentCaseStudies(study);
   const relatedServiceTitle = getServiceBySlug(study.relatedService)?.title ?? 'Cloud Solutions';
   const variant = BLOG_VARIANT_STYLES[getCaseStudyVariant(study.slug)];
+  // Articles that explain the same technical topic in more depth — matched
+  // through the explicit case-study ↔ topic map, never a random set.
+  const topic = getRelatedVisualSlugForCaseStudy(study.slug);
+  const relatedPosts = topic
+    ? getPublishedBlogPosts()
+        .filter((post) => post.visualSlug === topic)
+        .slice(0, 3)
+        .map(toBlogPostSummary)
+    : [];
 
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionProvider>
       <div className="max-w-[1280px] mx-auto px-4 pt-6">
         <Breadcrumbs
           items={[
@@ -57,11 +67,18 @@ export function CaseStudyDetailTemplate({ study }: { study: CaseStudy }) {
       <CaseStudyConsiderations study={study} variant={variant} />
       <CaseStudyBenefits study={study} variant={variant} />
       <CaseStudyServiceCTA study={study} variant={variant} />
+      {relatedPosts.length > 0 && (
+        <section className="bg-white pb-12">
+          <div className="mx-auto max-w-[1280px] px-4">
+            <RelatedBlogs posts={relatedPosts} />
+          </div>
+        </section>
+      )}
       <CaseStudyNavigation previous={previous} next={next} />
       <ServiceCTA
         heading="Facing an Infrastructure Challenge Like This?"
         serviceTitle={relatedServiceTitle}
       />
-    </MotionConfig>
+    </MotionProvider>
   );
 }
