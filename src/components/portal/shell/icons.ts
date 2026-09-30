@@ -1,0 +1,48 @@
+import {
+  Bell,
+  Building2,
+  CalendarDays,
+  ClipboardCheck,
+  FileClock,
+  FolderKanban,
+  FolderLock,
+  GitPullRequestArrow,
+  LayoutDashboard,
+  LifeBuoy,
+  LineChart,
+  Megaphone,
+  Palmtree,
+  ReceiptIndianRupee,
+  Settings,
+  Target,
+  Users,
+  UsersRound,
+  Video,
+  type LucideIcon,
+} from 'lucide-react';
+
+/** Serializable icon keys so server-built nav can cross into client components. */
+export const NAV_ICONS = {
+  dashboard: LayoutDashboard,
+  calendar: CalendarDays,
+  bell: Bell,
+  projects: FolderKanban,
+  tasks: ClipboardCheck,
+  meetings: Video,
+  documents: FolderLock,
+  tickets: LifeBuoy,
+  clients: Building2,
+  company: Building2,
+  leads: Target,
+  invoices: ReceiptIndianRupee,
+  reports: LineChart,
+  team: UsersRound,
+  leave: Palmtree,
+  announcements: Megaphone,
+  changes: GitPullRequestArrow,
+  audit: FileClock,
+  settings: Settings,
+  users: Users,
+} satisfies Record<string, LucideIcon>;
+
+export type NavIconKey = keyof typeof NAV_ICONS;

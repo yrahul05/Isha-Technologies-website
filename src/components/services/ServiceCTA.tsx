@@ -34,6 +34,12 @@ export function ServiceCTA({ heading, serviceTitle }: { heading: string; service
             <Link href={`${contactHref}#contact-form`}>Request a Consultation</Link>
           </Button>
         </div>
+        <p className="mt-5 text-sm text-slate-600">
+          Not sure where to start?{' '}
+          <Link href="/free-cloud-assessment" className="font-semibold text-brand hover:underline">
+            {/cost|finops/i.test(serviceTitle) ? 'Get a free cloud cost review' : 'Request a free infrastructure audit'} &rarr;
+          </Link>
+        </p>
       </motion.div>
     </section>
   );

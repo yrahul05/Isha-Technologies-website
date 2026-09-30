@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 @config "../../tailwind.config.ts";
 @import 'aos/dist/aos.css';
+/* The authenticated portal ships its own stylesheet (src/app/portal/portal.css)
+   so its utility classes never add weight to the public marketing pages. */
+@source not "./portal";
+@source not "../components/portal";
 
 :root {
   --background: #ffffff;

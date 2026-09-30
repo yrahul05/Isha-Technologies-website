@@ -41,6 +41,9 @@ export function GoogleAnalytics() {
 
   useEffect(() => {
     if (!GA_MEASUREMENT_ID || typeof window.gtag !== 'function') return;
+    // The private client portal is never reported to GA — its URLs carry
+    // record ids and it isn't marketing traffic.
+    if (pathname === '/portal' || pathname.startsWith('/portal/')) return;
     window.gtag('config', GA_MEASUREMENT_ID, { page_path: pathname });
   }, [pathname]);
 

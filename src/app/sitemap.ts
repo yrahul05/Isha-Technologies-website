@@ -10,7 +10,7 @@ type ChangeFrequency = MetadataRoute.Sitemap[number]['changeFrequency'];
  * Static, top-level public pages. Dynamic routes (service pages, case
  * studies, blog posts) are appended below from the same data modules those
  * pages render from, so the sitemap stays in sync automatically. API
- * routes, the private /analytics dashboard, redirect-only legacy service
+ * routes, the private /analytics dashboard, the authenticated /portal, redirect-only legacy service
  * URLs (next.config.ts) and draft posts are never included.
  */
 const staticRoutes: {
@@ -24,6 +24,7 @@ const staticRoutes: {
   { path: '/case-studies', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/our-journey', changeFrequency: 'monthly', priority: 0.6 },
   { path: '/contact', changeFrequency: 'monthly', priority: 0.8 },
+  { path: '/free-cloud-assessment', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/privacy-policy', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/terms-and-conditions', changeFrequency: 'yearly', priority: 0.3 },
 ];

@@ -1,0 +1,54 @@
+/*
+ * Portal-only stylesheet, loaded by src/app/portal/layout.tsx.
+ *
+ * The public site's globals.css excludes the portal source folders, so
+ * portal utility classes are generated here instead and never ship to the
+ * marketing pages. Base styles, fonts and shared components (Button,
+ * Dialog, Sheet, Logo) still come from globals.css, which every page loads.
+ * The brand tokens below mirror the @theme in globals.css.
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@plugin 'tailwindcss-animate';
+
+@source './';
+@source '../../components/portal';
+
+@theme inline {
+  --color-brand: #3478e4;
+  --color-brand-light: #d6e6fb;
+  --font-sans: var(--font-dm-sans);
+
+  --animate-hero-rise: hero-rise 0.5s ease-out both;
+  @keyframes hero-rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* Notification bell nudge when a new notification arrives. */
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(-14deg);
+  }
+  40% {
+    transform: rotate(12deg);
+  }
+  60% {
+    transform: rotate(-8deg);
+  }
+  80% {
+    transform: rotate(6deg);
+  }
+}

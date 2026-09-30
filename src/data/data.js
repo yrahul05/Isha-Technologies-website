@@ -276,6 +276,8 @@ export const companyLinks = [
   { label: 'About', href: '/about' },
   { label: 'Case Studies', href: '/case-studies' },
   { label: 'Contact', href: '/contact' },
+  { label: 'Free Cloud Assessment', href: '/free-cloud-assessment' },
+  { label: 'Client Portal', href: '/portal/login' },
 ];
 
 // footer — solutions links (derived from services)

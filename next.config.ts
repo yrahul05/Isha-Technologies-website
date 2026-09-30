@@ -5,6 +5,16 @@ import type { NextConfig } from 'next';
 // entirely, which would make the /api/analytics/visitors and /api/contact
 // Route Handlers unable to run in production.
 const nextConfig: NextConfig = {
+  // Invoice PDFs read their fonts and logo from disk at runtime; make sure
+  // Vercel's file tracing ships them with the PDF route's function.
+  outputFileTracingIncludes: {
+    '/api/portal/invoices/[id]/pdf': ['./src/server/pdf/assets/**'],
+  },
+  // Dev-only embedded database — loaded through a runtime require and never
+  // traced into production functions (see src/server/db/index.ts).
+  outputFileTracingExcludes: {
+    '*': ['node_modules/@electric-sql/pglite/**'],
+  },
   images: {
     // Vercel runs Next.js's built-in image optimizer natively, so <Image>
     // is resized/served through it with no extra configuration. Every

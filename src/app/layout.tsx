@@ -4,7 +4,9 @@ import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { WhatsAppButton } from '@/components/layout/WhatsAppButton';
+import { PublicChrome } from '@/components/layout/PublicChrome';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
+import { AttributionTracker } from '@/components/analytics/AttributionTracker';
 import Script from 'next/script';
 import { JsonLd } from '@/components/JsonLd';
 import { CONTACT_EMAIL_ADDRESS } from '@/data/contact';
@@ -181,10 +183,15 @@ export default function RootLayout({
         )}
         <GoogleAnalytics />
         <JsonLd data={jsonLd} />
-        <Navbar />
+        <PublicChrome>
+          <Navbar />
+          <AttributionTracker />
+        </PublicChrome>
         {children}
-        <Footer />
-        <WhatsAppButton />
+        <PublicChrome>
+          <Footer />
+          <WhatsAppButton />
+        </PublicChrome>
       </body>
     </html>
   );

@@ -20,6 +20,20 @@ The Isha Technologies website is built with **Next.js** to deliver a fast, moder
 
 ---
 
+## Client Portal
+
+An authenticated client portal and CRM lives at `/portal` (projects, tasks, documents, invoices & payments, tickets, meetings with Google Meet, leads, approvals, audit log). It is private — never indexed or tracked — and fully tenant-isolated: every query is scoped in `src/server/scope.ts`.
+
+```bash
+npm run db:setup   # local database (embedded, no install) + demo data
+npm run dev        # http://localhost:3000/portal/login
+npm test           # 70 tenant-isolation / RBAC checks
+```
+
+See [docs/portal/SETUP.md](docs/portal/SETUP.md) for environment variables, S3, Google OAuth and the security model, [docs/portal/BACKUP_AND_RECOVERY.md](docs/portal/BACKUP_AND_RECOVERY.md) for backups, and [docs/portal/IMPLEMENTATION_PLAN.md](docs/portal/IMPLEMENTATION_PLAN.md) for architecture decisions.
+
+The site also has a public **Free DevOps & Cloud Assessment** (`/free-cloud-assessment`); submissions — and contact-form enquiries — become assigned CRM leads with UTM attribution.
+
 ## Run the Project Locally
 
 Make sure you have installed:

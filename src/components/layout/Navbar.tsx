@@ -272,6 +272,12 @@ export const Navbar = () => {
 
           {/* Contact Button */}
           <div className="flex items-center gap-2">
+            <Link
+              href="/free-cloud-assessment"
+              className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-brand transition-colors duration-200 hover:bg-brand/5 xl:inline-flex"
+            >
+              Free Cloud Assessment
+            </Link>
             <Button
               asChild
               variant="primary"
@@ -309,6 +315,13 @@ export const Navbar = () => {
                     onClick={() => setIsShow(false)}
                   >
                     Talk to an Expert
+                  </Link>
+                  <Link
+                    href="/free-cloud-assessment"
+                    className="w-full text-center rounded-lg border border-brand px-5 py-3 text-base font-semibold text-brand hover:bg-brand/5 transition-colors"
+                    onClick={() => setIsShow(false)}
+                  >
+                    Get Free Cloud Assessment
                   </Link>
                   <Link
                     href="/"

@@ -52,6 +52,9 @@ export function CTABanner({
             {showScheduleMeeting && (
               <ScheduleMeetingButton variant="secondary" className="h-12" />
             )}
+            <Button asChild variant="secondary" className="h-12">
+              <Link href="/free-cloud-assessment">Get Free Cloud Assessment</Link>
+            </Button>
           </div>
           {note && (
             <p className="text-center text-[13px] text-white/70">{note}</p>

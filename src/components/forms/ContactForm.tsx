@@ -1,6 +1,7 @@
 'use client';
 
 import { trackEvent } from '@/components/analytics/GoogleAnalytics';
+import { readAttribution } from '@/components/analytics/AttributionTracker';
 import { Button } from '@/components/ui/button';
 import {
   contactPlatformOptions,
@@ -59,7 +60,7 @@ export const ContactForm = () => {
 
   const onSubmit = async (data: ContactFormValues) => {
     try {
-      const response = await axios.post('/api/contact', data, {
+      const response = await axios.post('/api/contact', { ...data, attribution: readAttribution() }, {
         headers: { 'Content-Type': 'application/json' },
       });
 

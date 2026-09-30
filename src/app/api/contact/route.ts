@@ -7,6 +7,7 @@ import {
   sendEmail,
 } from '@/lib/email';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { cleanAttribution, createWebsiteLead } from '@/server/leads';
 import { NextResponse } from 'next/server';
 
 // Node.js runtime (Vercel's default serverless function runtime) — this
@@ -105,6 +106,24 @@ export async function POST(req: Request) {
     }
 
     const enquiry = { fullName, company, email, phone, service, platform, timeline, message };
+
+    // Also capture the enquiry as a CRM lead (assigned + team notified in
+    // the portal). Best-effort: a database problem must never stop the
+    // enquiry email below from going out.
+    try {
+      await createWebsiteLead({
+        source: 'contact_form',
+        name: fullName,
+        email,
+        company: company || null,
+        phone: phone || null,
+        serviceInterested: service,
+        notes: [message, platform && `Cloud platform: ${platform}`, timeline && `Timeline: ${timeline}`].filter(Boolean).join('\n'),
+        attribution: cleanAttribution(body.attribution),
+      });
+    } catch (leadError) {
+      console.error('CRM lead capture failed (enquiry email still sent):', leadError instanceof Error ? leadError.message : leadError);
+    }
 
     const internalEmail = buildInternalEnquiryEmail(enquiry);
     const internalResult = await sendEmail({

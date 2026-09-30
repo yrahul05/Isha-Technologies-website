@@ -4,6 +4,11 @@
 # needed to render them (/_next/) are crawlable. Only server endpoints and
 # the private, password-gated analytics dashboard are excluded.
 #
+# The client portal (/portal) is deliberately NOT disallowed here: every
+# portal response carries X-Robots-Tag: noindex and a noindex meta tag, and
+# crawlers can only honour noindex on URLs they are allowed to fetch. All
+# private pages sit behind authentication, so there is nothing to crawl.
+#
 # Search engines (Googlebot, Bingbot) and AI/answer-engine crawlers
 # (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) are intentionally
 # allowed through the default group below — no crawler-specific group is

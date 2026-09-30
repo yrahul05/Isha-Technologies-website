@@ -63,6 +63,7 @@ export function GET() {
     `- [Our Journey](${absoluteUrl('/our-journey')}): How the company started`,
     `- [All services](${absoluteUrl('/services')})`,
     `- [Blog](${absoluteUrl('/resources/blogs')})`,
+    `- [Free DevOps & Cloud Assessment](${absoluteUrl('/free-cloud-assessment')}): Free engineer-reviewed assessment of cloud cost, security, reliability and delivery`,
     `- [Contact](${absoluteUrl('/contact')}): ${CONTACT_EMAIL_ADDRESS} · ${CONTACT_PHONE_DISPLAY}`,
     ''
   );
