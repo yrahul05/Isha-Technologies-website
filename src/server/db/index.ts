@@ -17,7 +17,7 @@ import postgres from 'postgres';
 import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import * as schema from './schema';
-import { assertValidDatabaseUrl, normalizeDatabaseUrl } from './url';
+import { assertValidDatabaseUrl, normalizeDatabaseUrl, preferSessionPooler } from './url';
 
 export type Database = PgDatabase<PgQueryResultHKT, typeof schema>;
 
@@ -35,12 +35,14 @@ function createDb(): Database {
   const url = normalizeDatabaseUrl(process.env.DATABASE_URL);
   if (url) {
     const parsed = assertValidDatabaseUrl(url); // clear error (never the value) instead of an opaque crash
+    const { url: connectUrl, switched } = preferSessionPooler(url);
+    if (switched) console.warn('[db] DATABASE_URL points at the Supabase transaction pooler (6543); using the session pooler (5432) instead.');
     // Supabase Supavisor (transaction mode, port 6543) requires `prepare: false`
     // and TLS. On Vercel each function instance gets ONE connection — the pooler
     // fans in across instances — while long-lived servers keep a small pool.
     // One client per process (see globalForDb above), never one per request.
     const local = ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname);
-    const client = postgres(url, {
+    const client = postgres(connectUrl, {
       max: Number(process.env.DATABASE_POOL_MAX || (process.env.VERCEL ? 1 : 5)),
       prepare: false,
       idle_timeout: 20,

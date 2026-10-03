@@ -29,3 +29,23 @@ export function assertValidDatabaseUrl(url: string): URL {
     );
   }
 }
+
+/**
+ * Supabase's Shared Transaction Pooler (port 6543) stalls this app: with postgres.js and
+ * `prepare: false`, concurrent queries on the pooled connection hang (reproduced: the dashboard
+ * and every page that fires several queries at once never completes). The Session Pooler on the
+ * SAME host (port 5432) handles the same load correctly. So a Supabase pooler URL on :6543 is
+ * used as :5432. Returns the URL to connect with and whether it was changed.
+ */
+export function preferSessionPooler(url: string): { url: string; switched: boolean } {
+  try {
+    const u = new URL(url);
+    if (u.hostname.endsWith('.pooler.supabase.com') && u.port === '6543') {
+      u.port = '5432';
+      return { url: u.toString(), switched: true };
+    }
+  } catch {
+    /* validated elsewhere */
+  }
+  return { url, switched: false };
+}

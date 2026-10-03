@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { db } from '@/server/db';
-import { normalizeDatabaseUrl } from '@/server/db/url';
+import { normalizeDatabaseUrl, preferSessionPooler } from '@/server/db/url';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -35,7 +35,7 @@ function poolerMode(url: string | undefined): string {
   try {
     const port = new URL(url).port || '5432';
     const host = new URL(url).hostname;
-    if (host.includes('pooler.supabase.com')) return port === '6543' ? 'transaction-pooler(6543)' : port === '5432' ? 'session-pooler(5432)' : `pooler(port ${port})`;
+    if (host.includes('pooler.supabase.com')) return port === '6543' ? 'configured transaction-pooler(6543) -> app uses session-pooler(5432)' : port === '5432' ? 'session-pooler(5432)' : `pooler(port ${port})`;
     if (host.startsWith('db.') && host.endsWith('.supabase.co')) return 'direct-connection(IPv6-only; not reachable from Vercel)';
     return `other(port ${port})`;
   } catch {
@@ -64,6 +64,7 @@ export async function GET() {
       APP_URL: process.env.APP_URL ? 'set' : 'unset (production falls back to the portal origin)',
     },
     pooler: poolerMode(url),
+    effectivePooler: url ? (preferSessionPooler(url).switched ? 'session-pooler(5432)' : poolerMode(url)) : 'none',
   };
 
   let ok = Boolean(url);
