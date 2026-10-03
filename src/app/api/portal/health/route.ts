@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { db } from '@/server/db';
+import { normalizeDatabaseUrl } from '@/server/db/url';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,7 +26,7 @@ function classify(error: unknown): string {
   if (code === 'CONNECT_TIMEOUT' || code === 'ETIMEDOUT' || message.includes('timeout')) return 'timeout';
   if (message.includes('ssl') || message.includes('tls') || code.startsWith('ERR_SSL')) return 'tls';
   if (code === '3D000') return 'database_does_not_exist';
-  if (code === 'ERR_INVALID_URL' || message.includes('invalid url')) return 'invalid_database_url';
+  if (code === 'ERR_INVALID_URL' || message.includes('invalid url') || message.includes('not a valid postgresql connection string')) return 'invalid_database_url';
   return code ? `other:${code}` : 'other';
 }
 
@@ -53,10 +54,11 @@ async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 }
 
 export async function GET() {
-  const url = process.env.DATABASE_URL;
+  const rawUrl = process.env.DATABASE_URL;
+  const url = normalizeDatabaseUrl(rawUrl);
   const result: Record<string, unknown> = {
     env: {
-      DATABASE_URL: url ? 'set' : 'missing',
+      DATABASE_URL: !rawUrl ? 'missing' : rawUrl.trim() !== (url ?? '') ? 'set (had quotes/prefix/whitespace — tolerated)' : 'set',
       ENCRYPTION_KEY: encryptionKeyStatus(),
       CRON_SECRET: process.env.CRON_SECRET ? 'set' : 'missing',
       APP_URL: process.env.APP_URL ? 'set' : 'unset (production falls back to the portal origin)',
