@@ -1,4 +1,5 @@
 import 'server-only';
+import { PORTAL_ORIGIN } from '@/lib/portal/host';
 import { headers } from 'next/headers';
 
 export type RequestMeta = { ip: string; userAgent: string };
@@ -20,6 +21,8 @@ export async function getRequestMeta(): Promise<RequestMeta> {
 export function appUrl(): string {
   return (
     process.env.APP_URL ||
+    // Production without APP_URL still links to the CRM host, never the public site or a *.vercel.app URL.
+    (process.env.VERCEL_ENV === 'production' ? PORTAL_ORIGIN : null) ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
   ).replace(/\/$/, '');
 }

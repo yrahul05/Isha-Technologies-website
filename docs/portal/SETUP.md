@@ -25,13 +25,14 @@ Demo accounts (password `Isha@Demo2026!`, **development only**):
 | Client B | ananya@zenith.example | Zenith only (INR, CGST + SGST invoices) |
 | Client D | liam@maple.example | Maple Analytics only (CAD invoice) |
 
-When email isn't configured, verification codes and invite links are printed to the dev server console.
+Accounts are created by an administrator in **User management** (there is no self-registration, no emailed invite and no password-reset email); see "Accounts & passwords" below.
 
 ## 2. Tests
 
 | Command | What it checks |
 | --- | --- |
 | `npm test` | server-action guard + migrate + seed + **business-logic (GST, currencies, webhook signatures) + 116 tenant-isolation / RBAC / retention checks** (runs in CI via `npm test --if-present`) |
+| `npm run test:accounts` | 69 end-to-end checks of admin-controlled accounts against a running local server: no registration, create/reset/force-change/disable/revoke, old passwords die, no password in any page/API/audit/log |
 | `npm run test:logic` | GST split, totals, INR/USD/CAD formatting, Razorpay/Stripe webhook signature verification |
 | `npm run test:isolation` | isolation suite against the current database |
 | `npm run check:actions` | every `'use server'` export is an async function with an auth check |
@@ -45,10 +46,10 @@ When email isn't configured, verification codes and invite links are printed to 
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | **Required.** PostgreSQL connection string (Neon, Supabase, RDS, Vercel Postgres). Use the **pooled** URL on serverless. Until it is set, `/portal` shows a "coming online" notice. |
-| `ENCRYPTION_KEY` | **Required.** 32 random bytes, base64 — encrypts Google tokens and 2FA secrets, keys the OTP hashes, signs upload/OAuth tokens. `openssl rand -base64 32`. **Rotating it invalidates stored Google connections, 2FA enrolments and outstanding codes.** |
+| `ENCRYPTION_KEY` | **Required.** 32 random bytes, base64 — encrypts Google tokens and 2FA secrets, signs upload/OAuth tokens. `openssl rand -base64 32`. **Rotating it invalidates stored Google connections, 2FA enrolments and outstanding codes.** |
 | `APP_URL` | `https://www.ishatechnologies.in` — used in emails and OAuth redirects. |
 | `CRON_SECRET` | random string; Vercel Cron sends it to `/api/portal/cron/daily` (09:00 IST: overdue invoices, deadline reminders, lead follow-ups, housekeeping). |
-| `EMAIL_API_KEY`, `EMAIL_FROM` | already used by the contact form; the portal reuses them for verification codes, security alerts, meeting/invoice/task notifications. `EMAIL_FROM` must be a sender verified with the provider (e.g. `Isha Technologies <portal@ishatechnologies.in>`). **Without them, codes can't be delivered in production — password reset and password change will not work.** |
+| `EMAIL_API_KEY`, `EMAIL_FROM` | already used by the contact form; the portal reuses them for security alerts and meeting/invoice/task notifications (no password or sign-in depends on email). `EMAIL_FROM` must be a sender verified with the provider (e.g. `Isha Technologies <portal@ishatechnologies.in>`). **Without them, codes can't be delivered in production — password reset and password change will not work.** |
 | `STORAGE_DRIVER` | optional: `database`, `vercel-blob`, `s3` or `local`. Auto-detected when unset (see below). |
 | `BLOB_READ_WRITE_TOKEN` | optional: Vercel Blob store token (added automatically when you connect a Blob store to the project). |
 | `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | optional: S3-compatible storage. Optional `S3_ENDPOINT` (Cloudflare R2 / MinIO), `S3_FORCE_PATH_STYLE=1`, `S3_SSE=none`. |
@@ -92,16 +93,15 @@ S3 bucket checklist (when you add one): block all public access, default encrypt
 - Every document belongs to a client and optionally a project/task/ticket; downloads go only through `/api/portal/documents/:id/download`, which applies the same row-level scope as the listings (foreign ids → 404) and audits the download. Infected versions are never served.
 - **Malware scanning** is an integration point, not a bundled service: serverless functions can't run ClamAV. Point `CLAMAV_HOST` (+ `CLAMAV_PORT`, default 3310) at a `clamd` you run elsewhere (e.g. the `clamav/clamav` container on a small VM). Set `CLAMAV_REQUIRED=1` to reject uploads while the scanner is unreachable. Without it, versions are recorded as `not_scanned` — Settings → System says so.
 
-### Email verification codes (OTP)
+### Accounts & passwords (admin-controlled)
 
-Password reset, password change and email change use a 6-digit code sent by **email** from `EMAIL_FROM`:
-
-- only an HMAC of the code is stored; single use; expires in 10 minutes; 5 wrong attempts invalidate it;
-- 60 s resend cooldown, 5 codes/hour per account and purpose, 20/hour per IP;
-- 10 failed attempts in an hour lock the flow for that account and send a security alert;
-- forgot-password responds identically whether or not the account exists (no account enumeration).
-
-**WhatsApp OTP is not implemented.** It would require a WhatsApp Business account on the official WhatsApp Business Platform (Meta Cloud API, or a Meta-approved BSP such as Twilio/Gupshup) with an approved authentication template. Meta charges per authentication conversation, so it is **not free**. Unofficial WhatsApp automation is deliberately not used. If you later get a Business Platform account, a `sendWhatsAppOtp` channel can be added next to the email channel in `src/server/auth/otp.ts`.
+- **No self-registration, no OTP, no reset links.** Only users holding the `users.manage` permission (Super Admin and Admin by default) can create accounts, in **User management** (`/portal/users`): Employee, Client (linked to a client company) and — for Super Admin only — Admin. An Admin cannot manage Admins or the Super Admin.
+- The creator types an **initial password** (policy: ≥10 characters, three character classes) and tells the person themselves. It is hashed with scrypt immediately; passwords and hashes are never stored in plaintext, returned by any page or API, logged, or written to the audit log.
+- **Forgotten password:** the person contacts an Admin/Super Admin, who opens *User management → user → Reset password* and enters a **new** password (all of the user's sessions end at once). An admin can replace a password but can never see the old one.
+- **Force password change on next login** (default on for new accounts and resets): the next sign-in lands on `/portal/settings/security/change-password`; until the user chooses their own password every page redirects there, and every API call and server action is refused (enforced server-side in `requireViewer` / `getViewer`). Success clears `force_password_change`.
+- Users change their own password with **current + new + confirm** (Settings → Security); their other devices are signed out. Their email/username are changed by an admin only.
+- Per-user admin controls: edit, reset password, force change, enable/disable, revoke sessions, security activity. Disabling or resetting ends all sessions immediately. Sign-in is rate-limited (5 failures/account and 25/IP per 15 minutes).
+- Existing databases: run `npm run db:migrate` — migration `0005_admin_managed_accounts` adds one column (`users.force_password_change`) and the sync grants the new `users.manage` permission to Admin. Nothing is dropped (the legacy `auth_tokens` / `otp_codes` tables are left in place, unused).
 
 ### Google Calendar / Meet
 
@@ -150,7 +150,7 @@ The portal is installable (`/portal.webmanifest`, scope `/portal/`). The service
 ## 4. Security model (summary)
 
 - **Authentication:** scrypt password hashes; server-side sessions (only a SHA-256 of the cookie token is stored) in `__Host-` httpOnly Secure SameSite=Lax cookies that expire at the next midnight IST (min. 3 h); logout, deactivation, password change/reset, email change and role change revoke sessions. Optional TOTP 2FA (enforceable for team accounts). DB-backed throttling: 5 failures/account and 25/IP per 15 min. Generic error messages; constant-time comparison even for unknown users.
-- **Account changes** need proof: password change = emailed code + current password; email change = password + code sent to the new address (the old address is notified). Security alerts can't be switched off.
+- **Account changes:** a password change needs the current password; email/username are changed by administrators only. Admin password resets end every session of the user and are audited (`user.password_set_by_admin`) without recording any password.
 - **Authorisation:** `src/server/scope.ts` defines row-level predicates for every entity (clients, projects, tasks, work requests, documents, invoices, payments, tickets, meetings, notes, activity, users, change requests, leads, leave); every page, route handler, search and export composes them into SQL. Client users are scoped by `client_id` independently of the editable permission matrix. Unauthorised record URLs return 404.
 - **Super Admin → Security:** active sessions (revoke one device or all of a user's), sign-ins, failed sign-ins and lockouts, password/2FA/email/role changes.
 - **Retention:** tasks go Active → Completed → Archived; deletion is a soft delete visible to the Super Admin in "Recently deleted"; permanent deletion is Super Admin only, requires typing the title, and is audited. Clients can never delete. Projects and documents can be archived. Invoices, payments and the audit log can't be deleted at all (database triggers).

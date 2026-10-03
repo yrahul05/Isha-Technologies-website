@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { onPortalHost } from '@/lib/portal/client-host';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
@@ -43,7 +44,7 @@ export function GoogleAnalytics() {
     if (!GA_MEASUREMENT_ID || typeof window.gtag !== 'function') return;
     // The private client portal is never reported to GA — its URLs carry
     // record ids and it isn't marketing traffic.
-    if (pathname === '/portal' || pathname.startsWith('/portal/')) return;
+    if (pathname === '/portal' || pathname.startsWith('/portal/') || onPortalHost()) return;
     window.gtag('config', GA_MEASUREMENT_ID, { page_path: pathname });
   }, [pathname]);
 

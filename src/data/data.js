@@ -277,7 +277,7 @@ export const companyLinks = [
   { label: 'Case Studies', href: '/case-studies' },
   { label: 'Contact', href: '/contact' },
   { label: 'Free Cloud Assessment', href: '/free-cloud-assessment' },
-  { label: 'Client Portal', href: '/portal/login' },
+  { label: 'Client Portal', href: 'https://portal.ishatechnologies.in/login' },
 ];
 
 // footer — solutions links (derived from services)

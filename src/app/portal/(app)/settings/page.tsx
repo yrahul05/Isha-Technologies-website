@@ -13,8 +13,7 @@ import { internalPeople } from '@/server/queries/people';
 import { deviceLabel } from '@/server/queries/audit';
 import { PageHeader, Panel, Badge } from '@/components/portal/ui';
 import { RolePermissionsForm, SessionRevokeButton, SettingsSectionForm, TestEmailButton, TwoFactorPanel } from '@/components/portal/settings/SettingsForms';
-import { AvatarUploader, EmailChangeForm, GoogleConnection, NotificationPrefsForm, PasswordChangeForm, ProfileForm } from '@/components/portal/settings/AccountForms';
-import { maskEmail } from '@/lib/portal/profile';
+import { AvatarUploader, GoogleConnection, NotificationPrefsForm, PasswordChangeForm, ProfileForm, SignInDetails } from '@/components/portal/settings/AccountForms';
 import { EDITABLE_ROLES, PERMISSIONS, ROLE_LABELS } from '@/lib/portal/permissions';
 import { fmtDateTime, relativeTime } from '@/lib/portal/format';
 import { cn } from '@/lib/utils';
@@ -99,11 +98,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           )}
           {section === 'security' && (
             <>
-              <Panel title="Change password" description="We email a verification code to your registered address first. Your other devices are signed out afterwards.">
-                <PasswordChangeForm maskedEmail={maskEmail(user.email)} />
+              <Panel title="Change password" description="Enter your current password and choose a new one. Your other devices are signed out afterwards.">
+                <PasswordChangeForm />
               </Panel>
-              <Panel title="Sign-in email" description="Changing your email requires your password and a code sent to the new address.">
-                <EmailChangeForm email={user.email} />
+              <Panel title="Sign-in details" description="Managed by your administrator.">
+                <SignInDetails email={user.email} username={user.username} />
               </Panel>
               <SecuritySection viewerId={viewer.id} sessionId={viewer.sessionId} totp={user.totpEnabled} />
             </>
@@ -125,7 +124,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <ul className="mt-5 space-y-1.5 border-t border-gray-100 pt-4 text-sm text-slate-600">
                 <li>• Sessions last until midnight IST (minimum 3 hours) and are stored server-side; sign-out and deactivation revoke them instantly.</li>
                 <li>• 5 failed sign-ins lock an account for 15 minutes; 25 from one IP lock that IP.</li>
-                <li>• Passwords are hashed with scrypt. Resets and password changes need a 6-digit emailed code (hashed, single-use, 10 minutes, 5 attempts, resend cooldown and lockout).</li>
+                <li>• Passwords are hashed with scrypt and can never be viewed. Accounts are created by administrators, who set or reset passwords; users change their own with their current password. Failed attempts are rate-limited.</li>
               </ul>
             </Panel>
           )}

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { onPortalHost } from '@/lib/portal/client-host';
 
 const KEY = 'isha_attribution';
 const UTM = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as const;
@@ -17,6 +18,7 @@ export function AttributionTracker() {
   const pathname = usePathname();
 
   useEffect(() => {
+    if (onPortalHost()) return; // the private CRM subdomain is not marketing traffic
     try {
       // Read the query string directly (not useSearchParams) so public pages
       // stay fully static without a Suspense boundary.

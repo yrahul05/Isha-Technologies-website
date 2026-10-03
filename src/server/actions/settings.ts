@@ -1,11 +1,12 @@
 'use server';
 
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { db } from '@/server/db';
 import { rolePermissions, sessions, users } from '@/server/db/schema';
-import { assertCan, ForbiddenError, requireViewerOrThrow } from '@/server/auth/viewer';
+import { assertCan, ForbiddenError, requireViewerForPasswordChange, requireViewerOrThrow } from '@/server/auth/viewer';
 import { hashPassword, passwordProblems, verifyPassword } from '@/server/auth/password';
 import { revokeAllSessions } from '@/server/auth/session';
 import { generateTotpSecret, verifyTotp } from '@/server/auth/totp';
@@ -16,12 +17,11 @@ import { sendEmail } from '@/lib/email';
 import { portalEmailHtml } from '@/server/notify';
 import { EDITABLE_ROLES, PERMISSIONS, type Permission } from '@/lib/portal/permissions';
 import { guarded, parseForm } from './helpers';
-import { issueOtp, OTP_ERRORS, verifyOtp } from '@/server/auth/otp';
+import { isLoginThrottled, recordLoginAttempt } from '@/server/auth/throttle';
 import { notifySecurity } from '@/server/auth/security-notice';
-import { sendTemplate } from '@/server/email/templates';
 import { getRequestMeta } from '@/server/request';
 import { PREFERENCE_CATEGORIES } from '@/lib/portal/notification-prefs';
-import { maskEmail, TIMEZONES } from '@/lib/portal/profile';
+import { TIMEZONES } from '@/lib/portal/profile';
 import type { ActionState } from './types';
 
 // ─── My account ──────────────────────────────────────────────────────────
@@ -49,81 +49,48 @@ export async function updateProfileAction(_prev: ActionState, form: FormData): P
   });
 }
 
-/** Password change, step 1: email a verification code to the registered address. */
-export async function requestPasswordChangeCodeAction(): Promise<ActionState> {
-  return guarded(async () => {
-    const viewer = await requireViewerOrThrow();
-    const meta = await getRequestMeta();
-    const r = await issueOtp({ id: viewer.id, email: viewer.email, name: viewer.name }, 'password_change', meta.ip);
-    if (!r.ok) return { error: OTP_ERRORS[r.reason] };
-    return { ok: true, message: `We’ve emailed a 6-digit code to ${maskEmail(viewer.email)}.` };
-  });
-}
-
-/** Password change, step 2: code + current password + new password. */
+/**
+ * Change your own password: current + new + confirm. The current password is
+ * verified server-side (scrypt, constant-time), attempts are rate limited, the
+ * new password is hashed immediately, and nothing secret is ever echoed,
+ * logged or audited. Also the way out of an admin-forced password change.
+ */
 export async function changePasswordAction(_prev: ActionState, form: FormData): Promise<ActionState> {
-  return guarded(async (): Promise<ActionState> => {
-    const viewer = await requireViewerOrThrow();
+  let wasForced = false;
+  const result = await guarded(async (): Promise<ActionState> => {
+    const viewer = await requireViewerForPasswordChange();
     const meta = await getRequestMeta();
     const current = String(form.get('current') ?? '');
     const next = String(form.get('password') ?? '');
     const confirm = String(form.get('confirm') ?? '');
+
+    const key = `pwchange:${viewer.id}`;
+    if (await isLoginThrottled(key, meta.ip)) return { error: 'Too many incorrect attempts. Please wait 15 minutes.' };
+
     const [user] = await db.select().from(users).where(eq(users.id, viewer.id));
     if (!(await verifyPassword(current, user.passwordHash))) {
+      await recordLoginAttempt(key, meta.ip, false);
       await audit(viewer, 'auth.login_failed', { entityType: 'user', entityId: viewer.id, metadata: { context: 'password_change' }, meta });
       return { fieldErrors: { current: 'Current password is incorrect.' } };
     }
     const problem = passwordProblems(next);
     if (problem) return { fieldErrors: { password: problem } };
     if (next !== confirm) return { fieldErrors: { confirm: 'Passwords do not match.' } };
-    if (await verifyPassword(next, user.passwordHash)) return { fieldErrors: { password: 'Choose a password you haven’t used for this account.' } };
-    const v = await verifyOtp(viewer.id, 'password_change', String(form.get('code') ?? ''));
-    if (!v.ok) return { fieldErrors: { code: OTP_ERRORS[v.reason] } };
-    await db.update(users).set({ passwordHash: await hashPassword(next), passwordChangedAt: new Date() }).where(eq(users.id, viewer.id));
+    if (await verifyPassword(next, user.passwordHash)) return { fieldErrors: { password: 'Choose a password you have not used for this account.' } };
+
+    wasForced = user.forcePasswordChange;
+    await db
+      .update(users)
+      .set({ passwordHash: await hashPassword(next), passwordChangedAt: new Date(), forcePasswordChange: false })
+      .where(eq(users.id, viewer.id));
+    await recordLoginAttempt(key, meta.ip, true);
     await revokeAllSessions(viewer.id, viewer.sessionId); // sign out every other device
-    await audit(viewer, 'auth.password_changed', { entityType: 'user', entityId: viewer.id, meta });
-    await notifySecurity(viewer, 'Your password was changed', 'Your portal password was changed and your other devices were signed out. If this wasn’t you, reset your password and contact Isha Technologies.', meta);
+    await audit(viewer, 'auth.password_changed', { entityType: 'user', entityId: viewer.id, metadata: { wasForced }, meta });
+    await notifySecurity(viewer, 'Your password was changed', 'Your portal password was changed and your other devices were signed out. If this was not you, contact your administrator immediately.', meta);
     return { ok: true, message: 'Password changed. Other devices have been signed out.' };
   });
-}
-
-/** Email change, step 1: verify the current password, then send a code to the NEW address. */
-export async function requestEmailChangeAction(_prev: ActionState, form: FormData): Promise<ActionState> {
-  return guarded(async (): Promise<ActionState> => {
-    const viewer = await requireViewerOrThrow();
-    const meta = await getRequestMeta();
-    const email = String(form.get('newEmail') ?? '').trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return { fieldErrors: { newEmail: 'Enter a valid email address.' } };
-    if (email === viewer.email.toLowerCase()) return { fieldErrors: { newEmail: 'That’s already your email.' } };
-    const [user] = await db.select().from(users).where(eq(users.id, viewer.id));
-    if (!(await verifyPassword(String(form.get('password') ?? ''), user.passwordHash))) return { fieldErrors: { password: 'Password is incorrect.' } };
-    const [taken] = await db.select({ id: users.id }).from(users).where(eq(sql`lower(${users.email})`, email)).limit(1);
-    if (taken) return { fieldErrors: { newEmail: 'That email can’t be used.' } };
-    const r = await issueOtp({ id: viewer.id, email: viewer.email, name: viewer.name }, 'email_change', meta.ip, email);
-    if (!r.ok) return { error: OTP_ERRORS[r.reason] };
-    return { ok: true, message: `We’ve emailed a code to ${maskEmail(email)}. Enter it below to confirm.`, data: { pending: 'yes' } };
-  });
-}
-
-/** Email change, step 2: the code proves ownership of the new address. */
-export async function confirmEmailChangeAction(_prev: ActionState, form: FormData): Promise<ActionState> {
-  return guarded(async (): Promise<ActionState> => {
-    const viewer = await requireViewerOrThrow();
-    const meta = await getRequestMeta();
-    const v = await verifyOtp(viewer.id, 'email_change', String(form.get('code') ?? ''));
-    if (!v.ok) return { fieldErrors: { code: OTP_ERRORS[v.reason] } };
-    const [taken] = await db.select({ id: users.id }).from(users).where(eq(sql`lower(${users.email})`, v.target.toLowerCase())).limit(1);
-    if (taken) return { error: 'That email can’t be used.' };
-    const oldEmail = viewer.email;
-    await db.update(users).set({ email: v.target }).where(eq(users.id, viewer.id));
-    await revokeAllSessions(viewer.id, viewer.sessionId);
-    await audit(viewer, 'user.email_changed', { entityType: 'user', entityId: viewer.id, metadata: { from: oldEmail, to: v.target }, meta });
-    // Tell the OLD address too, so a hijacked session can't silently take over the account.
-    await sendTemplate(oldEmail, { category: 'Account Security', title: 'Your sign-in email was changed', intro: `The email for your Isha Technologies portal account was changed to ${maskEmail(v.target)}. If this wasn’t you, contact Isha Technologies immediately.` });
-    await notifySecurity(viewer, 'Your sign-in email was changed', `Your account email is now ${v.target}. Other devices were signed out.`, meta);
-    revalidatePath('/portal', 'layout');
-    return { ok: true, message: 'Email updated.' };
-  });
+  if (result.ok && wasForced) redirect('/portal/dashboard');
+  return result;
 }
 
 export async function saveNotificationPrefsAction(_prev: ActionState, form: FormData): Promise<ActionState> {
