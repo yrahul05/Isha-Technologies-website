@@ -314,7 +314,7 @@ export async function sendTestEmailAction(): Promise<ActionState> {
     const viewer = await requireViewerOrThrow();
     assertCan(viewer, 'settings.manage');
     const from = process.env.EMAIL_FROM;
-    if (!process.env.EMAIL_API_KEY || !from) return { error: 'EMAIL_API_KEY / EMAIL_FROM are not configured.' };
+    if (!process.env.EMAIL_API_KEY || !from) return { error: 'Email is not configured. It is optional — the portal works without it (notifications stay in-app).' };
     const r = await sendEmail({ to: viewer.email, from, subject: 'Portal test email', text: 'Email delivery from the Isha Technologies portal works.', html: portalEmailHtml('Portal test email', 'Email delivery from the Isha Technologies portal works.', '/', 'Open portal') });
     return r.ok ? { ok: true, message: `Test email sent to ${viewer.email}.` } : { error: 'Email provider rejected the request — check the server logs.' };
   });

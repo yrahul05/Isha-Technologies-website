@@ -144,7 +144,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           )}
           {admin && section === 'email' && (
             <Panel title="Email delivery" description="Transactional email via Resend (same provider as the website contact form).">
-              <StatusRow ok={Boolean(process.env.EMAIL_API_KEY && process.env.EMAIL_FROM)} label="EMAIL_API_KEY and EMAIL_FROM" />
+              <StatusRow ok={Boolean(process.env.EMAIL_API_KEY && process.env.EMAIL_FROM)} label={process.env.EMAIL_API_KEY && process.env.EMAIL_FROM ? "Email delivery (optional): configured" : "Email delivery (optional): not configured — the portal works without it; notifications stay in-app"} />
               <div className="mt-4">
                 <TestEmailButton />
               </div>
@@ -159,9 +159,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 <StatusRow ok={false} label="Backups: not verified from the app — see docs/portal/BACKUP_AND_RECOVERY.md" />
                 <StatusRow ok={Boolean(process.env.ENCRYPTION_KEY)} label="ENCRYPTION_KEY (Google tokens, 2FA secrets)" />
                 <StatusRow ok={isGoogleConfigured()} label="Google OAuth (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)" />
-                <StatusRow ok={Boolean(process.env.EMAIL_API_KEY)} label="Email provider" />
                 <StatusRow ok={Boolean(process.env.CRON_SECRET)} label="CRON_SECRET (daily reminders & overdue invoices)" />
-                <StatusRow ok={Boolean(process.env.APP_URL)} label="APP_URL (links in emails and OAuth)" />
+                <StatusRow ok={Boolean(process.env.APP_URL)} label="APP_URL (CRM address for links and OAuth)" />
               </div>
             </Panel>
           )}

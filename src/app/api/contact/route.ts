@@ -98,18 +98,12 @@ export async function POST(req: Request) {
       contactEmailPresent: Boolean(CONTACT_EMAIL),
     });
 
-    if (!CONTACT_EMAIL || !EMAIL_FROM || !EMAIL_API_KEY) {
-      console.error(
-        'Contact form email is not configured — set CONTACT_EMAIL, EMAIL_FROM and EMAIL_API_KEY.'
-      );
-      return NextResponse.json({ success: false, error: 'Server configuration error.' }, { status: 500 });
-    }
-
     const enquiry = { fullName, company, email, phone, service, platform, timeline, message };
 
     // Also capture the enquiry as a CRM lead (assigned + team notified in
-    // the portal). Best-effort: a database problem must never stop the
-    // enquiry email below from going out.
+    // the portal). Best-effort when email is configured: a database problem
+    // must never stop the enquiry email below from going out.
+    let leadSaved = false;
     try {
       await createWebsiteLead({
         source: 'contact_form',
@@ -121,8 +115,21 @@ export async function POST(req: Request) {
         notes: [message, platform && `Cloud platform: ${platform}`, timeline && `Timeline: ${timeline}`].filter(Boolean).join('\n'),
         attribution: cleanAttribution(body.attribution),
       });
+      leadSaved = true;
     } catch (leadError) {
       console.error('CRM lead capture failed (enquiry email still sent):', leadError instanceof Error ? leadError.message : leadError);
+    }
+
+    // Email is OPTIONAL. Without an email provider the enquiry is still stored as a CRM lead
+    // (the team is notified in the portal) and the visitor gets a normal success; only when
+    // nothing could be stored either is it an error.
+    if (!CONTACT_EMAIL || !EMAIL_FROM || !EMAIL_API_KEY) {
+      if (leadSaved) {
+        console.info('Contact form: email not configured — enquiry saved as a CRM lead only.');
+        return NextResponse.json({ success: true });
+      }
+      console.error('Contact form: email is not configured and the enquiry could not be saved as a CRM lead.');
+      return NextResponse.json({ success: false, error: 'Server configuration error.' }, { status: 500 });
     }
 
     const internalEmail = buildInternalEnquiryEmail(enquiry);

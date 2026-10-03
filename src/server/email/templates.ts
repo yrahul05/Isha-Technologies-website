@@ -85,7 +85,7 @@ export async function sendTemplate(to: string, t: Template): Promise<boolean> {
   const { subject, html, text } = renderEmail(t);
   if (!emailConfigured()) {
     if (process.env.NODE_ENV !== 'production') console.info(`[portal email → ${to}] ${subject}\n${text}\n`);
-    else console.error('[portal] EMAIL_API_KEY/EMAIL_FROM not configured — email not sent:', subject);
+    else console.info('[portal] email is optional and not configured — skipped:', subject);
     return false;
   }
   const r = await sendEmail({ to, from: process.env.EMAIL_FROM!, subject, text, html }).catch(() => ({ ok: false }));

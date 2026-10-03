@@ -14,7 +14,9 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 /**
- * GET /api/portal/cron/daily — scheduled by vercel.json (09:00 IST).
+ * GET /api/portal/cron/daily — scheduled by vercel.json at "30 18 * * *" (Vercel cron is UTC):
+ * 18:30 UTC = 00:00 (12:00 AM) IST, once a day. Dates inside the job are computed in IST
+ * explicitly (todayIST), so the server timezone is irrelevant.
  * Vercel sends `Authorization: Bearer $CRON_SECRET`; anything else is 401.
  *  1. Invoices past their due date → status overdue; client + finance notified once.
  *  2. Tasks due tomorrow → assignee reminded ("deadline approaching").

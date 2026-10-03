@@ -36,16 +36,20 @@ use the value shown there — do not guess it). Leave `www` and the apex redirec
 
 ## 2. Vercel → Settings → Environment Variables → **Production**
 
+Exactly four variables are required. **Email (`EMAIL_API_KEY` / `EMAIL_FROM`) is not required** — the CRM runs without an email provider.
+
 | Variable | Type | Value |
 | --- | --- | --- |
 | `DATABASE_URL` | Secret (Sensitive) | Supabase **Session Pooler**, port **5432**: `postgresql://postgres.pqhpilkmwdderfgslmpa:<PASSWORD>@aws-0-ap-south-1.pooler.supabase.com:5432/postgres` (URL-encode special characters in the password). **Not 6543** — the transaction pooler stalls the dashboard with this driver. |
 | `ENCRYPTION_KEY` | Secret (Sensitive) | 32 random bytes, base64. Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` (a ready value is in your local, gitignored `.env.vercel-production.local`). Changing it later invalidates 2FA enrolments, Google connections and pending codes. |
 | `CRON_SECRET` | Secret (Sensitive) | Random string, ≥32 chars: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Vercel Cron sends it as `Authorization: Bearer …` to `/api/portal/cron/daily`. |
-| `EMAIL_API_KEY` | Secret (Sensitive) | Your **Resend** API key (the same one the contact form already uses). |
-| `EMAIL_FROM` | Config | Sender such as `Isha Technologies <portal@ishatechnologies.in>`; the domain must be **verified in Resend** (SPF/DKIM), otherwise mail is rejected. |
 | `APP_URL` | Config | `https://portal.ishatechnologies.in` |
 
-Not required for launch: `RAZORPAY_*`, `STRIPE_*` (online payments), `ANTHROPIC_API_KEY` (Isha AI),
+### Cron (daily job)
+
+`vercel.json` runs `/api/portal/cron/daily` **once a day at 12:00 AM IST**: schedule `30 18 * * *` (Vercel cron is always UTC; 18:30 UTC = 00:00 IST). Vercel sends `Authorization: Bearer $CRON_SECRET` automatically once `CRON_SECRET` is set in Production; the endpoint returns 401 to anything else and never logs the secret. Dates inside the job are computed in IST explicitly, so no server timezone setting is needed. Note: on Vercel's Hobby plan a daily cron may fire any time within the scheduled hour.
+
+Not required for launch: `EMAIL_API_KEY` / `EMAIL_FROM` (email), `RAZORPAY_*`, `STRIPE_*` (online payments), `ANTHROPIC_API_KEY` (Isha AI),
 `GOOGLE_CLIENT_ID/SECRET` (Calendar/Meet), `S3_*`/`BLOB_READ_WRITE_TOKEN` (file storage — without one, files
 are stored in the database), `CLAMAV_*`. Add them when you enable those features.
 
