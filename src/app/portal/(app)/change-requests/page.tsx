@@ -4,7 +4,7 @@ import { and, desc, eq, isNull, ne } from 'drizzle-orm';
 import { ArrowRight, GitPullRequestArrow } from 'lucide-react';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/server/db';
-import { changeRequests, clients, documents, invoices, projects, users } from '@/server/db/schema';
+import { changeRequests, clients, documents, invoices, projects, tasks, users } from '@/server/db/schema';
 import { can, requireViewer } from '@/server/auth/viewer';
 import { changeRequestScope } from '@/server/scope';
 import { EmptyState, PageHeader, Panel, StatusBadge } from '@/components/portal/ui';
@@ -40,10 +40,15 @@ export default async function ChangeRequestsPage({ searchParams }: { searchParam
   let targets: ChangeTarget[] = [];
   if (!viewer.isInternal && viewer.clientId) {
     const [client] = await db.select().from(clients).where(eq(clients.id, viewer.clientId));
-    const [invs, projs, docs] = await Promise.all([
+    const [invs, projs, docs, clientTasks] = await Promise.all([
       db.select().from(invoices).where(and(eq(invoices.clientId, viewer.clientId), ne(invoices.status, 'draft'))).orderBy(desc(invoices.issueDate)),
       db.select().from(projects).where(eq(projects.clientId, viewer.clientId)),
       db.select().from(documents).where(and(eq(documents.clientId, viewer.clientId), eq(documents.visibility, 'client'), isNull(documents.deletedAt))),
+      db
+        .select({ t: tasks })
+        .from(tasks)
+        .innerJoin(projects, eq(projects.id, tasks.projectId))
+        .where(and(eq(projects.clientId, viewer.clientId), eq(tasks.visibility, 'client'), isNull(tasks.deletedAt), ne(tasks.status, 'completed'))),
     ]);
     const fields = <T extends Record<string, unknown>>(entity: keyof typeof CHANGEABLE, row: T) =>
       Object.entries(CHANGEABLE[entity]).map(([field, label]) => ({ field, label, current: field === 'delete' ? '' : show(row[field]).replace(/^—$/, '') }));
@@ -52,6 +57,7 @@ export default async function ChangeRequestsPage({ searchParams }: { searchParam
       ...invs.map((i) => ({ key: `invoice:${i.id}`, entityType: 'invoice' as const, entityId: i.id, label: `Invoice ${i.number}`, fields: fields('invoice', i) })),
       ...projs.map((p) => ({ key: `project:${p.id}`, entityType: 'project' as const, entityId: p.id, label: `Project — ${p.name}`, fields: fields('project', p) })),
       ...docs.map((d) => ({ key: `document:${d.id}`, entityType: 'document' as const, entityId: d.id, label: `Document — ${d.name}`, fields: fields('document', d) })),
+      ...clientTasks.map(({ t }) => ({ key: `task:${t.id}`, entityType: 'task' as const, entityId: t.id, label: `Task — ${t.title}`, fields: fields('task', t) })),
     ];
   }
   const defaultKey = sp.entity && sp.id ? `${sp.entity}:${sp.id}` : undefined;

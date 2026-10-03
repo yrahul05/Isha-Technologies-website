@@ -28,12 +28,20 @@ export default async function ReportsPage() {
   const weekStart = new Date(Date.now() - 8 * 7 * 86_400_000);
 
   const [paid, billed, byClient, openInvoices, throughput, projectStatus, leadStatus, leadSource, ticketStats] = await Promise.all([
-    finance ? db.select({ m: sql<string>`to_char(${payments.paidOn}::date, 'YYYY-MM')`, v: sql<number>`sum(${payments.amountPaise})::bigint` }).from(payments).where(gte(payments.paidOn, since)).groupBy(sql`1`) : Promise.resolve([]),
+    // Revenue reports are in INR; USD/CAD totals are reported per currency on the Invoices page.
+    finance
+      ? db
+          .select({ m: sql<string>`to_char(${payments.paidOn}::date, 'YYYY-MM')`, v: sql<number>`sum(${payments.amountPaise})::bigint` })
+          .from(payments)
+          .innerJoin(invoices, eq(invoices.id, payments.invoiceId))
+          .where(and(gte(payments.paidOn, since), eq(invoices.currency, 'INR')))
+          .groupBy(sql`1`)
+      : Promise.resolve([]),
     finance
       ? db
           .select({ m: sql<string>`to_char(${invoices.issueDate}::date, 'YYYY-MM')`, v: sql<number>`sum(${invoices.totalPaise})::bigint` })
           .from(invoices)
-          .where(and(gte(invoices.issueDate, since), inArray(invoices.status, ['sent', 'partially_paid', 'paid', 'overdue'])))
+          .where(and(gte(invoices.issueDate, since), eq(invoices.currency, 'INR'), inArray(invoices.status, ['sent', 'partially_paid', 'paid', 'overdue'])))
           .groupBy(sql`1`)
       : Promise.resolve([]),
     finance
@@ -41,6 +49,8 @@ export default async function ReportsPage() {
           .select({ name: clients.companyName, v: sql<number>`sum(${payments.amountPaise})::bigint` })
           .from(payments)
           .innerJoin(clients, eq(clients.id, payments.clientId))
+          .innerJoin(invoices, eq(invoices.id, payments.invoiceId))
+          .where(eq(invoices.currency, 'INR'))
           .groupBy(clients.companyName)
           .orderBy(desc(sql`2`))
           .limit(8)
@@ -49,7 +59,7 @@ export default async function ReportsPage() {
       ? db
           .select({ due: invoices.dueDate, bal: sql<number>`(${invoices.totalPaise} - ${invoices.paidPaise})::bigint` })
           .from(invoices)
-          .where(and(inArray(invoices.status, ['sent', 'partially_paid', 'overdue']), sql`${invoices.paidPaise} < ${invoices.totalPaise}`))
+          .where(and(eq(invoices.currency, 'INR'), inArray(invoices.status, ['sent', 'partially_paid', 'overdue']), sql`${invoices.paidPaise} < ${invoices.totalPaise}`))
       : Promise.resolve([]),
     db
       .select({ w: sql<string>`to_char(date_trunc('week', ${tasks.completedAt} + interval '330 minutes'), 'YYYY-MM-DD')`, n: count() })
@@ -96,7 +106,7 @@ export default async function ReportsPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Business intelligence" title="Reports" description="Revenue, receivables, delivery throughput, pipeline and support performance." />
+      <PageHeader eyebrow="Business intelligence" title="Reports" description="Revenue, receivables, delivery throughput, pipeline and support performance. Financial figures are in INR; USD/CAD totals appear per currency on the Invoices page." />
       <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
         {finance && <StatCard label="Collected (12 months)" value={formatINR(collected12, { compact: true })} icon={TrendingUp} tone="green" />}
         {finance && <StatCard label="Billed (12 months)" value={formatINR(billed12, { compact: true })} icon={ReceiptIndianRupee} />}

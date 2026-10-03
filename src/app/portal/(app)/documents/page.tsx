@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { alias } from 'drizzle-orm/pg-core';
-import { and, asc, desc, eq, ilike, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, isNotNull, isNull, ne } from 'drizzle-orm';
 import { Download, Eye, FolderLock, Lock, Search } from 'lucide-react';
 import { db } from '@/server/db';
 import { clients, documentVersions, documents, projects, users } from '@/server/db/schema';
@@ -10,23 +10,24 @@ import { canManageDocument } from '@/server/documents';
 import { clientScope, documentScope, isUuid, projectScope } from '@/server/scope';
 import { Badge, EmptyState, PageHeader, Panel, Table, Td, Th, Tr } from '@/components/portal/ui';
 import { DocIcon } from '@/components/portal/documents/DocumentRowList';
-import { DeleteDocumentButton, EditDocumentButton, PreviewButton, VersionsButton } from '@/components/portal/documents/DocumentActions';
+import { ArchiveDocumentButton, DeleteDocumentButton, EditDocumentButton, PreviewButton, VersionsButton } from '@/components/portal/documents/DocumentActions';
 import { UploadPanel } from '@/components/portal/documents/UploadPanel';
 import { inputClass } from '@/components/portal/forms';
 import { fileKindFor } from '@/lib/portal/file-types';
 import { fileSize, fmtDate, humanize } from '@/lib/portal/format';
 import { cn } from '@/lib/utils';
-import { storageDriver } from '@/server/storage';
+import { getSetting } from '@/server/settings';
 
 export const metadata: Metadata = { title: 'Documents' };
 
-export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ q?: string; client?: string; project?: string; doc?: string; upload?: string }> }) {
+export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ q?: string; client?: string; project?: string; doc?: string; upload?: string; view?: string }> }) {
   const viewer = await requireViewer();
   const sp = await searchParams;
   const term = (sp.q ?? '').trim().slice(0, 80);
   const clientFilter = isUuid(sp.client) ? sp.client : undefined;
   const projectFilter = isUuid(sp.project) ? sp.project : undefined;
   const focus = isUuid(sp.doc) ? sp.doc : undefined;
+  const archivedView = sp.view === 'archived';
 
   const latest = alias(documentVersions, 'latest');
   const rows = await db
@@ -39,6 +40,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
     .where(
       and(
         documentScope(viewer),
+        focus ? undefined : archivedView ? isNotNull(documents.archivedAt) : isNull(documents.archivedAt),
         focus ? eq(documents.id, focus) : undefined,
         clientFilter ? eq(documents.clientId, clientFilter) : undefined,
         projectFilter ? eq(documents.projectId, projectFilter) : undefined,
@@ -55,7 +57,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
     viewer.isInternal ? db.select({ id: clients.id, name: clients.companyName }).from(clients).where(and(clientScope(viewer), ne(clients.status, 'inactive'))).orderBy(asc(clients.companyName)) : Promise.resolve([]),
     db.select({ id: projects.id, name: projects.name, clientId: projects.clientId }).from(projects).where(and(projectScope(viewer), ne(projects.status, 'cancelled'))).orderBy(asc(projects.name)),
   ]);
-  const storageReady = storageDriver() !== 'none';
+  const { maxUploadMb } = await getSetting('storage');
 
   return (
     <>
@@ -64,12 +66,8 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         title="Documents"
         description={viewer.isInternal ? 'Private files with versions and access control. Clients only ever see files shared with their account.' : 'Files shared between your team and Isha Technologies.'}
       />
-      <Panel className="mb-6" title="Upload" description="Max 25 MB per file. Files are private and only reachable through signed, expiring links.">
-        {storageReady ? (
-          <UploadPanel isInternal={viewer.isInternal} canManage={can(viewer, 'documents.manage')} clients={clientOptions} projects={projectOptions} defaultClientId={clientFilter} />
-        ) : (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">File storage is not configured. Set the S3_* environment variables (see docs/portal/SETUP.md).</p>
-        )}
+      <Panel className="mb-6" title="Upload" description={`Max ${maxUploadMb} MB per file. Files are private, checked for type and content, and only served to people with access.`}>
+        <UploadPanel isInternal={viewer.isInternal} canManage={can(viewer, 'documents.manage')} clients={clientOptions} projects={projectOptions} defaultClientId={clientFilter} />
       </Panel>
       <Panel>
         <form className="mb-4 flex flex-col gap-2 sm:flex-row">
@@ -94,6 +92,10 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                 {p.name}
               </option>
             ))}
+          </select>
+          <select name="view" defaultValue={archivedView ? 'archived' : ''} className={cn(inputClass, 'py-2 sm:w-40')} aria-label="Show">
+            <option value="">Active</option>
+            <option value="archived">Archived</option>
           </select>
           <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-brand hover:text-brand">Filter</button>
         </form>
@@ -162,6 +164,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                         </a>
                         <VersionsButton id={d.id} name={d.name} canUpload={canEdit} />
                         {canEdit && <EditDocumentButton doc={{ id: d.id, name: d.name, category: d.category, visibility: d.visibility, hasClient: Boolean(d.clientId) }} />}
+                        {canEdit && <ArchiveDocumentButton id={d.id} name={d.name} archived={Boolean(d.archivedAt)} />}
                         {canEdit && <DeleteDocumentButton id={d.id} name={d.name} />}
                       </div>
                     </Td>

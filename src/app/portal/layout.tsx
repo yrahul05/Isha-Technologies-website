@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Settings2 } from 'lucide-react';
@@ -12,7 +12,12 @@ import './portal.css';
 export const metadata: Metadata = {
   title: { default: 'Portal | Isha Technologies', template: '%s · Isha Technologies Portal' },
   robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } },
+  manifest: '/portal.webmanifest',
+  appleWebApp: { capable: true, title: 'Isha Portal', statusBarStyle: 'default' },
+  icons: { apple: '/portal-icons/icon-192.png' },
 };
+
+export const viewport: Viewport = { themeColor: '#3478e4', viewportFit: 'cover' };
 
 export const dynamic = 'force-dynamic';
 

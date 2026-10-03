@@ -15,9 +15,12 @@ import { and, eq, sql, type SQL } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import { closeDb, getDb } from '../src/server/db';
 import * as s from '../src/server/db/schema';
-import { buildViewer, type Viewer } from '../src/server/auth/viewer';
+import { buildViewer, can as can0, type Viewer } from '../src/server/auth/viewer';
 import * as scope from '../src/server/scope';
 import { searchEverything } from '../src/server/queries/search';
+import { refuseOnRemoteDatabase } from './lib/remote-guard';
+
+refuseOnRemoteDatabase('run the isolation tests (they need the demo dataset)');
 
 const db = getDb();
 let failures = 0;
@@ -57,6 +60,7 @@ async function main() {
     rohan: await viewerFor('rohan@northwind.example'),
     nisha: await viewerFor('nisha@northwind.example'),
     ananya: await viewerFor('ananya@zenith.example'),
+    liam: await viewerFor('liam@maple.example'),
   };
   const orphanClient: Viewer = { ...personas.rohan, id: '00000000-0000-0000-0000-000000000000', clientId: null, clientRole: null };
 
@@ -87,7 +91,8 @@ async function main() {
     ['ananya', ['Zenith Fintech']],
     ['kabir', ['Zenith Fintech']],
     ['aarav', ['Northwind Logistics']],
-    ['admin', ['Northwind Logistics', 'Zenith Fintech']],
+    ['liam', ['Maple Analytics']],
+    ['admin', ['Northwind Logistics', 'Zenith Fintech', 'Harbor Labs', 'Maple Analytics']],
   ] as const) {
     const r = same(await visible(s.clients, scope.clientScope(personas[who]), byName), [...expected]);
     check(`${who} sees clients ${expected.join(', ')}`, r.ok, r.detail);
@@ -95,12 +100,13 @@ async function main() {
 
   console.log('\nInvoices & payments (finance)');
   for (const [who, expected] of [
-    ['rohan', ['INV-2026-0001', 'INV-2026-0002', 'INV-2026-0003']],
-    ['nisha', ['INV-2026-0001', 'INV-2026-0002', 'INV-2026-0003']],
-    ['ananya', ['INV-2026-0004']], // INV-2026-0005 is a draft → hidden from the client
+    ['rohan', ['ISH-2026-0001', 'ISH-2026-0002', 'ISH-2026-0003']],
+    ['nisha', ['ISH-2026-0001', 'ISH-2026-0002', 'ISH-2026-0003']],
+    ['ananya', ['ISH-2026-0004']], // DRAFT-5EED0001 is a draft → hidden from the client
+    ['liam', ['ISH-2026-0006']], // CAD invoice; never sees Harbor's USD invoice
     ['aarav', []], // employees have no finance access by default
     ['kabir', []],
-    ['admin', ['INV-2026-0001', 'INV-2026-0002', 'INV-2026-0003', 'INV-2026-0004', 'INV-2026-0005']],
+    ['admin', ['ISH-2026-0001', 'ISH-2026-0002', 'ISH-2026-0003', 'ISH-2026-0004', 'ISH-2026-0005', 'ISH-2026-0006', 'DRAFT-5EED0001']],
   ] as const) {
     const r = same(await visible(s.invoices, scope.invoiceScope(personas[who]), byNumber), [...expected]);
     check(`${who} sees invoices [${expected.join(', ')}]`, r.ok, r.detail);
@@ -142,8 +148,9 @@ async function main() {
   for (const [who, expected] of [
     ['rohan', ['EKS migration weekly sync']], // owner: all Northwind meetings
     ['nisha', []], // member: only meetings she's invited to
-    ['ananya', ['Security findings walkthrough']],
-    ['kabir', ['Security findings walkthrough', 'Internal: sprint planning']],
+    ['ananya', ['Security findings walkthrough', 'RBI audit evidence review']], // incl. her own pending request
+    ['kabir', ['Security findings walkthrough', 'Internal: sprint planning', 'RBI audit evidence review']],
+    ['liam', []],
   ] as const) {
     const r = same(await visible(s.meetings, scope.meetingScope(personas[who]), byTitle), [...expected]);
     check(`${who} sees meetings [${expected.join(', ')}]`, r.ok, r.detail);
@@ -191,12 +198,97 @@ async function main() {
   check('client B sees no Client A change request', (await db.select().from(s.changeRequests).where(scope.changeRequestScope(personas.ananya))).length === 0);
   check('employee without review permission sees none', (await db.select().from(s.changeRequests).where(scope.changeRequestScope(personas.aarav))).length === 0);
 
+  console.log('\nClient work requests');
+  const reqTitle = (r: Record<string, unknown>) => String(r.title);
+  const payReq = 'Add a staging cluster for the payments service';
+  for (const [who, expected] of [
+    ['rohan', [payReq]],
+    ['nisha', [payReq]],
+    ['ananya', []],
+    ['liam', []],
+    ['aarav', []], // employees without review/manage permission see no request queue
+    ['superAdmin', [payReq]],
+  ] as const) {
+    const r = same(await visible(s.taskRequests, scope.taskRequestScope(personas[who]), reqTitle), [...expected]);
+    check(`${who} sees work requests [${expected.join(', ')}]`, r.ok, r.detail);
+  }
+  check('client with no account sees no work requests', (await visible(s.taskRequests, scope.taskRequestScope(orphanClient), reqTitle)).size === 0);
+  check('only reviewers hold task_requests.review', can0(personas.superAdmin, 'task_requests.review') && !can0(personas.admin, 'task_requests.review') && !can0(personas.rohan, 'task_requests.review'));
+
+  console.log('\nProposals, contracts, renewals & time entries');
+  const numberOf = (r: Record<string, unknown>) => String(r.number);
+  for (const [who, expected] of [
+    ['rohan', ['PRP-2026-0001']], // client never sees drafts or other tenants
+    ['nisha', ['PRP-2026-0001']],
+    ['ananya', ['PRP-2026-0002']],
+    ['liam', []],
+    ['aarav', []], // employee who neither owns nor created any
+    ['kabir', ['PRP-2026-0002']], // owner
+    ['superAdmin', ['PRP-2026-0001', 'DRAFT-PRP-NW', 'PRP-2026-0002']],
+  ] as const) {
+    const r = same(await visible(s.proposals, scope.proposalScope(personas[who]), numberOf), [...expected]);
+    check(`${who} sees proposals [${expected.join(', ')}]`, r.ok, r.detail);
+  }
+  for (const [who, expected] of [
+    ['rohan', ['CTR-2026-0001']],
+    ['ananya', ['CTR-2026-0002']],
+    ['liam', []],
+    ['aarav', []],
+    ['superAdmin', ['CTR-2026-0001', 'DRAFT-CTR-NW', 'CTR-2026-0002']],
+  ] as const) {
+    const r = same(await visible(s.contracts, scope.contractScope(personas[who]), numberOf), [...expected]);
+    check(`${who} sees contracts [${expected.join(', ')}]`, r.ok, r.detail);
+  }
+  const renewalCount = async (who: keyof typeof personas) => (await db.select().from(s.renewalItems).where(scope.renewalScope(personas[who]))).length;
+  const timeCount = async (who: keyof typeof personas) => (await db.select().from(s.timeEntries).where(scope.timeEntryScope(personas[who]))).length;
+  check('clients see no renewal items', (await renewalCount('rohan')) === 0 && (await renewalCount('ananya')) === 0);
+  check('employee without renewals.view sees no renewal items', (await renewalCount('aarav')) === 0);
+  check('super admin sees all renewal items', (await renewalCount('superAdmin')) === 3);
+  check('clients never see time entries', (await timeCount('rohan')) === 0 && (await timeCount('liam')) === 0);
+  check('aarav sees only own time entries', (await timeCount('aarav')) === 2);
+  check('kabir sees only own time entries', (await timeCount('kabir')) === 1);
+  check('super admin sees every time entry', (await timeCount('superAdmin')) === 4);
+  check('client with no account sees no proposals or contracts', (await visible(s.proposals, scope.proposalScope(orphanClient), numberOf)).size === 0 && (await visible(s.contracts, scope.contractScope(orphanClient), numberOf)).size === 0);
+
+  console.log('\nArchived & deleted tasks (retention)');
+  const [sharedTask] = await db.select().from(s.tasks).where(and(eq(s.tasks.visibility, 'client'), eq(s.tasks.projectId, (await db.select().from(s.projects).where(eq(s.projects.code, 'PRJ-0001')))[0].id))).limit(1);
+  await db.update(s.tasks).set({ deletedAt: new Date() }).where(eq(s.tasks.id, sharedTask.id));
+  check('soft-deleted task is invisible to its client', (await scope.findVisibleTask(personas.rohan, sharedTask.id)) === null);
+  check('soft-deleted task is invisible to project employee', (await scope.findVisibleTask(personas.aarav, sharedTask.id)) === null);
+  check('soft-deleted task is invisible to admin lists', !(await db.select().from(s.tasks).where(scope.taskScope(personas.admin))).some((t) => t.id === sharedTask.id));
+  check('super admin can list soft-deleted task', (await db.select().from(s.tasks).where(and(scope.taskScope(personas.superAdmin, { includeDeleted: true }), eq(s.tasks.id, sharedTask.id)))).length === 1);
+  check('includeDeleted is ignored for non-super-admins', (await db.select().from(s.tasks).where(and(scope.taskScope(personas.admin, { includeDeleted: true }), eq(s.tasks.id, sharedTask.id)))).length === 0);
+  await db.update(s.tasks).set({ deletedAt: null }).where(eq(s.tasks.id, sharedTask.id));
+  check('restored task is visible to its client again', (await scope.findVisibleTask(personas.rohan, sharedTask.id)) !== null);
+
+  console.log('\nRecords that must never be destroyed (database triggers)');
+  const expectBlocked = async (label: string, run: () => Promise<unknown>) => {
+    try {
+      await run();
+      check(label, false, 'statement succeeded');
+    } catch {
+      check(label, true);
+    }
+  };
+  const [anyInvoice] = await db.select().from(s.invoices).where(eq(s.invoices.number, 'ISH-2026-0001'));
+  await expectBlocked('invoices cannot be deleted', () => db.delete(s.invoices).where(eq(s.invoices.id, anyInvoice.id)));
+  await expectBlocked('issued invoice number cannot be changed', () => db.update(s.invoices).set({ number: 'ISH-2026-9999' }).where(eq(s.invoices.id, anyInvoice.id)));
+  await expectBlocked('payments cannot be deleted', () => db.delete(s.payments).where(eq(s.payments.invoiceId, anyInvoice.id)));
+  const [anyAudit] = await db.insert(s.auditLogs).values({ action: 'test.isolation_probe', metadata: {} }).returning();
+  {
+    await expectBlocked('audit log rows cannot be edited', () => db.update(s.auditLogs).set({ action: 'tampered' }).where(eq(s.auditLogs.id, anyAudit.id)));
+    await expectBlocked('audit log rows cannot be deleted', () => db.delete(s.auditLogs).where(eq(s.auditLogs.id, anyAudit.id)));
+  }
+  const [draft] = await db.select().from(s.invoices).where(eq(s.invoices.number, 'DRAFT-5EED0001'));
+  check('draft invoices exist with a provisional number only', Boolean(draft) && draft.status === 'draft');
+
+
   console.log('\nGlobal search never crosses tenants');
-  for (const term of ['Northwind', 'EKS', 'INV-2026', 'Zenith', 'Security', 'TKT', 'Kite']) {
+  for (const term of ['Northwind', 'EKS', 'ISH-2026', 'DRAFT', 'Zenith', 'Security', 'TKT', 'Kite', 'Maple', 'Harbor']) {
     const a = await searchEverything(personas.rohan, term);
     const b = await searchEverything(personas.ananya, term);
-    const aLeak = a.some((r) => /Zenith|Security Posture|INV-2026-000[45]|TKT-00003|Kite/.test(`${r.title} ${r.subtitle}`));
-    const bLeak = b.some((r) => /Northwind|EKS|CI\/CD|INV-2026-000[1-3]|TKT-0000[12]|INV-2026-0005|Kite/.test(`${r.title} ${r.subtitle}`));
+    const aLeak = a.some((r) => /Zenith|Security Posture|ISH-2026-000[4-6]|DRAFT-|TKT-00003|Kite|Maple|Harbor/.test(`${r.title} ${r.subtitle}`));
+    const bLeak = b.some((r) => /Northwind|EKS|CI\/CD|ISH-2026-000[1-35-6]|TKT-0000[12]|DRAFT-|Kite|Maple|Harbor/.test(`${r.title} ${r.subtitle}`));
     check(`search "${term}": no cross-tenant results`, !aLeak && !bLeak, JSON.stringify({ a, b }).slice(0, 400));
   }
 

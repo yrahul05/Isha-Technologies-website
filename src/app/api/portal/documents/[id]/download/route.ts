@@ -5,7 +5,7 @@ import { documentVersions } from '@/server/db/schema';
 import { getViewer } from '@/server/auth/viewer';
 import { findVisibleDocument } from '@/server/documents';
 import { isUuid } from '@/server/scope';
-import { presignDownload, readLocal, storageDriver } from '@/server/storage';
+import { storage } from '@/server/storage';
 import { audit } from '@/server/audit';
 import { fileKindFor } from '@/lib/portal/file-types';
 
@@ -16,9 +16,11 @@ export const runtime = 'nodejs';
  *
  * The only way to fetch a document's bytes. Authorises with the same
  * document scope as every listing (unknown or foreign ids → 404, never
- * 403, so ids can't be probed), audits the download, then either
- * redirects to a 60-second presigned S3 URL or streams the local file.
- * Inline display is limited to PDFs and images, served with a sandboxing CSP.
+ * 403, so ids can't be probed), refuses versions flagged by the malware
+ * scanner, audits the download, then either redirects to a 60-second
+ * presigned URL (S3) or streams the bytes from the provider that stored
+ * this version. Inline display is limited to PDFs and images, served with
+ * a sandboxing CSP.
  */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
@@ -38,6 +40,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .orderBy(desc(documentVersions.version))
     .limit(1);
   if (!version) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  if (version.scanStatus === 'infected') return NextResponse.json({ error: 'blocked' }, { status: 451 });
 
   const kind = fileKindFor(version.fileName);
   const inline = url.searchParams.get('inline') === '1' && Boolean(kind?.previewable);
@@ -45,17 +48,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     await audit(viewer, 'document.downloaded', { entityType: 'document', entityId: id, metadata: { version: version.version } });
   }
 
-  if (storageDriver() === 's3') {
-    const signed = await presignDownload(version.storageKey, version.fileName, version.mimeType, inline);
-    return NextResponse.redirect(signed, { status: 302, headers: { 'Cache-Control': 'private, no-store' } });
-  }
+  const result = await storage(version.storageDriver).download(version.storageKey, version.fileName, version.mimeType, inline);
+  if (!result) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  if ('redirect' in result) return NextResponse.redirect(result.redirect, { status: 302, headers: { 'Cache-Control': 'private, no-store' } });
 
-  const bytes = await readLocal(version.storageKey).catch(() => null);
-  if (!bytes) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  return new NextResponse(new Uint8Array(bytes), {
+  return new NextResponse(result.body, {
     headers: {
       'Content-Type': version.mimeType,
-      'Content-Length': String(bytes.length),
+      'Content-Length': String(result.size),
       'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(version.fileName)}`,
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',

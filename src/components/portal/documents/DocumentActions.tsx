@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import { Download, Eye, History, Pencil, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, Download, Eye, History, Pencil, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ActionForm, SelectField, SubmitButton, TextField } from '../forms';
-import { deleteDocumentAction, documentVersionsAction, updateDocumentAction } from '@/server/actions/documents';
+import { archiveDocumentAction, deleteDocumentAction, documentVersionsAction, updateDocumentAction } from '@/server/actions/documents';
 import { fileSize, fmtDateTime } from '@/lib/portal/format';
 import { UploadButton } from './Uploader';
 
@@ -153,6 +153,16 @@ export function DeleteDocumentButton({ id, name }: { id: string; name: string })
   return (
     <button type="button" onClick={() => setConfirming(true)} className={`${iconBtn} hover:border-rose-300 hover:text-rose-600`} aria-label={`Delete ${name}`}>
       <Trash2 className="h-4 w-4" />
+    </button>
+  );
+}
+
+export function ArchiveDocumentButton({ id, name, archived }: { id: string; name: string; archived: boolean }) {
+  const [pending, start] = useTransition();
+  const Icon = archived ? ArchiveRestore : Archive;
+  return (
+    <button type="button" disabled={pending} onClick={() => start(async () => void (await archiveDocumentAction(id, !archived)))} className={iconBtn} aria-label={`${archived ? 'Restore' : 'Archive'} ${name}`} title={archived ? 'Restore from archive' : 'Archive'}>
+      <Icon className="h-4 w-4" />
     </button>
   );
 }

@@ -14,7 +14,8 @@ const ROLE_DESCRIPTIONS = {
  * Idempotent: upserts roles & the permission catalogue. Default grants are
  * inserted only for roles that have no grants yet, so edits made in
  * Settings → Roles & Permissions survive redeploys. Super Admin always
- * receives every permission.
+ * receives every permission. Newly introduced permissions are granted to
+ * their default roles exactly once.
  */
 export async function syncRbac(db: Database) {
   for (const key of ROLE_KEYS) {
@@ -23,6 +24,8 @@ export async function syncRbac(db: Database) {
       .values({ key, name: ROLE_LABELS[key], description: ROLE_DESCRIPTIONS[key] })
       .onConflictDoUpdate({ target: roles.key, set: { name: ROLE_LABELS[key], description: ROLE_DESCRIPTIONS[key] } });
   }
+  const known = new Set(((await db.select({ key: permissions.key }).from(permissions)) as { key: string }[]).map((r) => r.key));
+  const introduced = PERMISSIONS.filter((p) => !known.has(p.key)).map((p) => p.key as string);
   for (const p of PERMISSIONS) {
     await db
       .insert(permissions)
@@ -34,6 +37,11 @@ export async function syncRbac(db: Database) {
     const n = Number((existing as unknown as { rows?: { n: number }[] }).rows?.[0]?.n ?? (existing as unknown as { n: number }[])[0]?.n ?? 0);
     if (role === 'super_admin' || n === 0) {
       for (const permission of DEFAULT_ROLE_PERMISSIONS[role]) {
+        await db.insert(rolePermissions).values({ role, permission }).onConflictDoNothing();
+      }
+    } else {
+      // Permissions introduced by this release get their default grant once; later edits in Settings stick.
+      for (const permission of DEFAULT_ROLE_PERMISSIONS[role].filter((x) => introduced.includes(x))) {
         await db.insert(rolePermissions).values({ role, permission }).onConflictDoNothing();
       }
     }

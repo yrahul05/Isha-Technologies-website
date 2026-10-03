@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ACCEPT_ATTR } from '@/lib/portal/file-types';
 import { fileSize } from '@/lib/portal/format';
-import { finalizeUploadAction, initUploadAction } from '@/server/actions/documents';
+import { finalizeUploadAction, initUploadAction, type ClientUploadPlan } from '@/server/actions/documents';
 
 export type UploadTarget = {
   documentId?: string;
@@ -21,7 +21,7 @@ export type UploadTarget = {
 
 type Row = { name: string; size: number; progress: number; state: 'uploading' | 'done' | 'error'; message?: string };
 
-function putWithProgress(url: string, headers: Record<string, string>, file: File, onProgress: (p: number) => void): Promise<void> {
+function putWithProgress(url: string, headers: Record<string, string>, file: Blob, onProgress: (p: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', url);
@@ -31,6 +31,21 @@ function putWithProgress(url: string, headers: Record<string, string>, file: Fil
     xhr.onerror = () => reject(new Error('Network error during upload'));
     xhr.send(file);
   });
+}
+
+/** Sends the bytes according to the server's plan for the configured StorageProvider. */
+async function sendFile(plan: ClientUploadPlan, file: File, onProgress: (p: number) => void): Promise<void> {
+  if (plan.mode === 'presigned') return putWithProgress(plan.url, plan.headers, file, onProgress);
+  if (plan.mode === 'blob-client') {
+    const { put } = await import('@vercel/blob/client');
+    await put(plan.pathname, file, { access: 'private', token: plan.clientToken, contentType: plan.contentType, onUploadProgress: (e) => onProgress(Math.round(e.percentage)) });
+    return;
+  }
+  // proxy: ≤ 4 MB parts to our own authenticated route
+  for (let part = 0; part < plan.parts; part++) {
+    const chunk = file.slice(part * plan.partSize, (part + 1) * plan.partSize);
+    await putWithProgress(`${plan.url}&part=${part}`, { 'Content-Type': 'application/octet-stream' }, chunk, (p) => onProgress(Math.round(((part + p / 100) / plan.parts) * 100)));
+  }
 }
 
 /**
@@ -54,7 +69,7 @@ export function UploadButton({ target, label = 'Upload', compact = false, multip
         try {
           const init = await initUploadAction({ fileName: file.name, size: file.size, target });
           if (!init.ok) throw new Error(init.error);
-          await putWithProgress(init.url, init.headers, file, (p) => patch(i, { progress: p }));
+          await sendFile(init.plan, file, (p) => patch(i, { progress: p }));
           const done = await finalizeUploadAction(init.uploadId);
           if (done.error) throw new Error(done.error);
           patch(i, { state: 'done', progress: 100 });

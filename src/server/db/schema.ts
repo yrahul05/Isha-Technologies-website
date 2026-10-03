@@ -16,6 +16,7 @@
 import { sql } from 'drizzle-orm';
 import {
   bigint,
+  customType,
   boolean,
   date,
   index,
@@ -82,7 +83,13 @@ export const ticketStatus = pgEnum('ticket_status', [
   'resolved',
   'closed',
 ]);
-export const meetingStatus = pgEnum('meeting_status', ['scheduled', 'cancelled', 'completed']);
+export const meetingStatus = pgEnum('meeting_status', ['requested', 'scheduled', 'rejected', 'cancelled', 'completed']);
+export const otpPurpose = pgEnum('otp_purpose', ['password_reset', 'password_change', 'email_change']);
+
+const bytea = customType<{ data: Buffer; driverData: Buffer | Uint8Array }>({
+  dataType: () => 'bytea',
+  fromDriver: (v) => (Buffer.isBuffer(v) ? v : Buffer.from(v)),
+});
 export const meetingProvider = pgEnum('meeting_provider', ['google_meet', 'manual']);
 export const notificationPriority = pgEnum('notification_priority', ['low', 'normal', 'high', 'urgent']);
 export const calendarEventType = pgEnum('calendar_event_type', ['holiday', 'event', 'deadline']);
@@ -165,6 +172,11 @@ export const users = pgTable(
     totpEnabled: boolean('totp_enabled').notNull().default(false),
     emailNotifications: boolean('email_notifications').notNull().default(true),
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+    /** Storage key of the profile photo (served only through /api/portal/avatars/:id). */
+    avatarKey: text('avatar_key'),
+    timezone: text('timezone').notNull().default('Asia/Kolkata'),
+    /** Per-category preferences ({ meeting: false, … }); security notices ignore them. */
+    notificationPrefs: jsonb('notification_prefs').notNull().default({}),
     passwordChangedAt: timestamp('password_changed_at', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -184,6 +196,8 @@ export const employees = pgTable('employees', {
   designation: text('designation'),
   joinedOn: date('joined_on'),
   weeklyCapacityHours: integer('weekly_capacity_hours').notNull().default(40),
+  /** Internal loaded cost per hour (INR paise) — drives project profitability. Never exposed to clients. */
+  hourlyCostPaise: money('hourly_cost_paise'),
   availability: availability('availability').notNull().default('available'),
   skills: text('skills').array().notNull().default(sql`'{}'::text[]`),
 });
@@ -334,7 +348,10 @@ export const projects = pgTable(
     startDate: date('start_date'),
     dueDate: date('due_date'),
     completedAt: timestamp('completed_at', { withTimezone: true }),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
     budgetPaise: money('budget_paise'),
+    /** Billing rate per hour (INR paise) used to value logged time against fixed budgets. */
+    hourlyRatePaise: money('hourly_rate_paise'),
     technologies: text('technologies').array().notNull().default(sql`'{}'::text[]`),
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
@@ -381,6 +398,11 @@ export const tasks = pgTable(
     /** `client` tasks are visible to the project's client users. */
     visibility: visibility('visibility').notNull().default('internal'),
     position: integer('position').notNull().default(0),
+    /** Set when the task came from an approved client request. */
+    requestId: uuid('request_id'),
+    /** Lifecycle: active → completed → archived; soft-deleted rows keep history. */
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
     estimateHours: numeric('estimate_hours', { precision: 6, scale: 1, mode: 'number' }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -443,6 +465,7 @@ export const documents = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
   },
   (t) => [
     index('documents_client_idx').on(t.clientId),
@@ -465,6 +488,10 @@ export const documentVersions = pgTable(
     mimeType: text('mime_type').notNull(),
     sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
     checksumSha256: text('checksum_sha256'),
+    /** Which StorageProvider holds the bytes (database, vercel-blob, s3, local). */
+    storageDriver: text('storage_driver').notNull().default('local'),
+    /** not_scanned | clean | infected — infected versions are never served. */
+    scanStatus: text('scan_status').notNull().default('not_scanned'),
     uploadedBy: uuid('uploaded_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
   },
@@ -515,6 +542,12 @@ export const invoices = pgTable(
     notes: text('notes').notNull().default(''),
     terms: text('terms').notNull().default(''),
     sentAt: timestamp('sent_at', { withTimezone: true }),
+    /** gst_auto | gst_intra (CGST+SGST) | gst_inter (IGST) | custom | none */
+    taxMode: text('tax_mode').notNull().default('gst_auto'),
+    /** Label for custom tax (e.g. "Sales tax", "GST/HST"). */
+    taxLabel: text('tax_label'),
+    /** domestic | international | none — which configured payment details print. */
+    paymentProfile: text('payment_profile').notNull().default('domestic'),
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -624,6 +657,9 @@ export const meetings = pgTable(
     title: text('title').notNull(),
     description: text('description').notNull().default(''),
     agenda: text('agenda').notNull().default(''),
+    /** Minutes written after the meeting; `minutesVisibility` decides whether the client sees them. */
+    minutes: text('minutes').notNull().default(''),
+    minutesVisibility: visibility('minutes_visibility').notNull().default('internal'),
     clientId: uuid('client_id').references(() => clients.id, { onDelete: 'set null' }),
     projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
     organizerId: uuid('organizer_id').references(() => users.id, { onDelete: 'set null' }),
@@ -632,6 +668,9 @@ export const meetings = pgTable(
     meetingLink: text('meeting_link'),
     provider: meetingProvider('provider').notNull().default('manual'),
     googleEventId: text('google_event_id'),
+    /** Client meeting requests: who asked, and the reviewer's note. */
+    requestedBy: uuid('requested_by').references(() => users.id, { onDelete: 'set null' }),
+    reviewNote: text('review_note'),
     status: meetingStatus('status').notNull().default('scheduled'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -850,6 +889,296 @@ export const settings = pgTable('settings', {
   updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
   updatedAt: updatedAt(),
 });
+
+// ---------------------------------------------------------------------------
+// Client work requests (client → Super Admin approval → task)
+// ---------------------------------------------------------------------------
+export const taskRequests = pgTable(
+  'task_requests',
+  {
+    id: id(),
+    clientId: uuid('client_id')
+      .notNull()
+      .references(() => clients.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    requestedBy: uuid('requested_by').references(() => users.id, { onDelete: 'set null' }),
+    title: text('title').notNull(),
+    description: text('description').notNull().default(''),
+    priority: priority('priority').notNull().default('medium'),
+    desiredDueDate: date('desired_due_date'),
+    status: reviewStatus('status').notNull().default('pending'),
+    reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewNote: text('review_note'),
+    taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('task_requests_client_idx').on(t.clientId), index('task_requests_status_idx').on(t.status)]
+);
+
+export const taskRequestComments = pgTable(
+  'task_request_comments',
+  {
+    id: id(),
+    requestId: uuid('request_id')
+      .notNull()
+      .references(() => taskRequests.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+    body: text('body').notNull(),
+    isInternal: boolean('is_internal').notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [index('task_request_comments_request_idx').on(t.requestId)]
+);
+
+// ---------------------------------------------------------------------------
+// One-time codes (email OTP). Only an HMAC of the code is stored.
+// ---------------------------------------------------------------------------
+export const otpCodes = pgTable(
+  'otp_codes',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    purpose: otpPurpose('purpose').notNull(),
+    codeHash: text('code_hash').notNull(),
+    /** Where it was sent (for email_change: the new address). */
+    target: text('target').notNull(),
+    attempts: integer('attempts').notNull().default(0),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('otp_codes_user_idx').on(t.userId, t.purpose, t.createdAt)]
+);
+
+// ---------------------------------------------------------------------------
+// Database storage driver: file bytes in ≤4 MB chunks, outside the source tree.
+// ---------------------------------------------------------------------------
+export const fileChunks = pgTable(
+  'file_chunks',
+  {
+    key: text('key').notNull(),
+    part: integer('part').notNull(),
+    data: bytea('data').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.key, t.part] })]
+);
+
+// ---------------------------------------------------------------------------
+// Sales: proposals & contracts
+// ---------------------------------------------------------------------------
+/** draft → sent → (viewed) → accepted → converted | rejected | expired */
+export const proposals = pgTable(
+  'proposals',
+  {
+    id: id(),
+    /** PRP-2026-0001 — issued when first sent; DRAFT-… until then. */
+    number: text('number').notNull(),
+    title: text('title').notNull(),
+    clientId: uuid('client_id').references(() => clients.id, { onDelete: 'restrict' }),
+    leadId: uuid('lead_id').references(() => leads.id, { onDelete: 'set null' }),
+    /** Set when the accepted proposal was converted to a project. */
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    status: text('status').notNull().default('draft'),
+    currency: text('currency').notNull().default('INR'),
+    summary: text('summary').notNull().default(''),
+    scope: text('scope').notNull().default(''),
+    terms: text('terms').notNull().default(''),
+    validUntil: date('valid_until'),
+    subtotalPaise: money('subtotal_paise'),
+    discountPaise: money('discount_paise'),
+    taxPaise: money('tax_paise'),
+    totalPaise: money('total_paise'),
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    viewedAt: timestamp('viewed_at', { withTimezone: true }),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    decidedBy: uuid('decided_by').references(() => users.id, { onDelete: 'set null' }),
+    decisionNote: text('decision_note'),
+    ownerId: uuid('owner_id').references(() => users.id, { onDelete: 'set null' }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('proposals_number_uq').on(t.number),
+    index('proposals_client_idx').on(t.clientId),
+    index('proposals_lead_idx').on(t.leadId),
+    index('proposals_status_idx').on(t.status),
+  ]
+);
+
+export const proposalItems = pgTable(
+  'proposal_items',
+  {
+    id: id(),
+    proposalId: uuid('proposal_id')
+      .notNull()
+      .references(() => proposals.id, { onDelete: 'cascade' }),
+    description: text('description').notNull(),
+    quantity: numeric('quantity', { precision: 12, scale: 2, mode: 'number' }).notNull(),
+    unitPricePaise: money('unit_price_paise'),
+    discountPct: numeric('discount_pct', { precision: 5, scale: 2, mode: 'number' }).notNull().default(0),
+    taxRatePct: numeric('tax_rate_pct', { precision: 5, scale: 2, mode: 'number' }).notNull().default(18),
+    amountPaise: money('amount_paise'),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [index('proposal_items_proposal_idx').on(t.proposalId)]
+);
+
+/** draft → active → expired | terminated | renewed. Client users only ever see non-draft contracts of their own account. */
+export const contracts = pgTable(
+  'contracts',
+  {
+    id: id(),
+    number: text('number').notNull(),
+    title: text('title').notNull(),
+    /** msa | sow | nda | amc | subscription | other */
+    kind: text('kind').notNull().default('sow'),
+    clientId: uuid('client_id')
+      .notNull()
+      .references(() => clients.id, { onDelete: 'restrict' }),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    proposalId: uuid('proposal_id').references(() => proposals.id, { onDelete: 'set null' }),
+    /** The signed PDF, stored through the normal (scanned, private) document pipeline. */
+    documentId: uuid('document_id').references(() => documents.id, { onDelete: 'set null' }),
+    status: text('status').notNull().default('draft'),
+    currency: text('currency').notNull().default('INR'),
+    valuePaise: money('value_paise'),
+    startDate: date('start_date'),
+    endDate: date('end_date'),
+    autoRenew: boolean('auto_renew').notNull().default(false),
+    renewalNoticeDays: integer('renewal_notice_days').notNull().default(30),
+    signedAt: timestamp('signed_at', { withTimezone: true }),
+    signedBy: text('signed_by'),
+    notes: text('notes').notNull().default(''),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('contracts_number_uq').on(t.number),
+    index('contracts_client_idx').on(t.clientId),
+    index('contracts_end_idx').on(t.endDate),
+  ]
+);
+
+// ---------------------------------------------------------------------------
+// Delivery: time tracking, meeting action items
+// ---------------------------------------------------------------------------
+export const timeEntries = pgTable(
+  'time_entries',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'restrict' }),
+    taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'set null' }),
+    workDate: date('work_date').notNull(),
+    minutes: integer('minutes').notNull(),
+    billable: boolean('billable').notNull().default(true),
+    note: text('note').notNull().default(''),
+    createdAt: createdAt(),
+  },
+  (t) => [index('time_entries_user_idx').on(t.userId, t.workDate), index('time_entries_project_idx').on(t.projectId)]
+);
+
+export const meetingActionItems = pgTable(
+  'meeting_action_items',
+  {
+    id: id(),
+    meetingId: uuid('meeting_id')
+      .notNull()
+      .references(() => meetings.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    assigneeId: uuid('assignee_id').references(() => users.id, { onDelete: 'set null' }),
+    dueDate: date('due_date'),
+    done: boolean('done').notNull().default(false),
+    /** Set once the action item has been promoted to a real project task. */
+    taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'set null' }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('meeting_action_items_meeting_idx').on(t.meetingId)]
+);
+
+// ---------------------------------------------------------------------------
+// Renewals, payment gateway, workflow automation
+// ---------------------------------------------------------------------------
+/** Things that expire and must be renewed (domains, SSL, hosting, licences, AMCs). Contracts feed the same Renewal Center. */
+export const renewalItems = pgTable(
+  'renewal_items',
+  {
+    id: id(),
+    clientId: uuid('client_id').references(() => clients.id, { onDelete: 'restrict' }),
+    /** domain | ssl | hosting | license | amc | subscription | other */
+    kind: text('kind').notNull().default('other'),
+    name: text('name').notNull(),
+    vendor: text('vendor'),
+    expiresOn: date('expires_on').notNull(),
+    costPaise: money('cost_paise'),
+    currency: text('currency').notNull().default('INR'),
+    autoRenew: boolean('auto_renew').notNull().default(false),
+    remindDays: integer('remind_days').notNull().default(30),
+    ownerId: uuid('owner_id').references(() => users.id, { onDelete: 'set null' }),
+    /** active | renewed | lapsed */
+    status: text('status').notNull().default('active'),
+    notes: text('notes').notNull().default(''),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('renewal_items_expires_idx').on(t.expiresOn), index('renewal_items_client_idx').on(t.clientId)]
+);
+
+/** One row per online payment attempt. An invoice is only credited by a verified webhook / server-side confirmation. */
+export const paymentOrders = pgTable(
+  'payment_orders',
+  {
+    id: id(),
+    invoiceId: uuid('invoice_id')
+      .notNull()
+      .references(() => invoices.id, { onDelete: 'restrict' }),
+    clientId: uuid('client_id')
+      .notNull()
+      .references(() => clients.id, { onDelete: 'restrict' }),
+    /** razorpay | stripe */
+    provider: text('provider').notNull(),
+    providerOrderId: text('provider_order_id').notNull(),
+    providerPaymentId: text('provider_payment_id'),
+    amountMinor: bigint('amount_minor', { mode: 'number' }).notNull(),
+    currency: text('currency').notNull(),
+    /** created | paid | failed */
+    status: text('status').notNull().default('created'),
+    paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('payment_orders_provider_order_uq').on(t.provider, t.providerOrderId),
+    index('payment_orders_invoice_idx').on(t.invoiceId),
+  ]
+);
+
+/** Dedup ledger so each automated reminder is sent once per (kind, entity, window). */
+export const reminderLog = pgTable(
+  'reminder_log',
+  {
+    id: id(),
+    kind: text('kind').notNull(),
+    entityId: uuid('entity_id').notNull(),
+    windowKey: text('window_key').notNull().default(''),
+    sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('reminder_log_uq').on(t.kind, t.entityId, t.windowKey)]
+);
 
 /** Atomic human-readable number sequences (invoice, ticket, project, client). */
 export const counters = pgTable('counters', {

@@ -19,17 +19,45 @@ export type SettingsMap = {
     postalCode: string;
     country: string;
   };
-  tax: { gstin: string; pan: string; stateCode: string; defaultTaxRatePct: number; sacCode: string };
+  tax: {
+    gstin: string;
+    pan: string;
+    /** Supplier's GST state code — decides CGST+SGST vs IGST in "auto" mode. */
+    stateCode: string;
+    /** GST slabs offered on INR invoices (configurable, not hard-coded). */
+    gstRates: number[];
+    defaultTaxRatePct: number;
+    sacCode: string;
+    /** Defaults for USD/CAD invoices (no Indian GST). */
+    internationalTaxLabel: string;
+    internationalTaxRatePct: number;
+  };
   invoice: {
     prefix: string;
+    defaultCurrency: 'INR' | 'USD' | 'CAD';
     defaultDueDays: number;
     defaultTerms: string;
     defaultNotes: string;
-    bankName: string;
-    bankAccountName: string;
-    bankAccountNumber: string;
-    bankIfsc: string;
-    upiId: string;
+    footer: string;
+    signatoryName: string;
+    signatoryTitle: string;
+  };
+  /** Display symbol per currency code (codes are fixed: INR, USD, CAD). */
+  currencies: { INR: string; USD: string; CAD: string };
+  /** Payment details printed on invoices; each field has a "show on invoice" flag. */
+  payment: {
+    domestic: { bankName: string; accountName: string; accountNumber: string; ifsc: string; branch: string; upiId: string; show: Record<string, boolean> };
+    international: {
+      bankName: string;
+      accountName: string;
+      accountNumber: string;
+      swift: string;
+      iban: string;
+      routing: string;
+      bankAddress: string;
+      instructions: string;
+      show: Record<string, boolean>;
+    };
   };
   notifications: { soundEnabled: boolean; pollSeconds: number; emailHighPriority: boolean };
   leads: { defaultAssigneeId: string | null; roundRobin: boolean };
@@ -52,17 +80,48 @@ export const DEFAULT_SETTINGS: SettingsMap = {
     postalCode: '',
     country: 'India',
   },
-  tax: { gstin: '', pan: '', stateCode: '08', defaultTaxRatePct: 18, sacCode: '998313' },
+  tax: {
+    gstin: '',
+    pan: '',
+    stateCode: '08',
+    gstRates: [0, 5, 12, 18, 28],
+    defaultTaxRatePct: 18,
+    sacCode: '998313',
+    internationalTaxLabel: 'Tax',
+    internationalTaxRatePct: 0,
+  },
   invoice: {
-    prefix: 'INV',
+    prefix: 'ISH',
+    defaultCurrency: 'INR',
     defaultDueDays: 15,
     defaultTerms: 'Payment due within 15 days of the invoice date. Late payments may attract interest as per agreement.',
     defaultNotes: 'Thank you for your business.',
-    bankName: '',
-    bankAccountName: '',
-    bankAccountNumber: '',
-    bankIfsc: '',
-    upiId: '',
+    footer: 'This is a computer-generated invoice.',
+    signatoryName: '',
+    signatoryTitle: 'Authorised Signatory',
+  },
+  currencies: { INR: '₹', USD: '$', CAD: 'CA$' },
+  payment: {
+    domestic: {
+      bankName: '',
+      accountName: '',
+      accountNumber: '',
+      ifsc: '',
+      branch: '',
+      upiId: '',
+      show: { bankName: true, accountName: true, accountNumber: true, ifsc: true, branch: true, upiId: true },
+    },
+    international: {
+      bankName: '',
+      accountName: '',
+      accountNumber: '',
+      swift: '',
+      iban: '',
+      routing: '',
+      bankAddress: '',
+      instructions: '',
+      show: { bankName: true, accountName: true, accountNumber: true, swift: true, iban: true, routing: true, bankAddress: true, instructions: true },
+    },
   },
   notifications: { soundEnabled: true, pollSeconds: 20, emailHighPriority: true },
   leads: { defaultAssigneeId: null, roundRobin: true },

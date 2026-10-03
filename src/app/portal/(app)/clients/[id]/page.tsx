@@ -12,7 +12,7 @@ import { projectProgress } from '@/server/queries/common';
 import { Avatar, Badge, EmptyState, KeyValue, PageHeader, Panel, ProgressBar, StatCard, StatusBadge, Table, Tabs, Td, Th, Timeline, Tr } from '@/components/portal/ui';
 import { AddClientLoginButton, EditClientButton, UserAccessControls } from '@/components/portal/clients/ClientDialogs';
 import { NoteForm } from '@/components/portal/clients/NoteForm';
-import { deriveInvoiceStatus, formatINR } from '@/lib/portal/invoice-math';
+import { deriveInvoiceStatus, formatMoney, formatMulti, sumByCurrency } from '@/lib/portal/invoice-math';
 import { fmtDate, fmtDateTime, humanize, relativeTime } from '@/lib/portal/format';
 
 export const metadata: Metadata = { title: 'Client' };
@@ -37,7 +37,7 @@ export default async function ClientProfilePage({ params, searchParams }: { para
     finance ? db.select().from(invoices).where(and(eq(invoices.clientId, id), invoiceScope(viewer))).orderBy(desc(invoices.issueDate)) : Promise.resolve([]),
     finance
       ? db
-          .select({ p: payments, number: invoices.number, by: users.name })
+          .select({ p: payments, number: invoices.number, currency: invoices.currency, by: users.name })
           .from(payments)
           .innerJoin(invoices, eq(invoices.id, payments.invoiceId))
           .leftJoin(users, eq(users.id, payments.recordedBy))
@@ -67,9 +67,10 @@ export default async function ClientProfilePage({ params, searchParams }: { para
   const managers = manage ? await internalPeople(viewer) : [];
 
   const billed = invoiceRows.filter((i) => i.status !== 'draft' && i.status !== 'cancelled');
-  const lifetimeBilled = billed.reduce((s, i) => s + i.totalPaise, 0);
-  const lifetimePaid = paymentRows.reduce((s, r) => s + r.p.amountPaise, 0);
-  const due = billed.reduce((s, i) => s + Math.max(0, i.totalPaise - i.paidPaise), 0);
+  const lifetimeBilled = sumByCurrency(billed, (i) => i.currency, (i) => i.totalPaise);
+  const lifetimePaid = sumByCurrency(paymentRows, (r) => r.currency, (r) => r.p.amountPaise);
+  const dueMap = sumByCurrency(billed, (i) => i.currency, (i) => Math.max(0, i.totalPaise - i.paidPaise));
+  const due = [...dueMap.values()].some((v) => v > 0);
 
   const tabs = [
     { key: 'overview', label: 'Overview' },
@@ -116,9 +117,9 @@ export default async function ClientProfilePage({ params, searchParams }: { para
           <div className="space-y-6 xl:col-span-2">
             {finance && (
               <div className="grid gap-3 sm:grid-cols-3">
-                <StatCard label="Lifetime billed" value={formatINR(lifetimeBilled, { compact: true })} icon={ReceiptIndianRupee} />
-                <StatCard label="Lifetime paid" value={formatINR(lifetimePaid, { compact: true })} icon={ReceiptIndianRupee} tone="green" />
-                <StatCard label="Amount due" value={formatINR(due, { compact: true })} icon={ReceiptIndianRupee} tone={due ? 'amber' : 'slate'} />
+                <StatCard label="Lifetime billed" value={formatMulti(lifetimeBilled)} icon={ReceiptIndianRupee} />
+                <StatCard label="Lifetime paid" value={formatMulti(lifetimePaid)} icon={ReceiptIndianRupee} tone="green" />
+                <StatCard label="Amount due" value={formatMulti(dueMap)} icon={ReceiptIndianRupee} tone={due ? 'amber' : 'slate'} />
               </div>
             )}
             <Panel title="Company details">
@@ -204,9 +205,9 @@ export default async function ClientProfilePage({ params, searchParams }: { para
                     </Td>
                     <Td>{fmtDate(i.issueDate)}</Td>
                     <Td>{fmtDate(i.dueDate)}</Td>
-                    <Td className="text-right tabular-nums">{formatINR(i.totalPaise)}</Td>
-                    <Td className="text-right tabular-nums">{formatINR(i.paidPaise)}</Td>
-                    <Td className="text-right font-semibold tabular-nums">{formatINR(Math.max(0, i.totalPaise - i.paidPaise))}</Td>
+                    <Td className="text-right tabular-nums">{formatMoney(i.totalPaise, i.currency)}</Td>
+                    <Td className="text-right tabular-nums">{formatMoney(i.paidPaise, i.currency)}</Td>
+                    <Td className="text-right font-semibold tabular-nums">{formatMoney(Math.max(0, i.totalPaise - i.paidPaise), i.currency)}</Td>
                     <Td>
                       <StatusBadge status={deriveInvoiceStatus(i)} />
                     </Td>
@@ -219,7 +220,7 @@ export default async function ClientProfilePage({ params, searchParams }: { para
       )}
 
       {tab === 'payments' && finance && (
-        <Panel title="Payment history" description={`Complete lifetime record · ${formatINR(lifetimePaid)} received`}>
+        <Panel title="Payment history" description={`Complete lifetime record · ${formatMulti(lifetimePaid, { compact: false })} received`}>
           {paymentRows.length === 0 ? (
             <EmptyState icon={ReceiptIndianRupee} title="No payments recorded" />
           ) : (
@@ -235,7 +236,7 @@ export default async function ClientProfilePage({ params, searchParams }: { para
                 </tr>
               </thead>
               <tbody>
-                {paymentRows.map(({ p, number, by }) => (
+                {paymentRows.map(({ p, number, currency, by }) => (
                   <Tr key={p.id}>
                     <Td>{fmtDate(p.paidOn)}</Td>
                     <Td>
@@ -246,7 +247,7 @@ export default async function ClientProfilePage({ params, searchParams }: { para
                     <Td>{humanize(p.method)}</Td>
                     <Td className="font-mono text-xs">{p.reference ?? '—'}</Td>
                     <Td>{by ?? '—'}</Td>
-                    <Td className="text-right font-semibold tabular-nums text-emerald-700">{formatINR(p.amountPaise)}</Td>
+                    <Td className="text-right font-semibold tabular-nums text-emerald-700">{formatMoney(p.amountPaise, currency)}</Td>
                   </Tr>
                 ))}
               </tbody>

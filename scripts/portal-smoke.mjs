@@ -12,6 +12,10 @@
  * each persona can and cannot reach over HTTP. No dependencies.
  */
 const base = (process.argv[2] || process.env.SMOKE_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+if (!['localhost', '127.0.0.1'].includes(new URL(base).hostname) && process.env.ALLOW_TEST_ON_REMOTE_DB !== '1') {
+  console.error(`Refusing to run the smoke test against ${base}: it creates test records. Use a local server (npm run start) on a local database.`);
+  process.exit(1);
+}
 const PASSWORD = process.env.SMOKE_PASSWORD || 'Isha@Demo2026!';
 let failures = 0;
 let passes = 0;
@@ -122,6 +126,7 @@ async function main() {
     ['kabir', 'kabir@ishatechnologies.in'],
     ['rohan', 'rohan@northwind.example'],
     ['ananya', 'ananya@zenith.example'],
+    ['liam', 'liam@maple.example'],
   ]) {
     const { s, res } = await login(email);
     const ok = res.status === 303 && /\/portal\/dashboard/.test(res.headers.get('location') || '') && s.header().includes('isha_session');
@@ -140,9 +145,9 @@ async function main() {
   check('employee dashboard never mentions Client B', !/Zenith/.test(emp));
   const cli = await text(await personas.rohan.get('/portal/dashboard'));
   check('client A dashboard shows own projects', /EKS Platform Migration/.test(cli));
-  check('client A dashboard shows nothing of Client B', !/Zenith|Security Posture|INV-2026-0004/.test(cli));
+  check('client A dashboard shows nothing of Client B', !/Zenith|Security Posture|ISH-2026-000[4-6]|Maple|Harbor/.test(cli));
   const cliB = await text(await personas.ananya.get('/portal/dashboard'));
-  check('client B dashboard shows nothing of Client A', !/Northwind|EKS Platform|INV-2026-000[123]/.test(cliB));
+  check('client B dashboard shows nothing of Client A', !/Northwind|EKS Platform|ISH-2026-000[1235]|Maple|Harbor/.test(cliB));
 
   console.log('\nDirect-URL isolation (IDs of other tenants)');
   const adminProjects = await text(await personas.superAdmin.get('/portal/projects'));
@@ -162,18 +167,69 @@ async function main() {
   const invoiceIds = [...new Set([...adminInvoices.matchAll(/\/portal\/invoices\/([0-9a-f-]{36})/g)].map((m) => m[1]))];
   for (const id of invoiceIds) {
     const page = await text(await personas.superAdmin.get(`/portal/invoices/${id}`));
-    const client = /Zenith/.test(page) ? 'zenith' : 'northwind';
+    const client = /Zenith/.test(page) ? 'zenith' : /Northwind/.test(page) ? 'northwind' : 'other';
     const pdfA = await personas.rohan.get(`/api/portal/invoices/${id}/pdf`);
     const pdfB = await personas.ananya.get(`/api/portal/invoices/${id}/pdf`);
     if (client === 'northwind') {
       check(`client A can download own invoice PDF`, pdfA.status === 200 && pdfA.headers.get('content-type') === 'application/pdf', pdfA.status);
       check(`client B cannot download Client A invoice PDF`, pdfB.status === 404, pdfB.status);
     } else {
-      check(`client A cannot download Client B invoice PDF`, pdfA.status === 404, pdfA.status);
+      check(`client A cannot download another client's invoice PDF`, pdfA.status === 404, pdfA.status);
     }
+    if (client !== 'other') check('Canadian client cannot download an Indian client invoice PDF', (await personas.liam.get(`/api/portal/invoices/${id}/pdf`)).status === 404);
     const emp404 = await personas.aarav.get(`/api/portal/invoices/${id}/pdf`);
     check('employee cannot download any invoice PDF', emp404.status === 404, emp404.status);
   }
+
+  console.log('\nUnauthorized URL / API access to every entity (ids harvested from a Super Admin session)');
+  const idsOn = async (who, path, re) => [...new Set([...(await text(await personas[who].get(path))).matchAll(re)].map((m) => m[1]))];
+  const UUID = '([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})';
+  for (const [entity, listPath, detail] of [
+    ['task', '/portal/tasks?view=list', (id) => `/portal/tasks/${id}`],
+    ['ticket', '/portal/tickets', (id) => `/portal/tickets/${id}`],
+    ['meeting', '/portal/meetings', (id) => `/portal/meetings/${id}`],
+    ['work request', '/portal/requests?filter=all', (id) => `/portal/requests/${id}`],
+    ['client', '/portal/clients', (id) => `/portal/clients/${id}`],
+  ]) {
+    const prefix = detail('X').replace(/X$/, '').replace(/\//g, '\\/');
+    const all = await idsOn('superAdmin', listPath, new RegExp(`${prefix}${UUID}`, 'g'));
+    check(`super admin lists ${entity} ids`, all.length > 0, all.length);
+    for (const who of ['rohan', 'ananya', 'liam', 'aarav']) {
+      const own = new Set(await idsOn(who, listPath, new RegExp(`${prefix}${UUID}`, 'g')));
+      let leaks = 0;
+      for (const id of all.filter((x) => !own.has(x))) {
+        const r = await personas[who].get(detail(id));
+        if (r.status !== 404) leaks += 1;
+      }
+      check(`${who} cannot open any ${entity} outside their scope by URL`, leaks === 0, `${leaks} opened`);
+    }
+  }
+
+  const docIds = await idsOn('superAdmin', '/portal/documents', new RegExp(`/api/portal/documents/${UUID}/download`, 'g'));
+  check('super admin lists document ids', docIds.length > 0);
+  for (const who of ['rohan', 'ananya', 'liam']) {
+    const own = new Set(await idsOn(who, '/portal/documents', new RegExp(`/api/portal/documents/${UUID}/download`, 'g')));
+    let leaks = 0;
+    for (const id of docIds.filter((x) => !own.has(x))) {
+      const r = await personas[who].get(`/api/portal/documents/${id}/download`);
+      if (r.status !== 404) leaks += 1;
+    }
+    check(`${who} cannot download documents outside their account (404)`, leaks === 0, `${leaks} not 404`);
+  }
+  const anonDoc = await anon.get(`/api/portal/documents/${docIds[0]}/download`);
+  check('document download without a session → 401', anonDoc.status === 401, anonDoc.status);
+
+  console.log('\nRestricted APIs');
+  const someUser = '00000000-0000-4000-8000-000000000000';
+  check('avatar API without session → 401', (await anon.get(`/api/portal/avatars/${someUser}`)).status === 401);
+  const kabirId = (await (await personas.kabir.get('/portal/settings')).text()).match(/\/api\/portal\/avatars\/([0-9a-f-]{36})/)?.[1];
+  check('unknown/foreign avatar → 404', (await personas.rohan.get(`/api/portal/avatars/${kabirId ?? someUser}`)).status === 404);
+  const forged = await fetch(`${base}/api/portal/avatar`, { method: 'POST', headers: { cookie: personas.rohan.header(), origin: 'https://evil.example' }, body: new FormData() });
+  check('cross-site avatar upload → 403', forged.status === 403, forged.status);
+  const badUpload = await fetch(`${base}/api/portal/uploads/${someUser}?token=forged&part=0`, { method: 'PUT', headers: { cookie: personas.rohan.header(), origin: base }, body: 'x' });
+  check('upload with forged token → 403', badUpload.status === 403, badUpload.status);
+  const cronNoSecret = await anon.get('/api/portal/cron/daily');
+  check('cron endpoint without secret → 401/403', [401, 403].includes(cronNoSecret.status), cronNoSecret.status);
 
   console.log('\nRestricted sections');
   for (const [who, path, expected] of [
@@ -186,15 +242,41 @@ async function main() {
     ['admin', '/portal/audit', 404],
     ['superAdmin', '/portal/audit', 200],
     ['superAdmin', '/portal/settings', 200],
+    ['superAdmin', '/portal/security', 200],
+    ['admin', '/portal/security', 404],
+    ['aarav', '/portal/security', 404],
+    ['rohan', '/portal/security', 404],
+    ['aarav', '/portal/requests', 404],
+    ['rohan', '/portal/requests', 200],
+    ['superAdmin', '/portal/requests', 200],
+    // Business modules: internal-only pages are invisible to clients and unprivileged staff.
+    ['rohan', '/portal/analytics', 404],
+    ['rohan', '/portal/profitability', 404],
+    ['rohan', '/portal/renewals', 404],
+    ['rohan', '/portal/time', 404],
+    ['aarav', '/portal/analytics', 404],
+    ['aarav', '/portal/profitability', 404],
+    ['aarav', '/portal/renewals', 404],
+    ['aarav', '/portal/time', 200],
+    ['rohan', '/portal/proposals', 200],
+    ['rohan', '/portal/contracts', 200],
+    ['rohan', '/portal/assistant', 200],
+    ['superAdmin', '/portal/analytics', 200],
+    ['superAdmin', '/portal/profitability', 200],
+    ['superAdmin', '/portal/renewals', 200],
+    ['superAdmin', '/portal/proposals', 200],
+    ['superAdmin', '/portal/contracts', 200],
+    ['superAdmin', '/portal/time', 200],
+    ['superAdmin', '/portal/assistant', 200],
   ]) {
     const r = await personas[who].get(path);
     check(`${who} ${path} → ${expected}`, r.status === expected, r.status);
   }
 
   console.log('\nSearch API');
-  const sA = await (await personas.rohan.get('/api/portal/search?q=INV-2026')).json();
-  check('client A search finds own invoices', sA.results.some((r) => r.title === 'INV-2026-0001'));
-  check('client A search never returns Client B invoices', !sA.results.some((r) => /INV-2026-000[45]/.test(r.title)));
+  const sA = await (await personas.rohan.get('/api/portal/search?q=ISH-2026')).json();
+  check('client A search finds own invoices', sA.results.some((r) => r.title === 'ISH-2026-0001'));
+  check('client A search never returns Client B invoices', !sA.results.some((r) => /ISH-2026-000[4-6]|DRAFT-/.test(r.title)));
   const sK = await (await personas.kabir.get('/api/portal/search?q=EKS')).json();
   check('Zenith employee search for "EKS" returns nothing', sK.results.length === 0, JSON.stringify(sK.results));
 

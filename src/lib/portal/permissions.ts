@@ -27,6 +27,7 @@ export const PERMISSIONS = [
   { key: 'projects.manage', label: 'Create & edit projects, assign members', group: 'Projects' },
   { key: 'tasks.view_all', label: 'View every task', group: 'Tasks' },
   { key: 'tasks.manage', label: 'Create, assign & edit any task', group: 'Tasks' },
+  { key: 'task_requests.review', label: 'Approve or reject client work requests', group: 'Tasks' },
   { key: 'documents.view_all', label: 'View every document', group: 'Documents' },
   { key: 'documents.manage', label: 'Upload, rename & delete documents', group: 'Documents' },
   { key: 'invoices.view', label: 'View invoices & payments', group: 'Finance' },
@@ -41,11 +42,22 @@ export const PERMISSIONS = [
   { key: 'leave.review', label: 'Approve leave requests', group: 'Team' },
   { key: 'leads.view', label: 'View all leads', group: 'CRM' },
   { key: 'leads.manage', label: 'Create, assign & edit leads', group: 'CRM' },
+  { key: 'proposals.view', label: 'View all proposals & quotations', group: 'CRM' },
+  { key: 'proposals.manage', label: 'Create, send & convert proposals', group: 'CRM' },
+  { key: 'contracts.view', label: 'View all contracts', group: 'CRM' },
+  { key: 'contracts.manage', label: 'Create & edit contracts', group: 'CRM' },
+  { key: 'time.log', label: 'Log own working time', group: 'Delivery' },
+  { key: 'time.view_all', label: 'View all timesheets & project profitability', group: 'Delivery' },
+  { key: 'renewals.view', label: 'View the Renewal & Expiry Center', group: 'Finance' },
+  { key: 'renewals.manage', label: 'Create & edit renewals', group: 'Finance' },
+  { key: 'analytics.view', label: 'View executive business analytics', group: 'Governance' },
+  { key: 'ai.use', label: 'Use the Isha AI assistant', group: 'Governance' },
   { key: 'notifications.send', label: 'Send targeted notifications & announcements', group: 'Communication' },
   { key: 'calendar.manage', label: 'Manage holidays & company events', group: 'Communication' },
   { key: 'change_requests.review', label: 'Approve client change requests', group: 'Governance' },
   { key: 'reports.view', label: 'View business reports', group: 'Governance' },
   { key: 'audit.view', label: 'View audit logs', group: 'Governance' },
+  { key: 'security.manage', label: 'Security dashboard & revoke user sessions', group: 'Governance' },
   { key: 'settings.manage', label: 'Manage system settings', group: 'Governance' },
 ] as const;
 
@@ -56,8 +68,10 @@ const ALL = PERMISSIONS.map((p) => p.key) as Permission[];
 /** Seeded defaults. Super Admin is implicit-all in code; Admin/Employee are editable in Settings. */
 export const DEFAULT_ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
   super_admin: ALL,
-  admin: ALL.filter((p) => p !== 'audit.view' && p !== 'settings.manage'),
-  employee: ['team.view'],
+  // Client work requests are reviewed by the Super Admin by default; grant
+  // task_requests.review to Admin in Settings to delegate it.
+  admin: ALL.filter((p) => !['audit.view', 'settings.manage', 'security.manage', 'task_requests.review'].includes(p)),
+  employee: ['team.view', 'time.log', 'ai.use'],
   client: [],
 };
 

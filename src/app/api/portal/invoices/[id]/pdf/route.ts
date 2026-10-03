@@ -19,7 +19,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const data = await getVisibleInvoice(viewer, id);
   if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
-  const [company, tax, invoiceSettings] = await Promise.all([getSetting('company'), getSetting('tax'), getSetting('invoice')]);
+  const [company, tax, invoiceSettings, currencies, payment] = await Promise.all([getSetting('company'), getSetting('tax'), getSetting('invoice'), getSetting('currencies'), getSetting('payment')]);
   const bytes = await renderInvoicePdf(
     {
       ...data.inv,
@@ -28,9 +28,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       items: data.items,
       payments: data.payments.map((r) => ({ paidOn: r.p.paidOn, amountPaise: r.p.amountPaise, method: r.p.method, reference: r.p.reference })),
     },
-    company,
-    tax,
-    invoiceSettings
+    { company, tax, invoice: invoiceSettings, currencies, payment }
   );
   await audit(viewer, 'invoice.downloaded', { entityType: 'invoice', entityId: id, metadata: { number: data.inv.number } });
 

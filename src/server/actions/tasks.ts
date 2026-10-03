@@ -181,16 +181,73 @@ async function statusSideEffects(viewer: Viewer, task: typeof tasks.$inferSelect
   }
 }
 
+// ─── Lifecycle: active → completed → archived; soft delete; Super Admin purge ──
+/** Snapshot kept in the audit log whenever a task leaves the active list. */
+function snapshot(t: typeof tasks.$inferSelect) {
+  return { title: t.title, projectId: t.projectId, status: t.status, assigneeId: t.assigneeId, completedAt: t.completedAt, requestId: t.requestId };
+}
+
+export async function archiveTaskAction(taskId: string, archive: boolean): Promise<ActionState> {
+  return guarded(async () => {
+    const viewer = await requireViewerOrThrow();
+    assertCan(viewer, 'tasks.manage');
+    const task = await findVisibleTask(viewer, taskId);
+    if (!task) throw new ForbiddenError();
+    if (archive && task.status !== 'completed') return { error: 'Only completed tasks can be archived.' };
+    await db.update(tasks).set({ archivedAt: archive ? new Date() : null }).where(eq(tasks.id, taskId));
+    await audit(viewer, archive ? 'task.archived' : 'task.restored', { entityType: 'task', entityId: taskId, metadata: snapshot(task) });
+    revalidatePath('/portal/tasks');
+    revalidatePath(`/portal/tasks/${taskId}`);
+    return { ok: true, message: archive ? 'Task archived. It stays in history and can be restored.' : 'Task restored.' };
+  });
+}
+
+/** Soft delete (Admin/Super Admin): hidden everywhere, recoverable by a Super Admin, full audit snapshot kept. */
 export async function deleteTaskAction(taskId: string): Promise<ActionState> {
   return guarded(async () => {
     const viewer = await requireViewerOrThrow();
     assertCan(viewer, 'tasks.manage');
     const task = await findVisibleTask(viewer, taskId);
     if (!task) throw new ForbiddenError();
-    await db.delete(tasks).where(eq(tasks.id, taskId));
-    await audit(viewer, 'task.deleted', { entityType: 'task', entityId: taskId, metadata: { title: task.title, projectId: task.projectId } });
+    await db.update(tasks).set({ deletedAt: new Date() }).where(eq(tasks.id, taskId));
+    await audit(viewer, 'task.deleted', { entityType: 'task', entityId: taskId, metadata: { ...snapshot(task), soft: true } });
     revalidatePath('/portal/tasks');
-    return { ok: true };
+    return { ok: true, message: 'Task moved to Recently deleted.' };
+  });
+}
+
+export async function restoreDeletedTaskAction(taskId: string): Promise<ActionState> {
+  return guarded(async () => {
+    const viewer = await requireViewerOrThrow();
+    if (!viewer.isSuperAdmin) throw new ForbiddenError();
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId));
+    if (!task?.deletedAt) return { error: 'Task not found in Recently deleted.' };
+    await db.update(tasks).set({ deletedAt: null }).where(eq(tasks.id, taskId));
+    await audit(viewer, 'task.restored', { entityType: 'task', entityId: taskId, metadata: snapshot(task) });
+    revalidatePath('/portal/tasks');
+    return { ok: true, message: 'Task restored.' };
+  });
+}
+
+/**
+ * Permanent deletion — Super Admin only, only after a soft delete, and the
+ * caller must type the task title to confirm. Comments/checklist go with
+ * it; the audit log keeps a full snapshot (audit rows can't be deleted).
+ */
+export async function purgeTaskAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return guarded(async () => {
+    const viewer = await requireViewerOrThrow();
+    if (!viewer.isSuperAdmin) throw new ForbiddenError('Only a Super Admin can permanently delete tasks.');
+    const id = String(form.get('id') ?? '');
+    if (!z.uuid().safeParse(id).success) return { error: 'Invalid task.' };
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+    if (!task) return { error: 'Task not found.' };
+    if (!task.deletedAt) return { error: 'Delete the task first; permanent deletion is only available from Recently deleted.' };
+    if (String(form.get('confirm') ?? '').trim() !== task.title) return { fieldErrors: { confirm: 'Type the task title exactly to confirm.' } };
+    await audit(viewer, 'task.purged', { entityType: 'task', entityId: id, metadata: { ...snapshot(task), description: task.description } });
+    await db.delete(tasks).where(eq(tasks.id, id));
+    revalidatePath('/portal/tasks');
+    return { ok: true, message: 'Task permanently deleted. The audit log keeps a record of it.' };
   });
 }
 

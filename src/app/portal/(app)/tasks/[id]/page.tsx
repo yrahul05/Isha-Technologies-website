@@ -5,12 +5,13 @@ import { and, asc, desc, eq } from 'drizzle-orm';
 import { ArrowLeft, Eye, Lock, Paperclip } from 'lucide-react';
 import { db } from '@/server/db';
 import { activities, documents, projects, taskChecklistItems, taskComments, users } from '@/server/db/schema';
-import { requireViewer } from '@/server/auth/viewer';
+import { can, requireViewer } from '@/server/auth/viewer';
 import { canEditTask, documentScope, findVisibleTask, isUuid } from '@/server/scope';
 import { internalPeople } from '@/server/queries/people';
 import { Avatar, Badge, KeyValue, PageHeader, Panel, StatusBadge, Timeline } from '@/components/portal/ui';
 import { Checklist, CommentComposer } from '@/components/portal/tasks/TaskInteractive';
 import { TaskEditForm } from '@/components/portal/tasks/TaskForm';
+import { ArchiveTaskButton, DeleteTaskButton } from '@/components/portal/tasks/TaskLifecycle';
 import { DocumentRowList } from '@/components/portal/documents/DocumentRowList';
 import { UploadButton } from '@/components/portal/documents/Uploader';
 import { fmtDate, fmtDateTime, relativeTime } from '@/lib/portal/format';
@@ -58,6 +59,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
             <StatusBadge status={task.status} />
+            {task.archivedAt && <StatusBadge status="archived" label="Archived" />}
             <StatusBadge status={task.priority} />
             {viewer.isInternal &&
               (task.visibility === 'client' ? (
@@ -70,6 +72,14 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                 </Badge>
               ))}
           </span>
+        }
+        actions={
+          can(viewer, 'tasks.manage') ? (
+            <>
+              {(task.status === 'completed' || task.archivedAt) && <ArchiveTaskButton id={task.id} archived={Boolean(task.archivedAt)} />}
+              <DeleteTaskButton id={task.id} />
+            </>
+          ) : null
         }
       />
       <div className="grid gap-6 xl:grid-cols-3">

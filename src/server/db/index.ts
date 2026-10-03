@@ -33,12 +33,17 @@ export function isDatabaseConfigured(): boolean {
 function createDb(): Database {
   const url = process.env.DATABASE_URL;
   if (url) {
+    // Supabase Supavisor (transaction mode, port 6543) requires `prepare: false`
+    // and TLS. On Vercel each function instance gets ONE connection — the pooler
+    // fans in across instances — while long-lived servers keep a small pool.
+    // One client per process (see globalForDb above), never one per request.
+    const local = ['localhost', '127.0.0.1', '::1'].includes(new URL(url).hostname);
     const client = postgres(url, {
-      // Serverless: keep the per-instance pool small; poolers (Neon, Supavisor)
-      // handle fan-in. `prepare: false` keeps transaction-mode poolers happy.
-      max: Number(process.env.DATABASE_POOL_MAX || 5),
+      max: Number(process.env.DATABASE_POOL_MAX || (process.env.VERCEL ? 1 : 5)),
       prepare: false,
       idle_timeout: 20,
+      connect_timeout: 15,
+      ssl: local ? false : 'require',
     });
     holder.close = () => client.end();
     return drizzlePostgres(client, { schema }) as unknown as Database;

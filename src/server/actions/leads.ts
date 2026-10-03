@@ -5,12 +5,12 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { db } from '@/server/db';
-import { clients, leads, users } from '@/server/db/schema';
+import { leads, users } from '@/server/db/schema';
 import { assertCan, can, ForbiddenError, requireViewerOrThrow, type Viewer } from '@/server/auth/viewer';
 import { leadScope } from '@/server/scope';
 import { audit, recordActivity } from '@/server/audit';
 import { notifyUsers } from '@/server/notify';
-import { nextCounter } from '@/server/settings';
+import { ensureClientFromLead } from '@/server/sales';
 import { rupeesToPaise } from '@/lib/portal/invoice-math';
 import { guarded, parseForm } from './helpers';
 import type { ActionState } from './types';
@@ -149,16 +149,7 @@ export async function convertLeadAction(id: string): Promise<ActionState> {
       clientId = lead.convertedClientId;
       return { ok: true };
     }
-    const n = await nextCounter('client');
-    const [client] = await db
-      .insert(clients)
-      .values({ code: `CL-${String(n).padStart(4, '0')}`, companyName: lead.company || lead.name, contactName: lead.name, email: lead.email, phone: lead.phone, status: 'onboarding', accountManagerId: lead.assignedTo, leadId: lead.id })
-      .returning({ id: clients.id });
-    await db.update(leads).set({ status: 'won', convertedClientId: client.id }).where(eq(leads.id, id));
-    await recordActivity({ entityType: 'lead', entityId: id, leadId: id, actorId: viewer.id, summary: 'Converted to client — onboarding started' });
-    await recordActivity({ entityType: 'client', entityId: client.id, clientId: client.id, actorId: viewer.id, summary: `Client created from lead ${lead.name}` });
-    await audit(viewer, 'lead.converted', { entityType: 'lead', entityId: id, metadata: { clientId: client.id } });
-    clientId = client.id;
+    clientId = await ensureClientFromLead(viewer, lead);
     return { ok: true };
   });
   if (clientId) redirect(`/portal/clients/${clientId}?tab=users`);

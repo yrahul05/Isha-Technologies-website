@@ -31,6 +31,7 @@ import {
   ticketScope,
 } from '@/server/scope';
 import { todayIST } from '@/lib/portal/format';
+import { formatMulti, sumByCurrency } from '@/lib/portal/invoice-math';
 import { projectProgress, projectTeams } from './common';
 
 const OPEN_TICKET = ['open', 'in_progress', 'waiting_for_client'] as const;
@@ -147,29 +148,39 @@ export async function getExecutiveDashboard(v: Viewer) {
   let financeData = null;
   if (finance) {
     const since = `${months[0].key}-01`;
-    const [[out], [collected], monthly, [overdueInv]] = await Promise.all([
+    // Every money aggregate is grouped by currency — rupees are never added to dollars.
+    const [out, collected, monthly, overdueInv] = await Promise.all([
       db
-        .select({ n: count(), amount: sql<number>`coalesce(sum(${invoices.totalPaise} - ${invoices.paidPaise}), 0)::bigint` })
+        .select({ currency: invoices.currency, n: count(), amount: sql<number>`coalesce(sum(${invoices.totalPaise} - ${invoices.paidPaise}), 0)::bigint` })
         .from(invoices)
-        .where(and(invoiceScope(v), inArray(invoices.status, [...BILLABLE]), sql`${invoices.paidPaise} < ${invoices.totalPaise}`)),
-      db.select({ amount: sql<number>`coalesce(sum(${payments.amountPaise}), 0)::bigint` }).from(payments).where(paymentScope(v)),
+        .where(and(invoiceScope(v), inArray(invoices.status, [...BILLABLE]), sql`${invoices.paidPaise} < ${invoices.totalPaise}`))
+        .groupBy(invoices.currency),
+      db
+        .select({ currency: invoices.currency, amount: sql<number>`coalesce(sum(${payments.amountPaise}), 0)::bigint` })
+        .from(payments)
+        .innerJoin(invoices, eq(invoices.id, payments.invoiceId))
+        .where(paymentScope(v))
+        .groupBy(invoices.currency),
       db
         .select({ month: sql<string>`to_char(${payments.paidOn}::date, 'YYYY-MM')`, amount: sql<number>`sum(${payments.amountPaise})::bigint` })
         .from(payments)
-        .where(and(paymentScope(v), gte(payments.paidOn, since)))
+        .innerJoin(invoices, eq(invoices.id, payments.invoiceId))
+        .where(and(paymentScope(v), gte(payments.paidOn, since), eq(invoices.currency, 'INR')))
         .groupBy(sql`1`),
       db
-        .select({ n: count(), amount: sql<number>`coalesce(sum(${invoices.totalPaise} - ${invoices.paidPaise}), 0)::bigint` })
+        .select({ currency: invoices.currency, n: count(), amount: sql<number>`coalesce(sum(${invoices.totalPaise} - ${invoices.paidPaise}), 0)::bigint` })
         .from(invoices)
-        .where(and(invoiceScope(v), inArray(invoices.status, [...BILLABLE]), lt(invoices.dueDate, today), sql`${invoices.paidPaise} < ${invoices.totalPaise}`)),
+        .where(and(invoiceScope(v), inArray(invoices.status, [...BILLABLE]), lt(invoices.dueDate, today), sql`${invoices.paidPaise} < ${invoices.totalPaise}`))
+        .groupBy(invoices.currency),
     ]);
     const byMonth = new Map(monthly.map((m) => [m.month, Number(m.amount)]));
+    const totals = (rows: { currency: string; amount: number }[]) => formatMulti(sumByCurrency(rows, (r) => r.currency, (r) => Number(r.amount)));
     financeData = {
-      outstandingCount: out?.n ?? 0,
-      outstandingPaise: Number(out?.amount ?? 0),
-      overdueCount: overdueInv?.n ?? 0,
-      overduePaise: Number(overdueInv?.amount ?? 0),
-      totalCollectedPaise: Number(collected?.amount ?? 0),
+      outstandingCount: out.reduce((s, r) => s + r.n, 0),
+      outstandingLabel: totals(out),
+      overdueCount: overdueInv.reduce((s, r) => s + r.n, 0),
+      overdueLabel: totals(overdueInv),
+      collectedLabel: totals(collected),
       monthly: months.map((m) => ({ label: m.label, sublabel: m.sublabel, value: byMonth.get(m.key) ?? 0 })),
     };
   }
@@ -280,7 +291,7 @@ export async function getClientDashboard(v: Viewer) {
       .orderBy(desc(documents.updatedAt))
       .limit(5),
     db
-      .select({ id: invoices.id, number: invoices.number, status: invoices.status, totalPaise: invoices.totalPaise, paidPaise: invoices.paidPaise, dueDate: invoices.dueDate, issueDate: invoices.issueDate })
+      .select({ id: invoices.id, number: invoices.number, status: invoices.status, currency: invoices.currency, totalPaise: invoices.totalPaise, paidPaise: invoices.paidPaise, dueDate: invoices.dueDate, issueDate: invoices.issueDate })
       .from(invoices)
       .where(and(invoiceScope(v), ne(invoices.status, 'cancelled')))
       .orderBy(desc(invoices.issueDate)),
@@ -299,11 +310,10 @@ export async function getClientDashboard(v: Viewer) {
     invoices: {
       outstanding: outstanding.slice(0, 5),
       outstandingCount: outstanding.length,
-      duePaise: outstanding.reduce((s, i) => s + i.totalPaise - i.paidPaise, 0),
-      overduePaise: outstanding.filter((i) => i.dueDate < today).reduce((s, i) => s + i.totalPaise - i.paidPaise, 0),
+      dueLabel: formatMulti(sumByCurrency(outstanding, (i) => i.currency, (i) => i.totalPaise - i.paidPaise)),
+      overdueLabel: outstanding.some((i) => i.dueDate < today) ? formatMulti(sumByCurrency(outstanding.filter((i) => i.dueDate < today), (i) => i.currency, (i) => i.totalPaise - i.paidPaise)) : null,
       paidCount: invoiceRows.filter((i) => i.totalPaise > 0 && i.paidPaise >= i.totalPaise).length,
-      lifetimeBilledPaise: invoiceRows.reduce((s, i) => s + i.totalPaise, 0),
-      lifetimePaidPaise: invoiceRows.reduce((s, i) => s + i.paidPaise, 0),
+      paidLabel: formatMulti(sumByCurrency(invoiceRows, (i) => i.currency, (i) => i.paidPaise)),
     },
   };
 }

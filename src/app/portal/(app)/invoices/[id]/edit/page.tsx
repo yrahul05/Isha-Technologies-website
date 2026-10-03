@@ -17,12 +17,17 @@ export default async function EditInvoicePage({ params }: { params: Promise<{ id
   const inv = data.inv;
   return (
     <>
-      <PageHeader eyebrow="Finance" title={`Edit ${inv.number}`} description={data.payments.length ? 'Payments are recorded against this invoice — the total can’t go below the amount already paid.' : undefined} />
+      <PageHeader eyebrow="Finance" title={`Edit ${inv.number}`} description={data.payments.length ? 'Payments are recorded against this invoice — the total can’t go below the amount already paid, and the currency and number are fixed.' : undefined} />
       <InvoiceEditor
         {...form}
         initial={{
           id: inv.id,
           status: inv.status,
+          number: inv.number,
+          currency: inv.currency,
+          taxMode: inv.taxMode,
+          taxLabel: inv.taxLabel,
+          paymentProfile: inv.paymentProfile,
           clientId: inv.clientId,
           projectId: inv.projectId,
           issueDate: inv.issueDate,

@@ -6,12 +6,15 @@ import { db } from '@/server/db';
 import { auditLogs, rolePermissions, sessions, users } from '@/server/db/schema';
 import { can, requireViewer } from '@/server/auth/viewer';
 import { getSetting, type SettingsMap } from '@/server/settings';
-import { getGoogleAccount, isGoogleConfigured, googleRedirectUri } from '@/server/google';
-import { storageDriver } from '@/server/storage';
+import { googleConnectionStatus, isGoogleConfigured, googleRedirectUri } from '@/server/google';
+import { storageDriver, STORAGE_LABELS } from '@/server/storage';
+import { scannerConfigured } from '@/server/scan';
 import { internalPeople } from '@/server/queries/people';
 import { deviceLabel } from '@/server/queries/audit';
 import { PageHeader, Panel, Badge } from '@/components/portal/ui';
-import { GoogleConnection, PasswordForm, ProfileForm, RolePermissionsForm, SessionRevokeButton, SettingsSectionForm, TestEmailButton, TwoFactorPanel } from '@/components/portal/settings/SettingsForms';
+import { RolePermissionsForm, SessionRevokeButton, SettingsSectionForm, TestEmailButton, TwoFactorPanel } from '@/components/portal/settings/SettingsForms';
+import { AvatarUploader, EmailChangeForm, GoogleConnection, NotificationPrefsForm, PasswordChangeForm, ProfileForm } from '@/components/portal/settings/AccountForms';
+import { maskEmail } from '@/lib/portal/profile';
 import { EDITABLE_ROLES, PERMISSIONS, ROLE_LABELS } from '@/lib/portal/permissions';
 import { fmtDateTime, relativeTime } from '@/lib/portal/format';
 import { cn } from '@/lib/utils';
@@ -29,6 +32,8 @@ const ADMIN = [
   { key: 'notifications', label: 'Notifications' },
   { key: 'invoice', label: 'Invoice settings' },
   { key: 'tax', label: 'Tax / GST' },
+  { key: 'currencies', label: 'Currencies' },
+  { key: 'payment', label: 'Payment details' },
   { key: 'google', label: 'Google Calendar' },
   { key: 'email', label: 'Email' },
   { key: 'storage', label: 'Storage' },
@@ -79,18 +84,33 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <div className="min-w-0 space-y-6">
           {section === 'account' && (
             <>
-              <Panel title="Profile">
-                <ProfileForm user={{ name: user.name, phone: user.phone, title: user.title, emailNotifications: user.emailNotifications, email: user.email }} />
+              <Panel title="Profile photo">
+                <AvatarUploader name={user.name} src={viewer.avatarUrl} />
               </Panel>
-              <Panel title="Change password">
-                <PasswordForm />
+              <Panel title="Profile">
+                <ProfileForm
+                  user={{ name: user.name, phone: user.phone, title: user.title, emailNotifications: user.emailNotifications, email: user.email, timezone: user.timezone, roleLabel: ROLE_LABELS[viewer.role], company: viewer.clientName }}
+                />
+              </Panel>
+              <Panel title="Notification preferences" description="Choose what you hear about, in the portal and by email. Security alerts are always sent.">
+                <NotificationPrefsForm prefs={(user.notificationPrefs ?? {}) as Record<string, boolean>} />
               </Panel>
             </>
           )}
-          {section === 'security' && <SecuritySection viewerId={viewer.id} sessionId={viewer.sessionId} totp={user.totpEnabled} />}
+          {section === 'security' && (
+            <>
+              <Panel title="Change password" description="We email a verification code to your registered address first. Your other devices are signed out afterwards.">
+                <PasswordChangeForm maskedEmail={maskEmail(user.email)} />
+              </Panel>
+              <Panel title="Sign-in email" description="Changing your email requires your password and a code sent to the new address.">
+                <EmailChangeForm email={user.email} />
+              </Panel>
+              <SecuritySection viewerId={viewer.id} sessionId={viewer.sessionId} totp={user.totpEnabled} />
+            </>
+          )}
           {section === 'google' && viewer.isInternal && (
             <Panel title="Google Calendar & Meet" description="Per-user connection. Meetings you schedule are created on your own Google Calendar.">
-              <GoogleConnection email={(await getGoogleAccount(viewer.id))?.googleEmail ?? null} configured={isGoogleConfigured()} />
+              <GoogleConnection status={isGoogleConfigured() ? await googleConnectionStatus(viewer.id) : { state: 'not_connected' }} configured={isGoogleConfigured()} />
               {admin && (
                 <p className="mt-4 text-xs text-slate-500">
                   Authorised redirect URI to register in Google Cloud Console: <code className="rounded bg-slate-50 px-1.5 py-0.5 font-mono">{googleRedirectUri()}</code>
@@ -98,14 +118,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               )}
             </Panel>
           )}
-          {admin && ['company', 'tax', 'invoice', 'notifications', 'leads', 'storage', 'branding'].includes(section) && <AdminSection section={section as keyof SettingsMap} viewer={viewer} />}
+          {admin && ['company', 'tax', 'invoice', 'currencies', 'payment', 'notifications', 'leads', 'storage', 'branding'].includes(section) && <AdminSection section={section as keyof SettingsMap} viewer={viewer} />}
           {admin && section === 'policy' && (
             <Panel title="Security policy">
               <SettingsSectionForm section="security" values={await getSetting('security')} />
               <ul className="mt-5 space-y-1.5 border-t border-gray-100 pt-4 text-sm text-slate-600">
                 <li>• Sessions last until midnight IST (minimum 3 hours) and are stored server-side; sign-out and deactivation revoke them instantly.</li>
                 <li>• 5 failed sign-ins lock an account for 15 minutes; 25 from one IP lock that IP.</li>
-                <li>• Passwords are hashed with scrypt; reset links are single-use and expire in 30 minutes.</li>
+                <li>• Passwords are hashed with scrypt. Resets and password changes need a 6-digit emailed code (hashed, single-use, 10 minutes, 5 attempts, resend cooldown and lockout).</li>
               </ul>
             </Panel>
           )}
@@ -135,7 +155,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <Panel title="System status" description="Configuration detected on this deployment (values are never shown).">
               <div className="space-y-2">
                 <StatusRow ok={Boolean(process.env.DATABASE_URL)} label={process.env.DATABASE_URL ? 'Database: PostgreSQL (DATABASE_URL)' : 'Database: embedded PGlite (development only)'} />
-                <StatusRow ok={storageDriver() === 's3'} label={`File storage: ${storageDriver() === 's3' ? 'S3-compatible bucket' : storageDriver() === 'local' ? 'local disk (development only)' : 'not configured'}`} />
+                <StatusRow ok={storageDriver() !== 'local' || process.env.NODE_ENV !== 'production'} label={`File storage: ${STORAGE_LABELS[storageDriver()]}`} />
+                <StatusRow ok={scannerConfigured()} label={scannerConfigured() ? 'Malware scanning: ClamAV (CLAMAV_HOST)' : 'Malware scanning: not configured (type, size and signature checks still apply)'} />
+                <StatusRow ok={false} label="Backups: not verified from the app — see docs/portal/BACKUP_AND_RECOVERY.md" />
                 <StatusRow ok={Boolean(process.env.ENCRYPTION_KEY)} label="ENCRYPTION_KEY (Google tokens, 2FA secrets)" />
                 <StatusRow ok={isGoogleConfigured()} label="Google OAuth (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)" />
                 <StatusRow ok={Boolean(process.env.EMAIL_API_KEY)} label="Email provider" />
@@ -215,11 +237,13 @@ async function AdminSection({ section, viewer }: { section: keyof SettingsMap; v
   const values = (await getSetting(section)) as unknown as Record<string, unknown>;
   const titles: Partial<Record<keyof SettingsMap, [string, string]>> = {
     company: ['Company', 'Appears on invoices and emails.'],
-    tax: ['Tax / GST', 'Used for GST calculation and invoice headers.'],
-    invoice: ['Invoice settings', 'Numbering, payment terms and bank details printed on invoices.'],
+    tax: ['Tax / GST', 'GST for INR invoices and the default tax for international invoices. Nothing is hard-coded.'],
+    invoice: ['Invoice settings', 'Numbering, default currency, terms, footer and signatory.'],
+    currencies: ['Currencies', 'INR (default), USD and CAD. Codes are fixed; symbols can be adjusted.'],
+    payment: ['Payment details', 'Bank details printed on invoices. Choose exactly which fields are shown.'],
     notifications: ['Notifications', 'Defaults for every portal user.'],
     leads: ['Lead assignment', 'How new website leads are routed.'],
-    storage: ['Storage', `Driver: ${storageDriver()} · files are private and served only through signed links.`],
+    storage: ['Storage', `Provider: ${STORAGE_LABELS[storageDriver()]} · files are private and served only after an access check.`],
     branding: ['Branding', 'The portal inherits the Isha Technologies website design system.'],
   };
   const [title, description] = titles[section] ?? [section, ''];

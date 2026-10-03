@@ -16,6 +16,13 @@ import { appUrl } from '@/server/request';
  */
 export const GOOGLE_SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/calendar.events'];
 
+// Real Google endpoints by default. The overrides exist only so automated
+// tests can run the complete OAuth + Calendar flow against a local mock.
+const AUTH_URL = process.env.GOOGLE_AUTH_URL || 'https://accounts.google.com/o/oauth2/v2/auth';
+const TOKEN_URL = process.env.GOOGLE_TOKEN_URL || 'https://oauth2.googleapis.com/token';
+const REVOKE_URL = process.env.GOOGLE_REVOKE_URL || 'https://oauth2.googleapis.com/revoke';
+const CALENDAR_API = (process.env.GOOGLE_CALENDAR_API || 'https://www.googleapis.com/calendar/v3').replace(/\/$/, '');
+
 export function isGoogleConfigured(): boolean {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 }
@@ -35,13 +42,13 @@ export function googleAuthUrl(state: string): string {
     include_granted_scopes: 'true',
     state,
   });
-  return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  return `${AUTH_URL}?${params}`;
 }
 
 type TokenResponse = { access_token: string; expires_in: number; refresh_token?: string; scope: string; id_token?: string; error?: string };
 
 async function tokenRequest(body: Record<string, string>): Promise<TokenResponse> {
-  const res = await fetch('https://oauth2.googleapis.com/token', {
+  const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ client_id: process.env.GOOGLE_CLIENT_ID!, client_secret: process.env.GOOGLE_CLIENT_SECRET!, ...body }),
@@ -87,11 +94,26 @@ async function accessToken(userId: string): Promise<string | null> {
   return tokens.access_token;
 }
 
+/**
+ * OAuth health for Settings: not connected, healthy (a token refresh works),
+ * or needs reconnecting (e.g. access revoked in the Google account).
+ */
+export async function googleConnectionStatus(userId: string): Promise<{ state: 'not_connected' | 'connected' | 'reconnect'; email?: string; connectedAt?: Date; detail?: string }> {
+  const [row] = await db.select().from(googleAccounts).where(eq(googleAccounts.userId, userId));
+  if (!row) return { state: 'not_connected' };
+  try {
+    await accessToken(userId);
+    return { state: 'connected', email: row.googleEmail, connectedAt: row.connectedAt };
+  } catch (error) {
+    return { state: 'reconnect', email: row.googleEmail, connectedAt: row.connectedAt, detail: error instanceof Error ? error.message.slice(0, 160) : 'Token refresh failed' };
+  }
+}
+
 export async function disconnectGoogleAccount(userId: string): Promise<void> {
   const [row] = await db.select().from(googleAccounts).where(eq(googleAccounts.userId, userId));
   if (!row) return;
   // Best-effort revoke at Google, then forget the tokens locally regardless.
-  await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(decryptSecret(row.refreshTokenEnc))}`, { method: 'POST' }).catch(() => undefined);
+  await fetch(`${REVOKE_URL}?token=${encodeURIComponent(decryptSecret(row.refreshTokenEnc))}`, { method: 'POST' }).catch(() => undefined);
   await db.delete(googleAccounts).where(eq(googleAccounts.userId, userId));
 }
 
@@ -109,7 +131,7 @@ type GoogleEvent = { id: string; hangoutLink?: string; htmlLink?: string; confer
 async function calendarFetch(userId: string, path: string, init: RequestInit): Promise<Response> {
   const token = await accessToken(userId);
   if (!token) throw new Error('Google Calendar is not connected for this user.');
-  return fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/${path}`, {
+  return fetch(`${CALENDAR_API}/calendars/primary/${path}`, {
     ...init,
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(init.headers ?? {}) },
   });

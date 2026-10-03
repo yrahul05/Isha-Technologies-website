@@ -46,11 +46,93 @@ export function rupeesToPaise(value: number | string): number {
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
 }
 
-const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 });
-const inrCompact = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', notation: 'compact', maximumFractionDigits: 1 });
+// ─── Currencies ───────────────────────────────────────────────────────────
+// Amounts are stored in minor units (paise / cents) in the `*_paise` columns.
+export const CURRENCIES = {
+  INR: { code: 'INR', locale: 'en-IN', symbol: '₹', name: 'Indian Rupee' },
+  USD: { code: 'USD', locale: 'en-US', symbol: '$', name: 'US Dollar' },
+  CAD: { code: 'CAD', locale: 'en-CA', symbol: 'CA$', name: 'Canadian Dollar' },
+} as const;
+export type CurrencyCode = keyof typeof CURRENCIES;
+export const CURRENCY_CODES = Object.keys(CURRENCIES) as CurrencyCode[];
+
+export function isCurrency(v: unknown): v is CurrencyCode {
+  return typeof v === 'string' && v in CURRENCIES;
+}
+
+const fmtCache = new Map<string, Intl.NumberFormat>();
+function nf(currency: CurrencyCode, compact: boolean) {
+  const k = `${currency}:${compact}`;
+  let f = fmtCache.get(k);
+  if (!f) {
+    f = new Intl.NumberFormat(CURRENCIES[currency].locale, {
+      style: 'currency',
+      currency,
+      currencyDisplay: 'narrowSymbol',
+      ...(compact ? { notation: 'compact', maximumFractionDigits: 1 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    });
+    fmtCache.set(k, f);
+  }
+  return f;
+}
+
+/**
+ * Locale-aware money formatting: ₹1,65,200.00 (en-IN grouping), $1,650.00,
+ * CA$1,650.00. `symbol` lets Admin Settings override the displayed symbol.
+ */
+export function formatMoney(minor: number, currency: string = 'INR', opts: { compact?: boolean; symbol?: string } = {}): string {
+  const code: CurrencyCode = isCurrency(currency) ? currency : 'INR';
+  const parts = nf(code, Boolean(opts.compact)).formatToParts(minor / 100);
+  const symbol = opts.symbol ?? CURRENCIES[code].symbol;
+  return parts.map((p) => (p.type === 'currency' ? symbol : p.value)).join('');
+}
 
 export function formatINR(paise: number, opts: { compact?: boolean } = {}): string {
-  return (opts.compact ? inrCompact : inr).format(paise / 100);
+  return formatMoney(paise, 'INR', opts);
+}
+
+/** Sum amounts per currency — never add rupees to dollars. */
+export function sumByCurrency<T>(rows: T[], currencyOf: (r: T) => string, amountOf: (r: T) => number): Map<CurrencyCode, number> {
+  const out = new Map<CurrencyCode, number>();
+  for (const r of rows) {
+    const c = isCurrency(currencyOf(r)) ? (currencyOf(r) as CurrencyCode) : 'INR';
+    out.set(c, (out.get(c) ?? 0) + amountOf(r));
+  }
+  return out;
+}
+
+/** "₹4.2L · $12K" — INR first, zero totals omitted ("₹0" when all are zero). */
+export function formatMulti(totals: Map<CurrencyCode, number>, opts: { compact?: boolean } = { compact: true }): string {
+  const parts = CURRENCY_CODES.filter((c) => (totals.get(c) ?? 0) !== 0).map((c) => formatMoney(totals.get(c)!, c, opts));
+  return parts.length ? parts.join(' · ') : formatMoney(0, 'INR', opts);
+}
+
+// ─── Tax modes ────────────────────────────────────────────────────────────
+export type TaxMode = 'gst_auto' | 'gst_intra' | 'gst_inter' | 'custom' | 'none';
+export const GST_MODES: TaxMode[] = ['gst_auto', 'gst_intra', 'gst_inter'];
+
+/**
+ * Tax lines to print. GST applies only to INR invoices: intra-state →
+ * CGST + SGST halves, inter-state → IGST ("auto" decides from the place of
+ * supply). USD/CAD invoices use a custom label (e.g. "Sales tax") or none.
+ */
+export function taxBreakdown(
+  taxPaise: number,
+  inv: { taxMode: string; taxLabel?: string | null; currency: string; placeOfSupply?: string | null },
+  supplierStateCode: string
+): { label: string; amount: number }[] {
+  const mode = inv.taxMode as TaxMode;
+  if (mode === 'none' || (taxPaise === 0 && mode === 'custom')) return [];
+  if (mode === 'custom' || inv.currency !== 'INR') return [{ label: inv.taxLabel || 'Tax', amount: taxPaise }];
+  const intra = mode === 'gst_intra' || (mode === 'gst_auto' && gstSplit(taxPaise, supplierStateCode, inv.placeOfSupply).kind === 'intra');
+  if (intra) {
+    const c = Math.floor(taxPaise / 2);
+    return [
+      { label: 'CGST', amount: c },
+      { label: 'SGST', amount: taxPaise - c },
+    ];
+  }
+  return [{ label: 'IGST', amount: taxPaise }];
 }
 
 /** Invoice status derived from amounts and dates (never stored stale). */

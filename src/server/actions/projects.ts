@@ -179,3 +179,24 @@ async function projectUpdateSideEffects(viewer: Viewer, before: typeof projects.
   await recordActivity({ entityType: 'project', entityId: before.id, projectId: before.id, clientId: before.clientId, actorId: viewer.id, summary, visibility: 'client' });
   await notifyUsers([...members.team, ...members.clientMembers], { type: 'project.updated', title: 'Project updated', body: summary, link: `/portal/projects/${before.id}` }, { actorId: viewer.id });
 }
+
+/**
+ * Archive a finished (completed/cancelled) project: it leaves the default
+ * lists but everything — tasks, documents, invoices — is kept and still
+ * reachable from the "Archived" filter. Restoring brings it back.
+ */
+export async function archiveProjectAction(projectId: string, archive: boolean): Promise<ActionState> {
+  return guarded(async () => {
+    const viewer = await requireViewerOrThrow();
+    assertCan(viewer, 'projects.manage');
+    if (!z.uuid().safeParse(projectId).success) return { error: 'Invalid project.' };
+    const [p] = await db.select().from(projects).where(eq(projects.id, projectId));
+    if (!p) return { error: 'Project not found.' };
+    if (archive && !['completed', 'cancelled'].includes(p.status)) return { error: 'Only completed or cancelled projects can be archived.' };
+    await db.update(projects).set({ archivedAt: archive ? new Date() : null }).where(eq(projects.id, projectId));
+    await audit(viewer, archive ? 'project.archived' : 'project.restored', { entityType: 'project', entityId: projectId, metadata: { name: p.name } });
+    revalidatePath(`/portal/projects/${projectId}`);
+    revalidatePath('/portal/projects');
+    return { ok: true, message: archive ? 'Project archived.' : 'Project restored.' };
+  });
+}

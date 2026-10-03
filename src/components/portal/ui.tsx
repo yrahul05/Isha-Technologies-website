@@ -174,13 +174,15 @@ const STATUS_TONE: Record<string, Tone> = {
   // tickets
   open: 'sky', waiting_for_client: 'amber', resolved: 'green', closed: 'slate',
   // meetings / approvals / leads
-  scheduled: 'brand', pending: 'amber', approved: 'green', rejected: 'red',
+  scheduled: 'brand', requested: 'amber', pending: 'amber', approved: 'green', rejected: 'red', archived: 'slate',
   new: 'sky', contacted: 'brand', qualified: 'violet', proposal_sent: 'amber', negotiation: 'amber', won: 'green', lost: 'slate',
   // priority
   low: 'slate', medium: 'sky', high: 'amber', urgent: 'red', normal: 'sky',
   // clients / users
   inactive: 'slate', onboarding: 'violet', available: 'green', busy: 'amber', on_leave: 'violet',
   internal: 'slate', client: 'brand',
+  // proposals / contracts / renewals
+  viewed: 'violet', accepted: 'green', converted: 'brand', expired: 'red', terminated: 'red', renewed: 'green', lapsed: 'red',
 };
 
 export function toneFor(status: string): Tone {
@@ -216,8 +218,12 @@ const DOT: Record<Tone, string> = {
   slate: 'bg-slate-400', violet: 'bg-violet-500', sky: 'bg-sky-500',
 };
 
-export function Avatar({ name, size = 'md', className }: { name: string; size?: 'xs' | 'sm' | 'md' | 'lg'; className?: string }) {
+export function Avatar({ name, size = 'md', className, src }: { name: string; size?: 'xs' | 'sm' | 'md' | 'lg'; className?: string; src?: string | null }) {
   const sizes = { xs: 'h-6 w-6 text-[10px]', sm: 'h-7 w-7 text-[11px]', md: 'h-9 w-9 text-xs', lg: 'h-14 w-14 text-base' };
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element -- authenticated same-origin route, not optimisable
+    return <img src={src} alt={name} title={name} className={cn('inline-block shrink-0 rounded-full object-cover ring-2 ring-white', sizes[size], className)} />;
+  }
   return (
     <span
       title={name}

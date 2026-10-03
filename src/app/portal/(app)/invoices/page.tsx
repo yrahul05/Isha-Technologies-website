@@ -9,7 +9,7 @@ import { can, requireViewer } from '@/server/auth/viewer';
 import { invoiceScope, paymentScope } from '@/server/scope';
 import { Button } from '@/components/ui/button';
 import { EmptyState, PageHeader, Panel, StatCard, StatusBadge, Table, Td, Th, Tr } from '@/components/portal/ui';
-import { deriveInvoiceStatus, formatINR } from '@/lib/portal/invoice-math';
+import { deriveInvoiceStatus, formatMoney, formatMulti, sumByCurrency } from '@/lib/portal/invoice-math';
 import { fmtDate, humanize } from '@/lib/portal/format';
 import { cn } from '@/lib/utils';
 
@@ -32,7 +32,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
       .where(invoiceScope(viewer))
       .orderBy(desc(invoices.issueDate), desc(invoices.number)),
     db
-      .select({ p: payments, number: invoices.number, clientName: clients.companyName })
+      .select({ p: payments, number: invoices.number, currency: invoices.currency, clientName: clients.companyName })
       .from(payments)
       .innerJoin(invoices, eq(invoices.id, payments.invoiceId))
       .innerJoin(clients, eq(clients.id, payments.clientId))
@@ -42,10 +42,14 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
 
   const withStatus = rows.map((r) => ({ ...r, status: deriveInvoiceStatus(r.inv) }));
   const issued = withStatus.filter((r) => r.status !== 'draft' && r.status !== 'cancelled');
-  const billed = issued.reduce((s, r) => s + r.inv.totalPaise, 0);
-  const collected = paymentRows.reduce((s, r) => s + r.p.amountPaise, 0);
-  const outstanding = issued.reduce((s, r) => s + Math.max(0, r.inv.totalPaise - r.inv.paidPaise), 0);
-  const overdue = issued.filter((r) => r.status === 'overdue').reduce((s, r) => s + (r.inv.totalPaise - r.inv.paidPaise), 0);
+  // Totals are kept per currency (₹ and $ are never added together).
+  const cur = (r: { inv: { currency: string } }) => r.inv.currency;
+  const billed = sumByCurrency(issued, cur, (r) => r.inv.totalPaise);
+  const collected = sumByCurrency(paymentRows, (r) => r.currency, (r) => r.p.amountPaise);
+  const outstandingMap = sumByCurrency(issued, cur, (r) => Math.max(0, r.inv.totalPaise - r.inv.paidPaise));
+  const overdueRows = issued.filter((r) => r.status === 'overdue');
+  const overdueMap = sumByCurrency(overdueRows, cur, (r) => r.inv.totalPaise - r.inv.paidPaise);
+  const outstanding = [...outstandingMap.values()].some((v) => v > 0);
 
   const visible = withStatus.filter((r) =>
     filter === 'all' ? true : filter === 'outstanding' ? ['sent', 'partially_paid', 'overdue'].includes(r.status) : r.status === filter
@@ -70,10 +74,10 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
         }
       />
       <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <StatCard label={viewer.isInternal ? 'Total billed' : 'Lifetime billed'} value={formatINR(billed, { compact: true })} icon={ReceiptIndianRupee} />
-        <StatCard label={viewer.isInternal ? 'Collected' : 'Paid to date'} value={formatINR(collected, { compact: true })} icon={CircleDollarSign} tone="green" />
-        <StatCard label="Outstanding" value={formatINR(outstanding, { compact: true })} icon={Wallet} tone={outstanding ? 'amber' : 'slate'} href="/portal/invoices?status=outstanding" />
-        <StatCard label="Overdue" value={formatINR(overdue, { compact: true })} icon={AlarmClock} tone={overdue ? 'red' : 'slate'} href="/portal/invoices?status=overdue" />
+        <StatCard label={viewer.isInternal ? 'Total billed' : 'Lifetime billed'} value={formatMulti(billed)} icon={ReceiptIndianRupee} />
+        <StatCard label={viewer.isInternal ? 'Collected' : 'Paid to date'} value={formatMulti(collected)} icon={CircleDollarSign} tone="green" />
+        <StatCard label="Outstanding" value={formatMulti(outstandingMap)} icon={Wallet} tone={outstanding ? 'amber' : 'slate'} href="/portal/invoices?status=outstanding" />
+        <StatCard label="Overdue" value={formatMulti(overdueMap)} icon={AlarmClock} tone={overdueRows.length ? 'red' : 'slate'} href="/portal/invoices?status=overdue" />
       </div>
 
       <div className="mb-4 flex gap-1 overflow-x-auto">
@@ -92,13 +96,14 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
         <div className="space-y-6">
           {[...byYear.entries()].map(([year, list]) => {
             const yb = list.filter((r) => r.status !== 'draft' && r.status !== 'cancelled');
-            const yTotal = yb.reduce((s, r) => s + r.inv.totalPaise, 0);
-            const yPaid = yb.reduce((s, r) => s + r.inv.paidPaise, 0);
+            const yTotal = sumByCurrency(yb, cur, (r) => r.inv.totalPaise);
+            const yPaid = sumByCurrency(yb, cur, (r) => r.inv.paidPaise);
+            const yDue = sumByCurrency(yb, cur, (r) => r.inv.totalPaise - r.inv.paidPaise);
             return (
               <Panel
                 key={year}
                 title={year}
-                description={`${list.length} ${list.length === 1 ? 'invoice' : 'invoices'} · billed ${formatINR(yTotal)} · paid ${formatINR(yPaid)} · due ${formatINR(yTotal - yPaid)}`}
+                description={`${list.length} ${list.length === 1 ? 'invoice' : 'invoices'} · billed ${formatMulti(yTotal, { compact: false })} · paid ${formatMulti(yPaid, { compact: false })} · due ${formatMulti(yDue, { compact: false })}`}
               >
                 <Table>
                   <thead>
@@ -119,15 +124,16 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                       <Tr key={inv.id}>
                         <Td>
                           <Link href={`/portal/invoices/${inv.id}`} className="font-semibold text-slate-900 hover:text-brand">
-                            {inv.number}
+                            {inv.status === 'draft' ? 'Draft' : inv.number}
                           </Link>
+                          {inv.currency !== 'INR' && <span className="ml-1.5 text-[10px] font-semibold text-slate-400">{inv.currency}</span>}
                         </Td>
                         {viewer.isInternal && <Td>{clientName}</Td>}
                         <Td>{fmtDate(inv.issueDate)}</Td>
                         <Td>{fmtDate(inv.dueDate)}</Td>
-                        <Td className="text-right tabular-nums">{formatINR(inv.totalPaise)}</Td>
-                        <Td className="text-right tabular-nums text-emerald-700">{formatINR(inv.paidPaise)}</Td>
-                        <Td className="text-right font-semibold tabular-nums">{formatINR(Math.max(0, inv.totalPaise - inv.paidPaise))}</Td>
+                        <Td className="text-right tabular-nums">{formatMoney(inv.totalPaise, inv.currency)}</Td>
+                        <Td className="text-right tabular-nums text-emerald-700">{formatMoney(inv.paidPaise, inv.currency)}</Td>
+                        <Td className="text-right font-semibold tabular-nums">{formatMoney(Math.max(0, inv.totalPaise - inv.paidPaise), inv.currency)}</Td>
                         <Td>
                           <StatusBadge status={status} />
                         </Td>
@@ -148,7 +154,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
         </div>
       )}
 
-      <Panel className="mt-6" title="Payment history" description={`${paymentRows.length} payments · ${formatINR(collected)} received`}>
+      <Panel className="mt-6" title="Payment history" description={`${paymentRows.length} payments · ${formatMulti(collected, { compact: false })} received`}>
         {paymentRows.length === 0 ? (
           <p className="text-sm text-slate-500">No payments recorded yet.</p>
         ) : (
@@ -164,7 +170,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
               </tr>
             </thead>
             <tbody>
-              {paymentRows.map(({ p, number, clientName }) => (
+              {paymentRows.map(({ p, number, currency, clientName }) => (
                 <Tr key={p.id}>
                   <Td>{fmtDate(p.paidOn)}</Td>
                   <Td>
@@ -175,7 +181,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                   {viewer.isInternal && <Td>{clientName}</Td>}
                   <Td>{humanize(p.method)}</Td>
                   <Td className="font-mono text-xs">{p.reference ?? '—'}</Td>
-                  <Td className="text-right font-semibold tabular-nums text-emerald-700">{formatINR(p.amountPaise)}</Td>
+                  <Td className="text-right font-semibold tabular-nums text-emerald-700">{formatMoney(p.amountPaise, currency)}</Td>
                 </Tr>
               ))}
             </tbody>
