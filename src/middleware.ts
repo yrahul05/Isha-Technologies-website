@@ -22,7 +22,7 @@ import { CLEAN_REDIRECTS, cleanPath, internalPath, isPortalHostName, legacyPorta
  *    apex / production) /portal/* and the CRM API answer 404. Locally and on
  *    Preview deployments the portal still lives at /portal/*.
  */
-const PUBLIC_PORTAL_API = ['/api/portal/cron/', '/api/portal/google/callback', '/api/portal/webhooks/'];
+const PUBLIC_PORTAL_API = ['/api/portal/health', '/api/portal/cron/', '/api/portal/google/callback', '/api/portal/webhooks/'];
 
 function privateHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
