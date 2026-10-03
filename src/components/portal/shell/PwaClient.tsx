@@ -15,7 +15,9 @@ export function PwaClient() {
 
   useEffect(() => {
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      navigator.serviceWorker.register('/portal/sw.js', { scope: '/portal/' }).catch(() => undefined);
+      // Legacy /portal/* URLs vs the portal subdomain (clean URLs, root scope).
+      const legacy = location.pathname === '/portal' || location.pathname.startsWith('/portal/');
+      navigator.serviceWorker.register(legacy ? '/portal/sw.js' : '/sw.js', { scope: legacy ? '/portal/' : '/' }).catch(() => undefined);
     }
     const onPrompt = (e: Event) => {
       e.preventDefault();

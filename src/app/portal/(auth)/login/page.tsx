@@ -7,8 +7,6 @@ import { getViewer } from '@/server/auth/viewer';
 export const metadata: Metadata = { title: 'Sign in' };
 
 const NOTICES: Record<string, string> = {
-  reset: 'Your password has been updated. Sign in with your new password.',
-  activated: 'Your account is ready. Sign in to get started.',
   signed_out: 'You have been signed out.',
 };
 
@@ -30,11 +28,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <LoginForm next={params.next} />
       </div>
       <p className="mt-8 text-xs leading-relaxed text-slate-500">
-        Accounts are created by Isha Technologies. Need access?{' '}
-        <a href="/contact" className="font-semibold text-brand hover:underline">
-          Contact us
-        </a>
-        . You&rsquo;ll stay signed in for the rest of the day on this device.
+        There is no self-registration: accounts are created by your Isha Technologies administrator. Need access or forgot your password? Contact your administrator. You&rsquo;ll stay signed in for the rest of the day on this device.
       </p>
     </>
   );

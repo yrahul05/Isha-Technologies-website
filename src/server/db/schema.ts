@@ -178,6 +178,8 @@ export const users = pgTable(
     /** Per-category preferences ({ meeting: false, … }); security notices ignore them. */
     notificationPrefs: jsonb('notification_prefs').notNull().default({}),
     passwordChangedAt: timestamp('password_changed_at', { withTimezone: true }),
+    /** Admin set/reset the password: the user must choose their own before using the portal. */
+    forcePasswordChange: boolean('force_password_change').notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

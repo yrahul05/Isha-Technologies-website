@@ -1,47 +1,18 @@
 'use client';
 
+import Link from 'next/link';
 import { Pencil, UserPlus } from 'lucide-react';
 import { Modal } from '../modal';
 import { ActionForm, SelectField, SubmitButton, TextField } from '../forms';
-import { InviteLinkNotice } from '../clients/ClientDialogs';
-import { inviteTeamMemberAction, updateTeamMemberAction } from '@/server/actions/users';
+import { updateTeamMemberAction } from '@/server/actions/users';
 
+/** Accounts are created by an administrator in User Management (no invitations or self-registration). */
 export function InviteTeamMemberButton({ canCreateAdmin }: { canCreateAdmin: boolean }) {
+  void canCreateAdmin;
   return (
-    <Modal trigger={<><UserPlus className="h-4 w-4" /> Add team member</>} title="Add team member" description="They receive an invitation to set their own password." wide>
-      {() => (
-        <ActionForm action={inviteTeamMemberAction}>
-          {(state) => (
-            <>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <TextField label="Full name" name="name" required />
-                <TextField label="Work email" name="email" type="email" required />
-                <TextField label="Designation" name="title" placeholder="DevOps Engineer" />
-                <TextField label="Department" name="department" placeholder="Engineering" />
-                <TextField label="Phone" name="phone" />
-                <TextField label="Weekly capacity (hours)" name="weeklyCapacityHours" type="number" defaultValue={40} min={0} max={80} />
-              </div>
-              <TextField label="Skills" name="skills" hint="Comma separated, e.g. AWS, Kubernetes, Terraform" />
-              <SelectField
-                label="Role"
-                name="role"
-                defaultValue="employee"
-                options={[
-                  { value: 'employee', label: 'Team member — sees only assigned work' },
-                  ...(canCreateAdmin ? [{ value: 'admin', label: 'Admin — configurable operational access' }] : []),
-                ]}
-              />
-              <InviteLinkNotice state={state} />
-              {!state.ok && (
-                <div className="flex justify-end">
-                  <SubmitButton>Create & invite</SubmitButton>
-                </div>
-              )}
-            </>
-          )}
-        </ActionForm>
-      )}
-    </Modal>
+    <Link href="/portal/users/new?role=employee" className="inline-flex h-10 items-center gap-2 rounded-md border border-brand bg-brand px-4 text-sm font-medium text-white hover:bg-white hover:text-brand">
+      <UserPlus className="h-4 w-4" /> Add team member
+    </Link>
   );
 }
 

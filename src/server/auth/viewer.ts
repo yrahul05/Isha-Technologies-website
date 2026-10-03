@@ -44,13 +44,16 @@ export function avatarUrlFor(userId: string, avatarKey: string | null): string |
   return avatarKey ? `/api/portal/avatars/${userId}?v=${avatarKey.slice(-8)}` : null;
 }
 
-const loadViewer = cache(async (): Promise<{ viewer: Viewer | null; mfaPending: boolean }> => {
+/** Where an admin-reset account must go before it can use anything else. */
+export const CHANGE_PASSWORD_PATH = '/portal/settings/security/change-password';
+
+const loadViewer = cache(async (): Promise<{ viewer: Viewer | null; mfaPending: boolean; mustChangePassword: boolean }> => {
   const session = await readSession();
-  if (!session) return { viewer: null, mfaPending: false };
+  if (!session) return { viewer: null, mfaPending: false, mustChangePassword: false };
   const viewer = await buildViewer(session.user, session.sessionId);
-  if (!viewer) return { viewer: null, mfaPending: false };
-  if (!session.mfaVerified) return { viewer: null, mfaPending: true };
-  return { viewer, mfaPending: false };
+  if (!viewer) return { viewer: null, mfaPending: false, mustChangePassword: false };
+  if (!session.mfaVerified) return { viewer: null, mfaPending: true, mustChangePassword: false };
+  return { viewer, mfaPending: false, mustChangePassword: session.user.forcePasswordChange };
 });
 
 /** Resolves role permissions and tenant membership for a user. Null = no access. */
@@ -110,9 +113,27 @@ export async function buildViewer(user: typeof users.$inferSelect, sessionId: st
   return viewer;
 }
 
-/** The current viewer, or null. Never redirects. */
+/**
+ * The current viewer, or null. Never redirects. A user who must change an
+ * admin-set password is treated as NOT signed in here, so every API route,
+ * download and assistant call refuses them until they have chosen their own
+ * password (only the change-password page/action use the *ForPasswordChange helpers).
+ */
 export async function getViewer(): Promise<Viewer | null> {
-  return (await loadViewer()).viewer;
+  const l = await loadViewer();
+  return l.viewer && !l.mustChangePassword ? l.viewer : null;
+}
+
+/** Viewer even when a password change is pending — only for the change-password page and action. */
+export async function requireViewerForPasswordChange(): Promise<Viewer> {
+  const { viewer } = await loadViewer();
+  if (!viewer) throw new ForbiddenError('Your session has expired. Please sign in again.');
+  return viewer;
+}
+
+export async function mustChangePassword(): Promise<boolean> {
+  const l = await loadViewer();
+  return Boolean(l.viewer && l.mustChangePassword);
 }
 
 export async function isMfaPending(): Promise<boolean> {
@@ -121,11 +142,17 @@ export async function isMfaPending(): Promise<boolean> {
 
 /** For pages/layouts: redirect to login when unauthenticated. */
 export async function requireViewer(): Promise<Viewer> {
-  const { viewer, mfaPending } = await loadViewer();
+  const { viewer, mfaPending, mustChangePassword: forced } = await loadViewer();
   // Imported lazily so this module stays loadable outside the Next runtime (scripts/tests).
   const { redirect } = await import('next/navigation');
   if (mfaPending) return redirect('/portal/login/verify');
   if (!viewer) return redirect('/portal/login');
+  if (forced) {
+    // Server-side: nothing but the change-password page renders until the password is changed.
+    const { headers } = await import('next/headers');
+    const path = (await headers()).get('x-portal-path') ?? '';
+    if (path !== CHANGE_PASSWORD_PATH) return redirect(CHANGE_PASSWORD_PATH);
+  }
   return viewer;
 }
 

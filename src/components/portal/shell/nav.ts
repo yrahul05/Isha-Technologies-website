@@ -70,6 +70,7 @@ export function buildNav(v: Viewer, badges: Partial<Record<string, number>> = {}
 
   const team: NavItem[] = [];
   if (can(v, 'team.view')) team.push(item('/portal/team', 'Team', 'team'));
+  if (can(v, 'users.manage')) team.push(item('/portal/users', 'User management', 'team'));
   team.push(item('/portal/leave', 'Leave', 'leave'));
   team.push(item('/portal/announcements', 'Announcements', 'announcements'));
   groups.push({ label: 'Team', items: team });

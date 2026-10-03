@@ -36,6 +36,13 @@
       "when": 1790991980917,
       "tag": "0004_rls_lockdown",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790997020330,
+      "tag": "0005_admin_managed_accounts",
+      "breakpoints": true
     }
   ]
 }

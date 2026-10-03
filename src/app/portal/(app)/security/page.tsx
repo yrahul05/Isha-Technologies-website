@@ -152,7 +152,7 @@ export default async function SecurityPage() {
       </Panel>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <EventPanel title="Failed sign-ins" description="Wrong passwords, unknown accounts, OTP lockouts and rate-limit blocks." rows={failures} empty="No failed sign-ins recorded." />
+        <EventPanel title="Failed sign-ins" description="Wrong passwords, unknown accounts and rate-limit blocks." rows={failures} empty="No failed sign-ins recorded." />
         <EventPanel title="Recent sign-ins" rows={logins} empty="No sign-ins yet." />
       </div>
       <div className="mt-6">

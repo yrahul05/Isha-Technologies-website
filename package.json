@@ -16,6 +16,7 @@
     "db:migrate": "tsx --env-file-if-exists=.env.local scripts/db-migrate.ts",
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/db-seed.ts",
     "db:setup": "npm run db:migrate && npm run db:seed -- --demo",
+    "test:accounts": "node scripts/verify-accounts.mjs",
     "test:smoke": "node scripts/portal-smoke.mjs",
     "test:logic": "tsx --conditions=react-server scripts/verify-business-logic.ts",
     "test:isolation": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/verify-isolation.ts",

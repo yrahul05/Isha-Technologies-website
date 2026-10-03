@@ -39,6 +39,7 @@ export const PERMISSIONS = [
   { key: 'meetings.manage', label: 'Schedule meetings for others', group: 'Meetings' },
   { key: 'team.view', label: 'View team directory & workload', group: 'Team' },
   { key: 'team.manage', label: 'Add & edit team members', group: 'Team' },
+  { key: 'users.manage', label: 'Create user accounts, set/reset passwords, enable/disable, revoke sessions', group: 'Team' },
   { key: 'leave.review', label: 'Approve leave requests', group: 'Team' },
   { key: 'leads.view', label: 'View all leads', group: 'CRM' },
   { key: 'leads.manage', label: 'Create, assign & edit leads', group: 'CRM' },

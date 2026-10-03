@@ -2,10 +2,10 @@
 
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, KeyRound, Lock, Mail, RefreshCw, Trash2, Unplug, Video } from 'lucide-react';
+import { Camera, KeyRound, Lock, RefreshCw, Trash2, Unplug, Video } from 'lucide-react';
 import { ActionForm, SelectField, SubmitButton, TextField, Toggle } from '../forms';
 import { Avatar } from '../ui';
-import { changePasswordAction, confirmEmailChangeAction, requestEmailChangeAction, requestPasswordChangeCodeAction, saveNotificationPrefsAction, updateProfileAction } from '@/server/actions/settings';
+import { changePasswordAction, saveNotificationPrefsAction, updateProfileAction } from '@/server/actions/settings';
 import { disconnectGoogleAction } from '@/server/actions/meetings';
 import type { ActionState } from '@/server/actions/types';
 import { TIMEZONES } from '@/lib/portal/profile';
@@ -69,72 +69,40 @@ export function AvatarUploader({ name, src }: { name: string; src: string | null
 }
 
 /**
- * Password change: a code is emailed to the registered address first, so a
- * hijacked session alone can't change the password. Other devices are
- * signed out afterwards.
+ * Change your own password: current password + new password + confirmation,
+ * verified on the server. Other devices are signed out afterwards. Nothing is
+ * ever pre-filled or echoed back.
  */
-export function PasswordChangeForm({ maskedEmail }: { maskedEmail: string }) {
-  const [sent, setSent] = useState<ActionState | null>(null);
-  const [pending, start] = useTransition();
-  const sendCode = () => start(async () => setSent(await requestPasswordChangeCodeAction()));
+export function PasswordChangeForm() {
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" disabled={pending} onClick={sendCode} className="inline-flex h-10 items-center gap-2 rounded-lg border border-brand px-4 text-sm font-medium text-brand hover:bg-brand hover:text-white disabled:opacity-50">
-          <Mail className="h-4 w-4" /> {sent?.ok ? 'Resend code' : `Email a verification code to ${maskedEmail}`}
-        </button>
-        {sent?.error && <span className="text-sm text-rose-600">{sent.error}</span>}
-        {sent?.ok && <span className="text-sm text-emerald-700">{sent.message}</span>}
+    <ActionForm action={changePasswordAction} resetOnSuccess>
+      <TextField label="Current password" name="current" type="password" autoComplete="current-password" required />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField label="New password" name="password" type="password" autoComplete="new-password" required hint="At least 10 characters with a mix of letters, numbers or symbols." />
+        <TextField label="Confirm new password" name="confirm" type="password" autoComplete="new-password" required />
       </div>
-      {sent?.ok && (
-        <ActionForm action={changePasswordAction} resetOnSuccess onSuccess={() => setSent(null)}>
-          <TextField label="Verification code" name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required hint="6 digits, valid for 10 minutes." />
-          <TextField label="Current password" name="current" type="password" autoComplete="current-password" required />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TextField label="New password" name="password" type="password" autoComplete="new-password" required hint="At least 10 characters with a mix of letters, numbers or symbols." />
-            <TextField label="Confirm new password" name="confirm" type="password" autoComplete="new-password" required />
-          </div>
-          <div className="flex justify-end">
-            <SubmitButton>
-              <KeyRound className="h-4 w-4" /> Change password
-            </SubmitButton>
-          </div>
-        </ActionForm>
-      )}
-    </div>
+      <div className="flex justify-end">
+        <SubmitButton>
+          <KeyRound className="h-4 w-4" /> Change password
+        </SubmitButton>
+      </div>
+    </ActionForm>
   );
 }
 
-/** Email change: password re-check, then a code sent to the NEW address proves ownership. */
-export function EmailChangeForm({ email }: { email: string }) {
-  const [step, setStep] = useState<'start' | 'confirm' | 'done'>('start');
-  if (step === 'done') return <p className="text-sm text-emerald-700">Your sign-in email was updated. We’ve notified your previous address.</p>;
+/** The sign-in email is managed by an administrator, not self-service. */
+export function SignInDetails({ email, username }: { email: string; username: string | null }) {
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-slate-600">
-        Current email: <span className="font-semibold text-slate-900">{email}</span>
+    <div className="space-y-1.5 text-sm text-slate-600">
+      <p>
+        Sign-in email: <span className="font-semibold text-slate-900">{email}</span>
       </p>
-      {step === 'start' ? (
-        <ActionForm action={requestEmailChangeAction} onSuccess={() => setStep('confirm')}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TextField label="New email" name="newEmail" type="email" autoComplete="email" required />
-            <TextField label="Current password" name="password" type="password" autoComplete="current-password" required />
-          </div>
-          <div className="flex justify-end">
-            <SubmitButton variant="secondary">Send code to new email</SubmitButton>
-          </div>
-        </ActionForm>
-      ) : (
-        <ActionForm action={confirmEmailChangeAction} onSuccess={() => setStep('done')}>
-          <TextField label="Code sent to your new email" name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required />
-          <div className="flex justify-between gap-2">
-            <button type="button" onClick={() => setStep('start')} className="text-sm font-semibold text-slate-500 hover:text-slate-900">
-              Use a different email
-            </button>
-            <SubmitButton>Confirm new email</SubmitButton>
-          </div>
-        </ActionForm>
+      {username && (
+        <p>
+          Username: <span className="font-semibold text-slate-900">{username}</span>
+        </p>
       )}
+      <p className="text-xs text-slate-500">To change your email or username, or if you forget your password, contact your administrator.</p>
     </div>
   );
 }

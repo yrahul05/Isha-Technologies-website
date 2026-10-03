@@ -14,6 +14,8 @@ export type AuditAction =
   | 'auth.invite_accepted'
   | 'auth.mfa_enabled'
   | 'auth.mfa_disabled'
+  | 'user.password_set_by_admin'
+  | 'user.force_password_change'
   | 'user.created'
   | 'user.updated'
   | 'user.activated'

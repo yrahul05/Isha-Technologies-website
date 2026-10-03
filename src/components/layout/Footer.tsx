@@ -44,7 +44,7 @@ const comingSoonBadgeClass =
 
 export const Footer = () => {
   return (
-    <footer className="relative overflow-hidden border-t border-gray-200 bg-white">
+    <footer data-public-chrome className="relative overflow-hidden border-t border-gray-200 bg-white">
       <div className="relative mx-auto w-[min(1400px,calc(100%-3rem))] pt-12 pb-8">
         <nav aria-label="Footer navigation">
           <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-[1.7fr_0.7fr_1.35fr_0.7fr_1.35fr] lg:gap-x-8">

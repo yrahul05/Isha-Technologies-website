@@ -133,7 +133,7 @@ export const Navbar = () => {
 
   return (
     <>
-      <header className="w-full border-b border-b-black/5 bg-white sticky top-0 z-50 transition duration-300">
+      <header data-public-chrome className="w-full border-b border-b-black/5 bg-white sticky top-0 z-50 transition duration-300">
         <div className="max-w-full mx-auto flex h-16 items-center justify-between px-4">
           {/* Logo — left of the navbar */}
           <Logo src="/ISHA-TECHNO-LG.png" imgClassName="h-9 lg:h-11 w-auto" priority />
@@ -273,7 +273,7 @@ export const Navbar = () => {
           {/* Contact Button */}
           <div className="flex items-center gap-2">
             <Link
-              href="/portal"
+              href="https://portal.ishatechnologies.in/login"
               className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-brand/5 hover:text-brand lg:inline-flex"
             >
               <LockKeyhole className="h-4 w-4" strokeWidth={1.75} />
@@ -331,7 +331,7 @@ export const Navbar = () => {
                     Get Free Cloud Assessment
                   </Link>
                   <Link
-                    href="/portal"
+                    href="https://portal.ishatechnologies.in/login"
                     className="flex items-center justify-center gap-2 text-base font-medium text-slate-600 hover:text-brand transition-colors"
                     onClick={() => setIsShow(false)}
                   >

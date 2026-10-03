@@ -69,6 +69,7 @@ export function WhatsAppButton() {
 
   return (
     <div
+      data-public-chrome
       className="group fixed right-[calc(1rem+env(safe-area-inset-right))] bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 transition-[bottom] duration-300 ease-out sm:right-[calc(1.5rem+env(safe-area-inset-right))] sm:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]"
       style={liftPx > 0 ? { bottom: `${liftPx}px` } : undefined}
     >

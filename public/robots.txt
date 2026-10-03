@@ -4,10 +4,9 @@
 # needed to render them (/_next/) are crawlable. Only server endpoints and
 # the private, password-gated analytics dashboard are excluded.
 #
-# The client portal (/portal) is deliberately NOT disallowed here: every
-# portal response carries X-Robots-Tag: noindex and a noindex meta tag, and
-# crawlers can only honour noindex on URLs they are allowed to fetch. All
-# private pages sit behind authentication, so there is nothing to crawl.
+# The private client CRM lives on its own host, https://portal.ishatechnologies.in,
+# which serves its own robots.txt (Disallow: /) and noindex headers. It is not part
+# of this site: no CRM path exists here and none is listed in the sitemap.
 #
 # Search engines (Googlebot, Bingbot) and AI/answer-engine crawlers
 # (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) are intentionally

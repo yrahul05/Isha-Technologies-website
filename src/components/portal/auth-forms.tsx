@@ -1,16 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { useState } from 'react';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { ActionForm, Field, SubmitButton, inputClass } from './forms';
-import {
-  forgotPasswordAction,
-  loginAction,
-  resetPasswordAction,
-  resetWithOtpAction,
-  verifyMfaAction,
-} from '@/server/actions/auth';
+import { loginAction, verifyMfaAction } from '@/server/actions/auth';
 import { cn } from '@/lib/utils';
 
 function PasswordInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -46,11 +39,7 @@ export function LoginForm({ next }: { next?: string }) {
       <Field label="Password" name="password" required>
         {(p) => <PasswordInput {...p} autoComplete="current-password" required placeholder="••••••••••" />}
       </Field>
-      <div className="flex justify-end">
-        <Link href="/portal/forgot-password" className="text-xs font-semibold text-brand hover:underline">
-          Forgot password?
-        </Link>
-      </div>
+      <p className="text-xs leading-relaxed text-slate-500">Forgot your password? Contact your administrator at Isha Technologies — they can set a new one for you.</p>
       <SubmitButton className="h-11 w-full" pendingLabel="Signing in…">
         Sign in
       </SubmitButton>
@@ -79,85 +68,6 @@ export function MfaForm({ next }: { next?: string }) {
       </Field>
       <SubmitButton className="h-11 w-full" pendingLabel="Verifying…">
         Verify and continue
-      </SubmitButton>
-    </ActionForm>
-  );
-}
-
-/**
- * Forgot password, two steps on one page:
- *   1. email → a 6-digit code is emailed (same response whether or not the
- *      account exists, so addresses can't be enumerated);
- *   2. code + new password → reset, all sessions signed out.
- */
-export function ForgotPasswordForm() {
-  const [email, setEmail] = useState<string | null>(null);
-  if (!email) {
-    return (
-      <ActionForm action={forgotPasswordAction} onSuccess={(s) => setEmail(s.data?.email ?? '')} showSuccess={false}>
-        <Field label="Account email" name="email" required>
-          {(p) => (
-            <div className="relative">
-              <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input {...p} type="email" autoComplete="email" autoFocus required className={cn(inputClass, 'pl-10')} />
-            </div>
-          )}
-        </Field>
-        <SubmitButton className="h-11 w-full" pendingLabel="Sending…">
-          Email me a code
-        </SubmitButton>
-      </ActionForm>
-    );
-  }
-  return (
-    <ActionForm action={resetWithOtpAction}>
-      <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
-        If an account exists for <span className="font-semibold">{email}</span>, we&rsquo;ve emailed a 6-digit code. It expires in 10 minutes.
-      </p>
-      <input type="hidden" name="email" value={email} />
-      <Field label="Verification code" name="code" required>
-        {(p) => (
-          <input
-            {...p}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="\d{6}"
-            maxLength={6}
-            autoFocus
-            required
-            className={cn(inputClass, 'text-center font-mono text-lg tracking-[0.5em]')}
-            placeholder="000000"
-          />
-        )}
-      </Field>
-      <Field label="New password" name="password" required hint="At least 10 characters, mixing letters, numbers or symbols.">
-        {(p) => <PasswordInput {...p} autoComplete="new-password" required />}
-      </Field>
-      <Field label="Confirm password" name="confirm" required>
-        {(p) => <PasswordInput {...p} autoComplete="new-password" required />}
-      </Field>
-      <SubmitButton className="h-11 w-full" pendingLabel="Resetting…">
-        Reset password
-      </SubmitButton>
-      <button type="button" onClick={() => setEmail(null)} className="w-full text-center text-xs font-semibold text-slate-500 hover:text-brand">
-        Didn&rsquo;t get it? Send a new code
-      </button>
-    </ActionForm>
-  );
-}
-
-export function ResetPasswordForm({ token, cta }: { token: string; cta: string }) {
-  return (
-    <ActionForm action={resetPasswordAction}>
-      <input type="hidden" name="token" value={token} />
-      <Field label="New password" name="password" required hint="At least 10 characters, mixing letters, numbers or symbols.">
-        {(p) => <PasswordInput {...p} autoComplete="new-password" autoFocus required />}
-      </Field>
-      <Field label="Confirm password" name="confirm" required>
-        {(p) => <PasswordInput {...p} autoComplete="new-password" required />}
-      </Field>
-      <SubmitButton className="h-11 w-full" pendingLabel="Saving…">
-        {cta}
       </SubmitButton>
     </ActionForm>
   );

@@ -12,7 +12,7 @@ import './portal.css';
 export const metadata: Metadata = {
   title: { default: 'Portal | Isha Technologies', template: '%s · Isha Technologies Portal' },
   robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } },
-  manifest: '/portal.webmanifest',
+  manifest: '/portal/manifest',
   appleWebApp: { capable: true, title: 'Isha Portal', statusBarStyle: 'default' },
   icons: { apple: '/portal-icons/icon-192.png' },
 };
@@ -26,7 +26,13 @@ export default function PortalRootLayout({ children }: { children: ReactNode }) 
   // branded notice instead of a server error. Nothing below renders (so no
   // database access is attempted) until DATABASE_URL is set.
   if (!isDatabaseConfigured()) return <PortalNotConfigured />;
-  return <div className="min-h-screen bg-white text-slate-900">{children}</div>;
+  return (
+    <div className="min-h-screen bg-white text-slate-900">
+      {/* On the portal subdomain usePathname() sees clean URLs, so hide the public site's chrome in the server HTML itself (no flash). */}
+      <style href="portal-hide-public-chrome" precedence="default">{'[data-public-chrome]{display:none!important}'}</style>
+      {children}
+    </div>
+  );
 }
 
 function PortalNotConfigured() {
