@@ -15,6 +15,7 @@ import { ProgressRing } from '@/components/portal/charts';
 import { KanbanBoard } from '@/components/portal/tasks/KanbanBoard';
 import { NewTaskButton } from '@/components/portal/tasks/TaskForm';
 import { EditProjectButton } from '@/components/portal/projects/ProjectForm';
+import { ArchiveProjectButton } from '@/components/portal/projects/ArchiveProjectButton';
 import { DocumentRowList } from '@/components/portal/documents/DocumentRowList';
 import { UploadButton } from '@/components/portal/documents/Uploader';
 import { formatINR } from '@/lib/portal/invoice-math';
@@ -88,6 +89,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
             <StatusBadge status={project.status} />
+            {project.archivedAt && <StatusBadge status="archived" label="Archived" />}
             <StatusBadge status={project.health} />
             <StatusBadge status={project.priority} label={`${project.priority[0].toUpperCase()}${project.priority.slice(1)} priority`} />
           </span>
@@ -117,7 +119,8 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
                 }}
               />
             )}
-            {canCreateTasks && <NewTaskButton projects={[{ id, name: project.name }]} people={people} defaultProjectId={id} />}
+            {manage && (project.archivedAt || ['completed', 'cancelled'].includes(project.status)) && <ArchiveProjectButton id={project.id} archived={Boolean(project.archivedAt)} />}
+            {canCreateTasks && !project.archivedAt && <NewTaskButton projects={[{ id, name: project.name }]} people={people} defaultProjectId={id} />}
           </>
         }
       />

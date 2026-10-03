@@ -2,7 +2,7 @@
  * What clients may *request* to change (never change directly). Anything
  * not listed here cannot be requested at all.
  */
-export const CHANGEABLE: Record<'client' | 'invoice' | 'project' | 'document', Record<string, string>> = {
+export const CHANGEABLE: Record<'client' | 'invoice' | 'project' | 'document' | 'task', Record<string, string>> = {
   client: {
     companyName: 'Company name',
     legalName: 'Legal name',
@@ -30,6 +30,12 @@ export const CHANGEABLE: Record<'client' | 'invoice' | 'project' | 'document', R
     name: 'Document name',
     delete: 'Remove this document',
   },
+  // Approved work (tasks shared with the client): meaningful changes need approval.
+  task: {
+    title: 'Task title',
+    description: 'Task details / scope',
+    dueDate: 'Due date',
+  },
 };
 
-export const ENTITY_LABELS = { client: 'Company information', invoice: 'Invoice', project: 'Project', document: 'Document' } as const;
+export const ENTITY_LABELS = { client: 'Company information', invoice: 'Invoice', project: 'Project', document: 'Document', task: 'Task' } as const;

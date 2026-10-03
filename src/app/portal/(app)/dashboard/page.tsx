@@ -21,7 +21,7 @@ import { getClientDashboard, getEmployeeDashboard, getExecutiveDashboard } from 
 import { Avatar, Badge, EmptyState, PageHeader, Panel, StatCard, StatusBadge } from '@/components/portal/ui';
 import { ActivityFeed, DeadlineList, MeetingList, NotificationList, ProjectHealthList, ViewAll } from '@/components/portal/widgets';
 import { BarList, ColumnChart, ProgressRing } from '@/components/portal/charts';
-import { formatINR } from '@/lib/portal/invoice-math';
+import { formatMoney } from '@/lib/portal/invoice-math';
 import { fmtDate, humanize, relativeTime } from '@/lib/portal/format';
 import { Button } from '@/components/ui/button';
 
@@ -33,7 +33,6 @@ function greeting(name: string) {
   return `${part}, ${name.split(' ')[0]}`;
 }
 
-const inrCompact = (paise: number) => formatINR(paise, { compact: true });
 
 export default async function DashboardPage() {
   const viewer = await requireViewer();
@@ -86,11 +85,11 @@ async function ExecutiveDashboard({ viewer }: { viewer: Viewer }) {
         <StatCard label="Open tickets" value={d.openTickets} icon={LifeBuoy} tone="sky" href="/portal/tickets" />
         {d.finance && (
           <>
-            <StatCard label="Total revenue collected" value={inrCompact(d.finance.totalCollectedPaise)} icon={CircleDollarSign} tone="green" href="/portal/reports" hint="Lifetime payments" />
-            <StatCard label="Outstanding amount" value={inrCompact(d.finance.outstandingPaise)} icon={Wallet} href="/portal/invoices?status=outstanding" hint={`${d.finance.outstandingCount} unpaid invoices`} />
+            <StatCard label="Total revenue collected" value={d.finance.collectedLabel} icon={CircleDollarSign} tone="green" href="/portal/reports" hint="Lifetime payments" />
+            <StatCard label="Outstanding amount" value={d.finance.outstandingLabel} icon={Wallet} href="/portal/invoices?status=outstanding" hint={`${d.finance.outstandingCount} unpaid invoices`} />
             <StatCard
               label="Overdue payments"
-              value={inrCompact(d.finance.overduePaise)}
+              value={d.finance.overdueLabel}
               icon={AlarmClock}
               tone={d.finance.overdueCount ? 'red' : 'slate'}
               href="/portal/invoices?status=overdue"
@@ -104,7 +103,7 @@ async function ExecutiveDashboard({ viewer }: { viewer: Viewer }) {
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           {d.finance && (
-            <Panel title="Monthly revenue" description="Payments received, last 6 months" action={<ViewAll href="/portal/reports" label="Reports" />}>
+            <Panel title="Monthly revenue" description="INR payments received, last 6 months" action={<ViewAll href="/portal/reports" label="Reports" />}>
               <ColumnChart data={d.finance.monthly} format="inr-compact" ariaLabel="Payments received per month, last six months" />
             </Panel>
           )}
@@ -310,11 +309,11 @@ async function ClientDashboard({ viewer }: { viewer: Viewer }) {
           <div className="grid grid-cols-2 gap-3 md:w-72">
             <div className="rounded-xl bg-white/15 p-3 ring-1 ring-white/20 backdrop-blur">
               <p className="text-[11px] uppercase tracking-wide text-white/75">Amount due</p>
-              <p className="text-lg font-bold tabular-nums">{formatINR(d.invoices.duePaise, { compact: true })}</p>
+              <p className="text-lg font-bold tabular-nums">{d.invoices.dueLabel}</p>
             </div>
             <div className="rounded-xl bg-white/15 p-3 ring-1 ring-white/20 backdrop-blur">
               <p className="text-[11px] uppercase tracking-wide text-white/75">Paid to date</p>
-              <p className="text-lg font-bold tabular-nums">{formatINR(d.invoices.lifetimePaidPaise, { compact: true })}</p>
+              <p className="text-lg font-bold tabular-nums">{d.invoices.paidLabel}</p>
             </div>
           </div>
         </div>
@@ -323,7 +322,7 @@ async function ClientDashboard({ viewer }: { viewer: Viewer }) {
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatCard label="Open tickets" value={d.ticketsOpen.length} icon={LifeBuoy} tone="sky" href="/portal/tickets" />
         <StatCard label="Upcoming meetings" value={d.meetingsSoon.length} icon={Hourglass} tone="violet" href="/portal/meetings" />
-        <StatCard label="Outstanding invoices" value={d.invoices.outstandingCount} icon={ReceiptIndianRupee} tone={d.invoices.overduePaise ? 'red' : 'brand'} href="/portal/invoices" hint={d.invoices.overduePaise ? `${formatINR(d.invoices.overduePaise, { compact: true })} overdue` : undefined} />
+        <StatCard label="Outstanding invoices" value={d.invoices.outstandingCount} icon={ReceiptIndianRupee} tone={d.invoices.overdueLabel ? 'red' : 'brand'} href="/portal/invoices" hint={d.invoices.overdueLabel ? `${d.invoices.overdueLabel} overdue` : undefined} />
         <StatCard label="Paid invoices" value={d.invoices.paidCount} icon={CheckCircle2} tone="green" href="/portal/invoices?status=paid" />
       </div>
 
@@ -370,8 +369,8 @@ async function ClientDashboard({ viewer }: { viewer: Viewer }) {
                         <span className="block text-xs text-slate-500">Due {fmtDate(inv.dueDate)}</span>
                       </span>
                       <span className="text-right">
-                        <span className="block text-sm font-bold tabular-nums text-slate-900">{formatINR(inv.totalPaise - inv.paidPaise)}</span>
-                        {inv.dueDate < new Date().toISOString().slice(0, 10) ? <Badge tone="red">Overdue</Badge> : <span className="text-[11px] text-slate-500">of {formatINR(inv.totalPaise)}</span>}
+                        <span className="block text-sm font-bold tabular-nums text-slate-900">{formatMoney(inv.totalPaise - inv.paidPaise, inv.currency)}</span>
+                        {inv.dueDate < new Date().toISOString().slice(0, 10) ? <Badge tone="red">Overdue</Badge> : <span className="text-[11px] text-slate-500">of {formatMoney(inv.totalPaise, inv.currency)}</span>}
                       </span>
                     </Link>
                   </li>

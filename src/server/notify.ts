@@ -3,8 +3,8 @@ import { and, eq, inArray, ne } from 'drizzle-orm';
 import { after } from 'next/server';
 import { db } from '@/server/db';
 import { clientUsers, notifications, projectMembers, rolePermissions, users } from '@/server/db/schema';
-import { sendEmail } from '@/lib/email';
-import { appUrl } from '@/server/request';
+import { sendTemplate, type EmailCategory } from '@/server/email/templates';
+import { categoryOf, type NotificationCategory } from '@/lib/portal/notification-prefs';
 import type { Permission } from '@/lib/portal/permissions';
 
 export type NotificationInput = {
@@ -14,6 +14,19 @@ export type NotificationInput = {
   link?: string;
   priority?: 'low' | 'normal' | 'high' | 'urgent';
   announcementId?: string;
+  /** Extra lines for the email version (e.g. meeting date, organiser, Meet link). */
+  details?: [string, string][];
+};
+
+const EMAIL_CATEGORY: Record<NotificationCategory, EmailCategory> = {
+  security: 'Account Security',
+  meeting: 'Meeting Notification',
+  task: 'Task Notification',
+  invoice: 'Invoice Notification',
+  project: 'Project Update',
+  ticket: 'Support',
+  announcement: 'Announcement',
+  other: 'Notification',
 };
 
 /**
@@ -32,10 +45,13 @@ export async function notifyUsers(
   );
   if (ids.length === 0) return 0;
 
-  const recipients = await db
-    .select({ id: users.id, email: users.email, name: users.name, emailOn: users.emailNotifications })
+  const category = categoryOf(input.type);
+  const candidates = await db
+    .select({ id: users.id, email: users.email, name: users.name, emailOn: users.emailNotifications, prefs: users.notificationPrefs })
     .from(users)
     .where(and(inArray(users.id, ids), eq(users.isActive, true)));
+  // Per-user category preferences; security notices always go through.
+  const recipients = candidates.filter((r) => category === 'security' || (r.prefs as Record<string, boolean>)[category] !== false);
   if (recipients.length === 0) return 0;
 
   await db.insert(notifications).values(
@@ -52,20 +68,25 @@ export async function notifyUsers(
   );
 
   const priority = input.priority ?? 'normal';
-  if ((priority === 'high' || priority === 'urgent') && process.env.EMAIL_API_KEY && process.env.EMAIL_FROM) {
-    const from = process.env.EMAIL_FROM;
-    const link = input.link ? `${appUrl()}${input.link}` : `${appUrl()}/portal/notifications`;
-    after(async () => {
-      for (const r of recipients.filter((x) => x.emailOn)) {
-        await sendEmail({
-          to: r.email,
-          from,
-          subject: `${input.title} — Isha Technologies Portal`,
-          text: `${input.title}\n\n${input.body ?? ''}\n\nOpen: ${link}`,
-          html: portalEmailHtml(input.title, input.body ?? '', link, 'Open in portal'),
+  // Email: high/urgent items for users with email on; security notices always.
+  const emailTo = recipients.filter((r) => category === 'security' || ((priority === 'high' || priority === 'urgent') && r.emailOn));
+  if (emailTo.length && process.env.EMAIL_API_KEY && process.env.EMAIL_FROM) {
+    const send = async () => {
+      for (const r of emailTo) {
+        await sendTemplate(r.email, {
+          category: EMAIL_CATEGORY[category],
+          title: input.title,
+          intro: input.body ?? '',
+          rows: input.details,
+          cta: { label: 'Open in portal', href: input.link ?? '/portal/notifications' },
         }).catch(() => undefined);
       }
-    });
+    };
+    try {
+      after(send);
+    } catch {
+      await send(); // outside a request scope (cron / scripts)
+    }
   }
   return recipients.length;
 }

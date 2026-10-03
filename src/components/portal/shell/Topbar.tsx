@@ -21,7 +21,7 @@ export function Topbar({
   unread,
 }: {
   groups: NavGroup[];
-  user: { name: string; email: string; roleLabel: string; workspace: string };
+  user: { name: string; email: string; roleLabel: string; workspace: string; avatarUrl?: string | null };
   pollSeconds: number;
   soundAllowed: boolean;
   unread: number;
@@ -58,7 +58,7 @@ export function Topbar({
         <DialogPrimitive.Root open={menuOpen} onOpenChange={setMenuOpen}>
           <DialogPrimitive.Trigger asChild>
             <button className="flex items-center gap-2 rounded-xl py-1 pl-1 pr-2 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
-              <Avatar name={user.name} size="md" />
+              <Avatar name={user.name} size="md" src={user.avatarUrl} />
               <span className="hidden text-left md:block">
                 <span className="block max-w-[140px] truncate text-sm font-semibold leading-tight text-slate-900">{user.name}</span>
                 <span className="block text-[11px] leading-tight text-slate-500">{user.roleLabel}</span>

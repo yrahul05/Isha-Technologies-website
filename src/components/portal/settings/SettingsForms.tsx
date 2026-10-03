@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { KeyRound, Mail, ShieldCheck, ShieldOff, Unplug, Video } from 'lucide-react';
+import { Mail, ShieldCheck, ShieldOff } from 'lucide-react';
 import { ActionForm, SelectField, SubmitButton, TextAreaField, TextField, Toggle } from '../forms';
 import {
   beginTotpSetupAction,
-  changePasswordAction,
   confirmTotpAction,
   disableTotpAction,
   revokeOtherSessionsAction,
@@ -13,45 +12,9 @@ import {
   saveRolePermissionsAction,
   saveSettingsSectionAction,
   sendTestEmailAction,
-  updateProfileAction,
 } from '@/server/actions/settings';
-import { disconnectGoogleAction } from '@/server/actions/meetings';
 import type { ActionState } from '@/server/actions/types';
 import { GST_STATES } from '@/lib/portal/invoice-math';
-
-export function ProfileForm({ user }: { user: { name: string; phone: string | null; title: string | null; emailNotifications: boolean; email: string } }) {
-  return (
-    <ActionForm action={updateProfileAction}>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <TextField label="Full name" name="name" required defaultValue={user.name} />
-        <TextField label="Email" name="email_display" defaultValue={user.email} disabled hint="Contact an admin to change your sign-in email." />
-        <TextField label="Job title" name="title" defaultValue={user.title ?? ''} />
-        <TextField label="Phone" name="phone" defaultValue={user.phone ?? ''} />
-      </div>
-      <Toggle name="emailNotifications" label="Email me important notifications" description="High-priority items (new tasks, meetings, invoices) also arrive by email." defaultChecked={user.emailNotifications} />
-      <div className="flex justify-end">
-        <SubmitButton>Save profile</SubmitButton>
-      </div>
-    </ActionForm>
-  );
-}
-
-export function PasswordForm() {
-  return (
-    <ActionForm action={changePasswordAction} resetOnSuccess>
-      <TextField label="Current password" name="current" type="password" autoComplete="current-password" required />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <TextField label="New password" name="password" type="password" autoComplete="new-password" required hint="At least 10 characters with a mix of letters, numbers or symbols." />
-        <TextField label="Confirm new password" name="confirm" type="password" autoComplete="new-password" required />
-      </div>
-      <div className="flex justify-end">
-        <SubmitButton>
-          <KeyRound className="h-4 w-4" /> Change password
-        </SubmitButton>
-      </div>
-    </ActionForm>
-  );
-}
 
 export function TwoFactorPanel({ enabled }: { enabled: boolean }) {
   const [setup, setSetup] = useState<{ secret: string; qr: string } | null>(null);
@@ -123,36 +86,9 @@ export function SessionRevokeButton({ id, all }: { id?: string; all?: boolean })
   );
 }
 
-export function GoogleConnection({ email, configured }: { email: string | null; configured: boolean }) {
-  const [pending, start] = useTransition();
-  const [state, setState] = useState<ActionState>({});
-  if (!configured) {
-    return <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">Google OAuth isn&rsquo;t configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (see docs/portal/SETUP.md).</p>;
-  }
-  if (email && !state.ok) {
-    return (
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="flex items-center gap-2 text-sm text-slate-700">
-          <Video className="h-4 w-4 text-brand" /> Connected as <span className="font-semibold">{email}</span>
-        </p>
-        <button disabled={pending} onClick={() => start(async () => setState(await disconnectGoogleAction()))} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-slate-600 hover:border-rose-300 hover:text-rose-600">
-          <Unplug className="h-4 w-4" /> Disconnect
-        </button>
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-2">
-      <p className="text-sm text-slate-600">Connect your Google account to create Google Meet meetings directly from the portal. We only request permission to manage calendar events you create.</p>
-      <a href="/api/portal/google/connect" className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand px-4 text-sm font-medium text-white hover:bg-[#2f6ccd]">
-        <Video className="h-4 w-4" /> Connect Google Calendar
-      </a>
-    </div>
-  );
-}
-
 export function SettingsSectionForm({ section, values, people }: { section: string; values: Record<string, unknown>; people?: { id: string; name: string }[] }) {
-  const v = (k: string) => (values[k] === null || values[k] === undefined ? '' : String(values[k]));
+  const v = (k: string) => (values[k] === null || values[k] === undefined ? '' : Array.isArray(values[k]) ? (values[k] as unknown[]).join(', ') : String(values[k]));
+  const nested = (group: 'domestic' | 'international') => (values[group] ?? {}) as Record<string, unknown> & { show?: Record<string, boolean> };
   const b = (k: string) => Boolean(values[k]);
   return (
     <ActionForm action={saveSettingsSectionAction}>
@@ -165,27 +101,79 @@ export function SettingsSectionForm({ section, values, people }: { section: stri
         </div>
       )}
       {section === 'tax' && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextField label="GSTIN" name="gstin" defaultValue={v('gstin')} hint="Printed on every invoice" />
-          <TextField label="PAN" name="pan" defaultValue={v('pan')} />
-          <SelectField label="Supplier state (GST)" name="stateCode" defaultValue={v('stateCode')} options={GST_STATES.map((s) => ({ value: s.code, label: `${s.code} · ${s.name}` }))} hint="Same state as client → CGST + SGST; otherwise IGST" />
-          <TextField label="Default GST rate (%)" name="defaultTaxRatePct" type="number" defaultValue={v('defaultTaxRatePct')} />
-          <TextField label="Default SAC code" name="sacCode" defaultValue={v('sacCode')} hint="998313 — IT consulting & support" />
-        </div>
+        <>
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand">India · GST (INR invoices)</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField label="GSTIN" name="gstin" defaultValue={v('gstin')} hint="Printed on every GST invoice" />
+            <TextField label="PAN" name="pan" defaultValue={v('pan')} />
+            <SelectField label="Supplier state (GST)" name="stateCode" defaultValue={v('stateCode')} options={GST_STATES.map((s) => ({ value: s.code, label: `${s.code} · ${s.name}` }))} hint="Same state as client → CGST + SGST; otherwise IGST" />
+            <TextField label="Default SAC code" name="sacCode" defaultValue={v('sacCode')} hint="998313 — IT consulting & support" />
+            <TextField label="GST rates offered (%)" name="gstRates" defaultValue={v('gstRates')} hint="Comma-separated, e.g. 0, 5, 12, 18, 28" />
+            <TextField label="Default GST rate (%)" name="defaultTaxRatePct" type="number" step="0.01" defaultValue={v('defaultTaxRatePct')} hint="Must be one of the rates above" />
+          </div>
+          <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-brand">International (USD / CAD invoices)</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField label="Tax label" name="internationalTaxLabel" defaultValue={v('internationalTaxLabel')} hint="Used when an invoice applies a custom tax, e.g. “Tax”, “HST”" />
+            <TextField label="Default tax rate (%)" name="internationalTaxRatePct" type="number" step="0.01" min={0} max={100} defaultValue={v('internationalTaxRatePct')} hint="0 = no tax by default (export of services)" />
+          </div>
+        </>
       )}
       {section === 'invoice' && (
         <>
           <div className="grid gap-4 sm:grid-cols-2">
-            <TextField label="Invoice number prefix" name="prefix" defaultValue={v('prefix')} hint="e.g. INV → INV-2026-0001" />
+            <TextField label="Invoice number prefix" name="prefix" defaultValue={v('prefix')} hint="ISH → ISH-2026-0001. Numbers are assigned when an invoice is issued and never change." />
+            <SelectField label="Default currency" name="defaultCurrency" defaultValue={v('defaultCurrency')} options={[{ value: 'INR', label: 'INR — Indian Rupee' }, { value: 'USD', label: 'USD — US Dollar' }, { value: 'CAD', label: 'CAD — Canadian Dollar' }]} />
             <TextField label="Default payment window (days)" name="defaultDueDays" type="number" defaultValue={v('defaultDueDays')} />
-            <TextField label="Bank name" name="bankName" defaultValue={v('bankName')} />
-            <TextField label="Account name" name="bankAccountName" defaultValue={v('bankAccountName')} />
-            <TextField label="Account number" name="bankAccountNumber" defaultValue={v('bankAccountNumber')} />
-            <TextField label="IFSC" name="bankIfsc" defaultValue={v('bankIfsc')} />
-            <TextField label="UPI ID" name="upiId" defaultValue={v('upiId')} />
+            <TextField label="Footer line" name="footer" defaultValue={v('footer')} hint="Small print at the bottom of every invoice" />
+            <TextField label="Authorised signatory" name="signatoryName" defaultValue={v('signatoryName')} />
+            <TextField label="Signatory title" name="signatoryTitle" defaultValue={v('signatoryTitle')} />
           </div>
-          <TextAreaField label="Default payment terms" name="defaultTerms" rows={2} defaultValue={v('defaultTerms')} />
+          <TextAreaField label="Default terms & conditions" name="defaultTerms" rows={4} defaultValue={v('defaultTerms')} />
           <TextAreaField label="Default notes" name="defaultNotes" rows={2} defaultValue={v('defaultNotes')} />
+          <p className="text-xs text-slate-500">Bank and payment details are configured under Settings → Payment details.</p>
+        </>
+      )}
+      {section === 'currencies' && (
+        <>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <TextField label="INR symbol" name="INR" defaultValue={v('INR')} maxLength={4} />
+            <TextField label="USD symbol" name="USD" defaultValue={v('USD')} maxLength={4} />
+            <TextField label="CAD symbol" name="CAD" defaultValue={v('CAD')} maxLength={4} hint="e.g. $ or CA$" />
+          </div>
+          <p className="text-xs text-slate-500">Amounts are formatted per currency (₹1,00,000.00 for INR; $100,000.00 for USD/CAD) and totals are never mixed across currencies.</p>
+        </>
+      )}
+      {section === 'payment' && (
+        <>
+          <PaymentProfileFields
+            prefix="d"
+            title="Domestic (INR) — bank transfer / UPI"
+            values={nested('domestic')}
+            fields={[
+              ['bankName', 'Bank name'],
+              ['accountName', 'Account name'],
+              ['accountNumber', 'Account number'],
+              ['ifsc', 'IFSC'],
+              ['branch', 'Branch'],
+              ['upiId', 'UPI ID'],
+            ]}
+          />
+          <PaymentProfileFields
+            prefix="i"
+            title="International (USD / CAD) — wire transfer"
+            values={nested('international')}
+            fields={[
+              ['bankName', 'Bank name'],
+              ['accountName', 'Beneficiary name'],
+              ['accountNumber', 'Account number'],
+              ['swift', 'SWIFT / BIC (optional)'],
+              ['iban', 'IBAN (if applicable)'],
+              ['routing', 'Routing / transit number'],
+              ['bankAddress', 'Bank address'],
+              ['instructions', 'Payment instructions'],
+            ]}
+          />
+          <p className="text-xs text-slate-500">Only fields marked “Show” are printed, and only on invoices that use that profile. Payment details are hidden on paid and cancelled invoices.</p>
         </>
       )}
       {section === 'notifications' && (
@@ -252,5 +240,24 @@ export function TestEmailButton() {
       {state.error && <span className="text-sm text-rose-600">{state.error}</span>}
       {state.message && <span className="text-sm text-emerald-700">{state.message}</span>}
     </div>
+  );
+}
+
+/** One payment profile: each field has its own "show on invoice" switch. */
+function PaymentProfileFields({ prefix, title, values, fields }: { prefix: 'd' | 'i'; title: string; values: Record<string, unknown> & { show?: Record<string, boolean> }; fields: [string, string][] }) {
+  return (
+    <fieldset className="rounded-xl border border-gray-200 p-4">
+      <legend className="px-1 text-[11px] font-semibold uppercase tracking-wide text-brand">{title}</legend>
+      <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+        {fields.map(([key, label]) => (
+          <div key={key} className="space-y-1">
+            <TextField label={label} name={`${prefix}_${key}`} defaultValue={String(values[key] ?? '')} />
+            <label className="flex items-center gap-2 text-xs text-slate-600">
+              <input type="checkbox" name={`${prefix}_show_${key}`} defaultChecked={Boolean(values.show?.[key])} className="h-3.5 w-3.5 rounded accent-[#3478e4]" /> Show on invoice
+            </label>
+          </div>
+        ))}
+      </div>
+    </fieldset>
   );
 }

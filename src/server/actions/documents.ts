@@ -1,6 +1,6 @@
 'use server';
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { and, eq, gt, lt } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -8,7 +8,8 @@ import { db } from '@/server/db';
 import { clients, documentVersions, documents, pendingUploads, users } from '@/server/db/schema';
 import { requireViewerOrThrow, type Viewer } from '@/server/auth/viewer';
 import { canManageDocument, findVisibleDocument, resolveUploadTarget, type ResolvedTarget } from '@/server/documents';
-import { inspectObject, presignUpload, storageDriver } from '@/server/storage';
+import { storage, type StorageName } from '@/server/storage';
+import { scanBuffer } from '@/server/scan';
 import { audit, recordActivity } from '@/server/audit';
 import { clientUserIds, notifyUsers, projectMemberIds } from '@/server/notify';
 import { getSetting } from '@/server/settings';
@@ -32,12 +33,20 @@ const initSchema = z.object({
 });
 
 export type InitUploadResult =
-  | { ok: true; uploadId: string; method: 'PUT'; url: string; headers: Record<string, string> }
+  | { ok: true; uploadId: string; plan: ClientUploadPlan }
   | { ok: false; error: string };
+
+/** What the browser needs to send the bytes (never includes server credentials). */
+export type ClientUploadPlan =
+  | { mode: 'proxy'; url: string; partSize: number; parts: number }
+  | { mode: 'presigned'; url: string; headers: Record<string, string> }
+  | { mode: 'blob-client'; pathname: string; clientToken: string; contentType: string };
 
 /**
  * Step 1 of an upload: authorise the target, validate type and size, and
- * hand back a one-time upload URL (presigned S3 PUT, or the local dev route).
+ * hand back a one-time upload plan for the configured StorageProvider
+ * (chunked PUTs to our own route, a presigned S3 PUT, or a Vercel Blob
+ * client token restricted to one pathname, content type and size).
  */
 export async function initUploadAction(input: z.infer<typeof initSchema>): Promise<InitUploadResult> {
   try {
@@ -46,7 +55,6 @@ export async function initUploadAction(input: z.infer<typeof initSchema>): Promi
     if (!parsed.success) return { ok: false, error: 'Invalid upload request.' };
     const { fileName, size, target: req } = parsed.data;
 
-    if (storageDriver() === 'none') return { ok: false, error: 'File storage is not configured yet (set the S3_* environment variables).' };
     const kind = fileKindFor(fileName);
     if (!kind) return { ok: false, error: 'This file type is not allowed. Use PDF, Word, Excel, CSV, PNG, JPG or ZIP.' };
     const { maxUploadMb } = await getSetting('storage');
@@ -55,23 +63,31 @@ export async function initUploadAction(input: z.infer<typeof initSchema>): Promi
     const target = await resolveUploadTarget(viewer, req);
     if (!target) return { ok: false, error: 'You can’t upload files here.' };
 
-    const key = `${target.clientId ?? 'internal'}/${randomUUID()}/${safeFileName(fileName)}`;
+    const provider = storage();
+    // Random, unguessable key; the user-supplied name is sanitised and only kept for readability.
+    const key = `documents/${target.clientId ?? 'internal'}/${randomUUID()}/${safeFileName(fileName)}`;
     const [pending] = await db
       .insert(pendingUploads)
-      .values({ userId: viewer.id, storageKey: key, fileName: fileName.slice(0, 200), mimeType: kind.mime, sizeBytes: size, target, expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
+      .values({ userId: viewer.id, storageKey: key, fileName: fileName.slice(0, 200), mimeType: kind.mime, sizeBytes: size, target: { ...target, driver: provider.name }, expiresAt: new Date(Date.now() + 15 * 60 * 1000) })
       .returning({ id: pendingUploads.id });
 
-    const presigned = await presignUpload(key, kind.mime, size);
-    if (presigned) return { ok: true, uploadId: pending.id, method: 'PUT', url: presigned.url, headers: presigned.headers };
-    const token = signToken({ uploadId: pending.id, userId: viewer.id }, 15 * 60);
-    return { ok: true, uploadId: pending.id, method: 'PUT', url: `/api/portal/uploads/${pending.id}?token=${encodeURIComponent(token)}`, headers: { 'Content-Type': kind.mime } };
+    const plan = await provider.prepareUpload(key, kind.mime, size);
+    if (plan.mode === 'proxy') {
+      const token = signToken({ uploadId: pending.id, userId: viewer.id }, 15 * 60);
+      return { ok: true, uploadId: pending.id, plan: { mode: 'proxy', url: `/api/portal/uploads/${pending.id}?token=${encodeURIComponent(token)}`, partSize: plan.partSize, parts: Math.max(1, Math.ceil(size / plan.partSize)) } };
+    }
+    return { ok: true, uploadId: pending.id, plan };
   } catch (error) {
-    console.error('initUpload failed', error);
+    console.error('initUpload failed', error instanceof Error ? error.message : error);
     return { ok: false, error: 'Could not start the upload.' };
   }
 }
 
-/** Step 2: verify what actually landed in storage, then create the document / version. */
+/**
+ * Step 2: verify what actually landed in storage (exact size, file
+ * signature, malware scan when a scanner is configured), then create the
+ * document / version. Anything that fails verification is deleted.
+ */
 export async function finalizeUploadAction(uploadId: string): Promise<ActionState> {
   return guarded(async () => {
     const viewer = await requireViewerOrThrow();
@@ -84,19 +100,49 @@ export async function finalizeUploadAction(uploadId: string): Promise<ActionStat
     await db.delete(pendingUploads).where(eq(pendingUploads.id, uploadId));
     await db.delete(pendingUploads).where(lt(pendingUploads.expiresAt, new Date()));
 
-    const kind = fileKindFor(pending.fileName)!;
-    const object = await inspectObject(pending.storageKey);
-    if (!object) return { error: 'The file did not finish uploading.' };
-    if (object.size !== pending.sizeBytes) return { error: 'Uploaded file size did not match. Please retry.' };
-    if (!matchesSignature(kind, object.head)) return { error: `The file content is not a valid ${kind.label} file.` };
+    const { driver, ...target } = pending.target as ResolvedTarget & { driver: StorageName };
+    const provider = storage(driver);
+    const reject = async (error: string): Promise<ActionState> => {
+      await provider.delete(pending.storageKey).catch(() => undefined);
+      return { error };
+    };
 
-    const target = pending.target as ResolvedTarget;
-    const version = await createDocumentVersion(viewer, target, pending);
+    const kind = fileKindFor(pending.fileName)!;
+    const object = await provider.inspect(pending.storageKey);
+    if (!object) return { error: 'The file did not finish uploading.' };
+    if (object.size !== pending.sizeBytes) return reject('Uploaded file size did not match. Please retry.');
+    if (!matchesSignature(kind, object.head)) return reject(`The file content is not a valid ${kind.label} file.`);
+
+    // Full read for the checksum and (optional) malware scan — bounded by the declared size.
+    const bytes = await provider.readAll(pending.storageKey, pending.sizeBytes);
+    if (!bytes) return reject('The file could not be verified. Please retry.');
+    const checksum = createHash('sha256').update(bytes).digest('hex');
+    const scan = await scanBuffer(bytes);
+    if (scan.status === 'infected') {
+      await audit(viewer, 'document.scan_blocked', { entityType: 'document', entityId: target.documentId ?? undefined, metadata: { fileName: pending.fileName, signature: scan.signature } });
+      return reject('This file was flagged by the malware scanner and was not uploaded.');
+    }
+    if (scan.status === 'error' && process.env.CLAMAV_REQUIRED === '1') return reject('The malware scanner is unavailable. Please try again shortly.');
+
+    const version = await createDocumentVersion(viewer, target, pending, { driver: provider.name, checksum, scanStatus: scan.status === 'clean' ? 'clean' : 'not_scanned' });
     return { ok: true, message: version.isNew ? 'Uploaded.' : `Version ${version.version} uploaded.`, data: { id: version.documentId } };
   });
 }
 
-async function createDocumentVersion(viewer: Viewer, target: ResolvedTarget, pending: typeof pendingUploads.$inferSelect) {
+/** Archive / restore a document (hidden from default listings, kept for the retention period). */
+export async function archiveDocumentAction(id: string, archive: boolean): Promise<ActionState> {
+  return guarded(async () => {
+    const viewer = await requireViewerOrThrow();
+    const doc = z.uuid().safeParse(id).success ? await findVisibleDocument(viewer, id) : null;
+    if (!doc || !(await canManageDocument(viewer, doc))) return { error: 'You can’t change this document.' };
+    await db.update(documents).set({ archivedAt: archive ? new Date() : null }).where(eq(documents.id, doc.id));
+    await audit(viewer, archive ? 'document.archived' : 'document.restored', { entityType: 'document', entityId: doc.id, metadata: { name: doc.name } });
+    revalidatePath('/portal/documents');
+    return { ok: true, message: archive ? 'Document archived.' : 'Document restored.' };
+  });
+}
+
+async function createDocumentVersion(viewer: Viewer, target: ResolvedTarget, pending: typeof pendingUploads.$inferSelect, stored: { driver: StorageName; checksum: string; scanStatus: 'clean' | 'not_scanned' }) {
   let documentId = target.documentId;
   let version = 1;
   const isNew = !documentId;
@@ -127,6 +173,9 @@ async function createDocumentVersion(viewer: Viewer, target: ResolvedTarget, pen
     fileName: pending.fileName,
     mimeType: pending.mimeType,
     sizeBytes: pending.sizeBytes,
+    checksumSha256: stored.checksum,
+    storageDriver: stored.driver,
+    scanStatus: stored.scanStatus,
     uploadedBy: viewer.id,
   });
 

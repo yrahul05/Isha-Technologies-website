@@ -9,8 +9,10 @@
  */
 import { closeDb, getDb, PGLITE_DIR } from '../src/server/db';
 import { syncRbac } from './lib/rbac';
+import { describeDatabaseTarget } from './lib/remote-guard';
 
 async function main() {
+  console.log(`Target: ${describeDatabaseTarget()}`);
   const db = getDb();
   if (process.env.DATABASE_URL) {
     const { migrate } = await import('drizzle-orm/postgres-js/migrator');

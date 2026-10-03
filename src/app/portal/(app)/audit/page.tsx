@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 export const metadata: Metadata = { title: 'Audit log' };
 const PAGE = 50;
 
-const GROUPS = ['auth', 'user', 'role', 'client', 'project', 'task', 'document', 'invoice', 'payment', 'ticket', 'meeting', 'change_request', 'lead', 'announcement', 'settings', 'google', 'leave'];
+const GROUPS = ['auth', 'security', 'user', 'role', 'client', 'project', 'task', 'task_request', 'document', 'invoice', 'payment', 'ticket', 'meeting', 'change_request', 'lead', 'announcement', 'settings', 'google', 'leave'];
 
 function tone(action: string): Tone {
   if (/failed|blocked|deactivated|deleted|cancelled|rejected/.test(action)) return 'red';

@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 
 export type ChangeTarget = {
   key: string;
-  entityType: 'client' | 'invoice' | 'project' | 'document';
+  entityType: 'client' | 'invoice' | 'project' | 'document' | 'task';
   entityId: string;
   label: string;
   fields: { field: string; label: string; current: string }[];

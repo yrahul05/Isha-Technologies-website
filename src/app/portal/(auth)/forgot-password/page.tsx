@@ -10,7 +10,7 @@ export default function ForgotPasswordPage() {
     <>
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Reset your password</h1>
       <p className="mt-1.5 text-sm text-slate-500">
-        Enter the email on your portal account and we&rsquo;ll send a secure link valid for 30 minutes.
+        Enter the email on your portal account. We&rsquo;ll email a 6-digit verification code, then you can choose a new password.
       </p>
       <div className="mt-6">
         <ForgotPasswordForm />

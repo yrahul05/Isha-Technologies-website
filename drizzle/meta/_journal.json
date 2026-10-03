@@ -8,6 +8,34 @@
       "when": 1790785599684,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790809891539,
+      "tag": "0001_portal_v2",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790809903061,
+      "tag": "0002_retention_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790829912742,
+      "tag": "0003_portal_v3_business",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790991980917,
+      "tag": "0004_rls_lockdown",
+      "breakpoints": true
     }
   ]
 }

@@ -22,7 +22,25 @@ type Item = {
 
 const SOUND_KEY = 'isha-portal-sound';
 /** Types that always chime, regardless of priority. */
-const IMPORTANT_TYPES = new Set(['task.assigned', 'meeting.scheduled', 'meeting.updated', 'ticket.created', 'change_request.created', 'invoice.overdue', 'announcement.emergency']);
+const IMPORTANT_TYPES = new Set([
+  'task.assigned',
+  'meeting.scheduled',
+  'meeting.updated',
+  'meeting.rescheduled',
+  'meeting.cancelled',
+  'meeting.requested',
+  'meeting.approved',
+  'meeting.rejected',
+  'task_request.created',
+  'task_request.approved',
+  'task_request.rejected',
+  'task_request.to_assign',
+  'ticket.created',
+  'change_request.created',
+  'invoice.overdue',
+  'announcement.emergency',
+  'security.account',
+]);
 
 /**
  * Soft two-note chime synthesised with Web Audio — no audio asset to load.

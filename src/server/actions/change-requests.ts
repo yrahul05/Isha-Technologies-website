@@ -4,7 +4,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from '@/server/db';
-import { changeRequests, clients, documents, invoices, projects } from '@/server/db/schema';
+import { changeRequests, clients, documents, invoices, projects, tasks } from '@/server/db/schema';
 import { assertCan, ForbiddenError, requireViewerOrThrow } from '@/server/auth/viewer';
 import { audit, recordActivity } from '@/server/audit';
 import { notifyUsers, usersWithPermission } from '@/server/notify';
@@ -30,6 +30,15 @@ async function currentValue(clientId: string, entityType: Entity, entityId: stri
     const [p] = await db.select().from(projects).where(and(eq(projects.id, entityId), eq(projects.clientId, clientId)));
     return p ? { value: p[field as keyof typeof p] ?? null, label: p.name } : null;
   }
+  if (entityType === 'task') {
+    // Only client-visible, live tasks in this client's own projects.
+    const [t] = await db
+      .select({ task: tasks })
+      .from(tasks)
+      .innerJoin(projects, eq(projects.id, tasks.projectId))
+      .where(and(eq(tasks.id, entityId), eq(projects.clientId, clientId), eq(tasks.visibility, 'client'), isNull(tasks.deletedAt)));
+    return t ? { value: t.task[field as keyof typeof t.task] ?? null, label: t.task.title } : null;
+  }
   const [d] = await db
     .select()
     .from(documents)
@@ -44,12 +53,12 @@ function validateNewValue(entityType: Entity, field: string, raw: string): { val
   if ((field === 'gstin' || field === 'billingGstin') && v && !isValidGstin(v)) return { error: 'That GSTIN doesn’t look valid.' };
   if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return { error: 'Enter a valid email.' };
   if (field === 'dueDate' && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return { error: 'Choose a date.' };
-  if (['companyName', 'contactName', 'billingName', 'name'].includes(field) && v.length < 2) return { error: 'This field can’t be empty.' };
+  if (['companyName', 'contactName', 'billingName', 'name', 'title'].includes(field) && v.length < 2) return { error: 'This field can’t be empty.' };
   return { value: v ? (field === 'gstin' || field === 'billingGstin' || field === 'pan' ? v.toUpperCase() : v).slice(0, 2000) : null };
 }
 
 const submitSchema = z.object({
-  entityType: z.enum(['client', 'invoice', 'project', 'document']),
+  entityType: z.enum(['client', 'invoice', 'project', 'document', 'task']),
   entityId: z.uuid(),
   field: z.string().max(40),
   newValue: z.string().max(2000).default(''),
@@ -103,7 +112,10 @@ export async function reviewChangeRequestAction(_prev: ActionState, form: FormDa
         if (cr.entityType === 'client') await tx.update(clients).set({ [cr.field]: value } as Partial<typeof clients.$inferInsert>).where(eq(clients.id, cr.clientId));
         else if (cr.entityType === 'invoice') await tx.update(invoices).set({ [cr.field]: value } as Partial<typeof invoices.$inferInsert>).where(and(eq(invoices.id, cr.entityId), eq(invoices.clientId, cr.clientId)));
         else if (cr.entityType === 'project') await tx.update(projects).set({ [cr.field]: value } as Partial<typeof projects.$inferInsert>).where(and(eq(projects.id, cr.entityId), eq(projects.clientId, cr.clientId)));
-        else if (cr.entityType === 'document') {
+        else if (cr.entityType === 'task') {
+          const [own] = await tx.select({ id: tasks.id }).from(tasks).innerJoin(projects, eq(projects.id, tasks.projectId)).where(and(eq(tasks.id, cr.entityId), eq(projects.clientId, cr.clientId)));
+          if (own) await tx.update(tasks).set({ [cr.field]: value } as Partial<typeof tasks.$inferInsert>).where(eq(tasks.id, own.id));
+        } else if (cr.entityType === 'document') {
           if (cr.field === 'delete') await tx.update(documents).set({ deletedAt: new Date() }).where(and(eq(documents.id, cr.entityId), eq(documents.clientId, cr.clientId)));
           else await tx.update(documents).set({ name: String(value) }).where(and(eq(documents.id, cr.entityId), eq(documents.clientId, cr.clientId)));
         }

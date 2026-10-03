@@ -2,13 +2,14 @@ import type { ReactNode } from 'react';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { and, count, eq, isNull } from 'drizzle-orm';
-import { requireViewer } from '@/server/auth/viewer';
+import { can, requireViewer } from '@/server/auth/viewer';
 import { db } from '@/server/db';
-import { notifications } from '@/server/db/schema';
+import { meetings, notifications, taskRequests } from '@/server/db/schema';
 import { getSetting } from '@/server/settings';
 import { buildNav } from '@/components/portal/shell/nav';
 import { Sidebar } from '@/components/portal/shell/Sidebar';
 import { Topbar } from '@/components/portal/shell/Topbar';
+import { PwaClient } from '@/components/portal/shell/PwaClient';
 import { ROLE_LABELS } from '@/lib/portal/permissions';
 
 /**
@@ -30,7 +31,12 @@ export default async function PortalAppLayout({ children }: { children: ReactNod
     if (!path.startsWith('/portal/settings')) redirect('/portal/settings?section=security&mfa=required');
   }
 
-  const groups = buildNav(viewer, { '/portal/notifications': unread?.n ?? 0 });
+  // Review queues show a count for the people who work them.
+  const [[pendingRequests], [pendingMeetings]] = await Promise.all([
+    can(viewer, 'task_requests.review') ? db.select({ n: count() }).from(taskRequests).where(eq(taskRequests.status, 'pending')) : Promise.resolve([{ n: 0 }]),
+    can(viewer, 'meetings.manage') ? db.select({ n: count() }).from(meetings).where(eq(meetings.status, 'requested')) : Promise.resolve([{ n: 0 }]),
+  ]);
+  const groups = buildNav(viewer, { '/portal/notifications': unread?.n ?? 0, '/portal/requests': pendingRequests?.n || undefined, '/portal/meetings': pendingMeetings?.n || undefined });
   const workspace = viewer.isInternal ? 'Isha Technologies' : (viewer.clientName ?? 'Client');
 
   return (
@@ -39,13 +45,14 @@ export default async function PortalAppLayout({ children }: { children: ReactNod
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar
           groups={groups}
-          user={{ name: viewer.name, email: viewer.email, roleLabel: ROLE_LABELS[viewer.role], workspace }}
+          user={{ name: viewer.name, email: viewer.email, roleLabel: ROLE_LABELS[viewer.role], workspace, avatarUrl: viewer.avatarUrl }}
           pollSeconds={Math.max(10, notifSettings.pollSeconds)}
           soundAllowed={notifSettings.soundEnabled}
           unread={unread?.n ?? 0}
         />
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
       </div>
+      <PwaClient />
     </div>
   );
 }

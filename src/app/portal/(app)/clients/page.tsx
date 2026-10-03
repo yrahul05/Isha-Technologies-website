@@ -9,7 +9,7 @@ import { clientScope } from '@/server/scope';
 import { internalPeople } from '@/server/queries/people';
 import { EmptyState, PageHeader, Panel, StatusBadge, Table, Td, Th, Tr } from '@/components/portal/ui';
 import { NewClientButton } from '@/components/portal/clients/ClientDialogs';
-import { formatINR } from '@/lib/portal/invoice-math';
+import { formatMulti, type CurrencyCode } from '@/lib/portal/invoice-math';
 import { inputClass } from '@/components/portal/forms';
 import { cn } from '@/lib/utils';
 
@@ -33,7 +33,8 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       status: clients.status,
       manager: users.name,
       projects: sql<number>`(select count(*)::int from projects p where p.client_id = ${clients.id} and p.status not in ('completed','cancelled'))`,
-      outstanding: sql<number>`(select coalesce(sum(i.total_paise - i.paid_paise), 0)::bigint from invoices i where i.client_id = ${clients.id} and i.status in ('sent','partially_paid','overdue'))`,
+      // Per-currency balances: { "INR": 16520000, "USD": 120000 } — never summed across currencies.
+      outstanding: sql<Record<string, number> | null>`(select json_object_agg(x.currency, x.amt) from (select i.currency, sum(i.total_paise - i.paid_paise)::bigint as amt from invoices i where i.client_id = ${clients.id} and i.status in ('sent','partially_paid','overdue') group by i.currency) x)`,
       logins: sql<number>`(select count(*)::int from client_users cu where cu.client_id = ${clients.id})`,
     })
     .from(clients)
@@ -119,7 +120,11 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                   </Td>
                   <Td>{c.manager ?? <span className="text-slate-400">Unassigned</span>}</Td>
                   <Td className="text-right tabular-nums">{c.projects}</Td>
-                  {finance && <Td className={cn('text-right font-semibold tabular-nums', Number(c.outstanding) > 0 ? 'text-slate-900' : 'text-slate-400')}>{formatINR(Number(c.outstanding))}</Td>}
+                  {finance && (
+                    <Td className={cn('text-right font-semibold tabular-nums', c.outstanding ? 'text-slate-900' : 'text-slate-400')}>
+                      {formatMulti(new Map(Object.entries(c.outstanding ?? {}).map(([k, v]) => [k as CurrencyCode, Number(v)])), { compact: false })}
+                    </Td>
+                  )}
                   <Td>
                     <StatusBadge status={c.status} />
                   </Td>

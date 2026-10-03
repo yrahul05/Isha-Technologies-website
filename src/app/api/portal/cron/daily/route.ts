@@ -6,8 +6,9 @@ import { purgeExpiredSessions } from '@/server/auth/session';
 import { clientUserIds, notifyUsers, usersWithPermission } from '@/server/notify';
 import { recordActivity } from '@/server/audit';
 import { safeEqual } from '@/server/security/crypto';
-import { formatINR } from '@/lib/portal/invoice-math';
+import { formatMoney } from '@/lib/portal/invoice-math';
 import { todayIST } from '@/lib/portal/format';
+import { runWorkflows } from '@/server/workflows';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -19,6 +20,9 @@ export const maxDuration = 60;
  *  2. Tasks due tomorrow → assignee reminded ("deadline approaching").
  *  3. Lead follow-ups due today → salesperson reminded (once per follow-up).
  *  4. Housekeeping: expired sessions, stale uploads, old login attempts.
+ *  5. Automated workflows (src/server/workflows.ts): due-soon / overdue invoice nudges,
+ *     proposal expiry & follow-ups, contract and renewal reminders, meeting-minutes and
+ *     timesheet reminders — each sent once via reminder_log.
  */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -37,7 +41,7 @@ export async function GET(request: Request) {
     .returning();
   const finance = await usersWithPermission('invoices.manage');
   for (const inv of overdue) {
-    const due = formatINR(inv.totalPaise - inv.paidPaise);
+    const due = formatMoney(inv.totalPaise - inv.paidPaise, inv.currency);
     await notifyUsers(await clientUserIds(inv.clientId), { type: 'invoice.overdue', title: `Invoice ${inv.number} is overdue`, body: `${due} was due on ${inv.dueDate}`, link: `/portal/invoices/${inv.id}`, priority: 'high' });
     await notifyUsers(finance, { type: 'invoice.overdue', title: `Overdue: ${inv.number}`, body: `${inv.billingName} · ${due}`, link: `/portal/invoices/${inv.id}`, priority: 'high' });
     await recordActivity({ entityType: 'invoice', entityId: inv.id, clientId: inv.clientId, summary: `Invoice ${inv.number} became overdue`, visibility: 'client' });
@@ -68,5 +72,8 @@ export async function GET(request: Request) {
   await db.delete(pendingUploads).where(lt(pendingUploads.expiresAt, new Date()));
   await db.delete(loginAttempts).where(lt(loginAttempts.createdAt, new Date(Date.now() - 7 * 86_400_000)));
 
-  return NextResponse.json({ ok: true, date: today, ...summary });
+  // 5. Workflows (isolated: a failing step is logged and reported as -1, never aborts the run).
+  const workflows = await runWorkflows(today);
+
+  return NextResponse.json({ ok: true, date: today, ...summary, workflows });
 }

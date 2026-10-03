@@ -11,7 +11,9 @@ import { assertCan, can, ForbiddenError, requireViewerOrThrow, type Viewer } fro
 import { isProjectMember, meetingScope } from '@/server/scope';
 import { cancelMeetEvent, createMeetEvent, disconnectGoogleAccount, getGoogleAccount, updateMeetEvent } from '@/server/google';
 import { audit, recordActivity } from '@/server/audit';
-import { notifyUsers } from '@/server/notify';
+import { usersWithPermission } from '@/server/notify';
+import { notifyMeeting } from '@/server/meetings';
+import { userScope } from '@/server/scope';
 import { guarded, parseForm } from './helpers';
 import type { ActionState } from './types';
 
@@ -101,6 +103,7 @@ export async function saveMeetingAction(_prev: ActionState, form: FormData): Pro
       [existing] = await db.select().from(meetings).where(and(eq(meetings.id, d.id), meetingScope(viewer)));
       if (!existing) throw new ForbiddenError();
       if (existing.organizerId !== viewer.id && !can(viewer, 'meetings.manage')) throw new ForbiddenError('Only the organiser can change this meeting.');
+      if (existing.status !== 'scheduled') return { error: 'Only scheduled meetings can be edited here. Review meeting requests from the Meetings page.' };
     }
 
     let meetingLink = d.meetingLink;
@@ -156,11 +159,8 @@ export async function saveMeetingAction(_prev: ActionState, form: FormData): Pro
     const when = start.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
     await audit(viewer, existing ? 'meeting.updated' : 'meeting.scheduled', { entityType: 'meeting', entityId: id!, metadata: { provider, attendees: attendees.length } });
     if (d.clientId) await recordActivity({ entityType: 'meeting', entityId: id!, clientId: d.clientId, projectId: d.projectId, actorId: viewer.id, summary: `${existing ? 'Rescheduled' : 'Scheduled'} “${d.title}” for ${when}`, visibility: 'client' });
-    await notifyUsers(
-      attendees.map((a) => a.id),
-      { type: existing ? 'meeting.updated' : 'meeting.scheduled', title: existing ? `Meeting changed: ${d.title}` : `Meeting scheduled: ${d.title}`, body: `${when} · ${d.durationMinutes} min${meetingLink ? ' · Google Meet' : ''}`, link: `/portal/meetings/${id}`, priority: 'high' },
-      { actorId: viewer.id }
-    );
+    const rescheduled = Boolean(existing && (existing.startsAt.getTime() !== start.getTime() || existing.durationMinutes !== d.durationMinutes));
+    await notifyMeeting(id!, existing ? (rescheduled ? 'rescheduled' : 'updated') : 'scheduled', viewer.id);
     saved = id;
     revalidatePath('/portal/meetings');
     revalidatePath('/portal/calendar');
@@ -177,8 +177,7 @@ export async function cancelMeetingAction(id: string): Promise<ActionState> {
     if (!m || (m.organizerId !== viewer.id && !can(viewer, 'meetings.manage'))) throw new ForbiddenError();
     if (m.googleEventId && m.organizerId) await cancelMeetEvent(m.organizerId, m.googleEventId).catch((e) => console.error('Google cancel failed', e));
     await db.update(meetings).set({ status: 'cancelled' }).where(eq(meetings.id, id));
-    const attendees = await db.select({ id: meetingAttendees.userId }).from(meetingAttendees).where(eq(meetingAttendees.meetingId, id));
-    await notifyUsers(attendees.map((a) => a.id), { type: 'meeting.updated', title: `Meeting cancelled: ${m.title}`, body: m.startsAt.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }), link: `/portal/meetings/${id}`, priority: 'high' }, { actorId: viewer.id });
+    await notifyMeeting(id, 'cancelled', viewer.id);
     await audit(viewer, 'meeting.cancelled', { entityType: 'meeting', entityId: id });
     if (m.clientId) await recordActivity({ entityType: 'meeting', entityId: id, clientId: m.clientId, projectId: m.projectId, actorId: viewer.id, summary: `Cancelled “${m.title}”`, visibility: 'client' });
     revalidatePath('/portal/meetings');
@@ -217,5 +216,156 @@ export async function createCalendarEventAction(_prev: ActionState, form: FormDa
     await db.insert(calendarEvents).values({ ...parsed.data, createdBy: viewer.id });
     revalidatePath('/portal/calendar');
     return { ok: true, message: 'Added to the calendar.' };
+  });
+}
+
+// ─── Client meeting requests → reviewed by meeting managers ───────────────
+const requestSchema = z.object({
+  title: z.string().trim().min(3, 'Add a meeting title.').max(200),
+  projectId: optUuid,
+  date: z.iso.date('Choose a date.'),
+  time: z.string().regex(/^\d{2}:\d{2}$/, 'Choose a time.'),
+  durationMinutes: z.coerce.number().int().min(15).max(240),
+  agenda: z.string().trim().max(4000).default(''),
+  participantIds: ids,
+});
+
+/**
+ * A client asks for a meeting and proposes a time and participants. The
+ * participants must be people the client is allowed to see (their own
+ * colleagues and the team on their projects), enforced with userScope.
+ * Nothing is booked until an Admin/Super Admin approves it.
+ */
+export async function requestMeetingAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  let created: string | undefined;
+  const result = await guarded(async () => {
+    const viewer = await requireViewerOrThrow();
+    if (viewer.isInternal || !viewer.clientId) throw new ForbiddenError('Meeting requests are made from a client account.');
+    const parsed = parseForm(requestSchema, form);
+    if (parsed.error) return parsed.error;
+    const d = parsed.data;
+    const start = new Date(`${d.date}T${d.time}:00+05:30`);
+    if (start.getTime() < Date.now()) return { fieldErrors: { date: 'Choose a time in the future.' } };
+    if (d.projectId) {
+      const [p] = await db.select({ clientId: projects.clientId }).from(projects).where(eq(projects.id, d.projectId));
+      if (!p || p.clientId !== viewer.clientId) throw new ForbiddenError();
+    }
+    const allowed = d.participantIds.length
+      ? await db.select({ id: users.id }).from(users).where(and(inArray(users.id, d.participantIds), eq(users.isActive, true), userScope(viewer)))
+      : [];
+    if (allowed.length !== d.participantIds.length) return { fieldErrors: { participantIds: 'You can only invite your colleagues and your project team.' } };
+
+    const [m] = await db
+      .insert(meetings)
+      .values({ title: d.title, agenda: d.agenda, clientId: viewer.clientId, projectId: d.projectId, startsAt: start, durationMinutes: d.durationMinutes, status: 'requested', requestedBy: viewer.id })
+      .returning({ id: meetings.id });
+    const attendeeIds = [...new Set([viewer.id, ...allowed.map((a) => a.id)])];
+    await db.insert(meetingAttendees).values(attendeeIds.map((userId) => ({ meetingId: m.id, userId })));
+    await audit(viewer, 'meeting.requested', { entityType: 'meeting', entityId: m.id, metadata: { participants: attendeeIds.length } });
+    await recordActivity({ entityType: 'meeting', entityId: m.id, clientId: viewer.clientId, projectId: d.projectId, actorId: viewer.id, summary: `Meeting requested: “${d.title}”`, visibility: 'client' });
+    await notifyMeeting(m.id, 'requested', viewer.id, await usersWithPermission('meetings.manage'));
+    created = m.id;
+    revalidatePath('/portal/meetings');
+    return { ok: true };
+  });
+  if (created) redirect(`/portal/meetings/${created}`);
+  return result;
+}
+
+const reviewSchema = z.object({
+  id: z.uuid(),
+  decision: z.enum(['approved', 'rejected']),
+  date: z.iso.date(),
+  time: z.string().regex(/^\d{2}:\d{2}$/),
+  durationMinutes: z.coerce.number().int().min(10).max(480),
+  addParticipantIds: ids,
+  mode: z.enum(['google_meet', 'manual']).default('manual'),
+  meetingLink: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .transform((v) => v || null)
+    .refine((v) => !v || /^https:\/\//.test(v), 'Meeting links must start with https://'),
+  note: z.string().trim().max(1000).optional().transform((v) => v || null),
+});
+
+/**
+ * Approve (optionally rescheduling and adding Admins, employees or more of
+ * the client's people), or reject with a note. Approval can create the
+ * Google Calendar event + Meet link from the approver's Google account.
+ */
+export async function reviewMeetingRequestAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  return guarded(async () => {
+    const viewer = await requireViewerOrThrow();
+    assertCan(viewer, 'meetings.manage');
+    const parsed = parseForm(reviewSchema, form);
+    if (parsed.error) return parsed.error;
+    const d = parsed.data;
+    const [m] = await db.select().from(meetings).where(eq(meetings.id, d.id));
+    if (!m || m.status !== 'requested') return { error: 'This request has already been handled.' };
+
+    if (d.decision === 'rejected') {
+      if (!d.note) return { fieldErrors: { note: 'Add a short note for the client.' } };
+      await db.update(meetings).set({ status: 'rejected', reviewNote: d.note }).where(eq(meetings.id, m.id));
+      await audit(viewer, 'meeting.request_rejected', { entityType: 'meeting', entityId: m.id, metadata: { note: d.note } });
+      if (m.clientId) await recordActivity({ entityType: 'meeting', entityId: m.id, clientId: m.clientId, actorId: viewer.id, summary: `Meeting request declined: “${m.title}”`, visibility: 'client' });
+      await notifyMeeting(m.id, 'rejected', viewer.id, [m.requestedBy]);
+      revalidatePath(`/portal/meetings/${m.id}`);
+      return { ok: true, message: 'Request declined and the client notified.' };
+    }
+
+    // Added participants: any active internal user, or users of THIS meeting's client only.
+    if (d.addParticipantIds.length) {
+      const rows = await db
+        .select({ id: users.id, role: users.role, clientId: clientUsers.clientId })
+        .from(users)
+        .leftJoin(clientUsers, eq(clientUsers.userId, users.id))
+        .where(and(inArray(users.id, d.addParticipantIds), eq(users.isActive, true)));
+      if (rows.length !== d.addParticipantIds.length || rows.some((r) => r.role === 'client' && r.clientId !== m.clientId)) {
+        return { fieldErrors: { addParticipantIds: 'Participants must be team members or people from this client.' } };
+      }
+    }
+    const start = new Date(`${d.date}T${d.time}:00+05:30`);
+    const existing = await db.select({ id: meetingAttendees.userId }).from(meetingAttendees).where(eq(meetingAttendees.meetingId, m.id));
+    const attendeeIds = [...new Set([...existing.map((e) => e.id), ...d.addParticipantIds, viewer.id])];
+    const emails = await db.select({ email: users.email }).from(users).where(inArray(users.id, attendeeIds));
+
+    let meetingLink = d.meetingLink;
+    let googleEventId: string | null = null;
+    let provider: 'google_meet' | 'manual' = 'manual';
+    if (d.mode === 'google_meet') {
+      if (!(await getGoogleAccount(viewer.id))) return { error: 'Connect your Google account in Settings → Google Calendar, or add a link manually.' };
+      try {
+        const ev = await createMeetEvent(viewer.id, {
+          requestId: randomUUID(),
+          summary: m.title,
+          description: [m.agenda && `Agenda:\n${m.agenda}`, 'Scheduled via the Isha Technologies portal.'].filter(Boolean).join('\n\n'),
+          start,
+          durationMinutes: d.durationMinutes,
+          attendees: emails.map((e) => e.email),
+        });
+        meetingLink = ev.meetLink;
+        googleEventId = ev.eventId;
+        provider = 'google_meet';
+      } catch (error) {
+        console.error('Google Calendar create failed', error instanceof Error ? error.message : error);
+        return { error: 'Google Calendar rejected the request. Reconnect Google in Settings and try again.' };
+      }
+    }
+    await db
+      .update(meetings)
+      .set({ status: 'scheduled', organizerId: viewer.id, startsAt: start, durationMinutes: d.durationMinutes, meetingLink, googleEventId, provider, reviewNote: d.note })
+      .where(eq(meetings.id, m.id));
+    const toAdd = attendeeIds.filter((uid) => !existing.some((e) => e.id === uid));
+    if (toAdd.length) await db.insert(meetingAttendees).values(toAdd.map((userId) => ({ meetingId: m.id, userId })));
+
+    await audit(viewer, 'meeting.request_approved', { entityType: 'meeting', entityId: m.id, metadata: { rescheduled: start.getTime() !== m.startsAt.getTime(), addedParticipants: toAdd.length, provider } });
+    if (m.clientId) await recordActivity({ entityType: 'meeting', entityId: m.id, clientId: m.clientId, projectId: m.projectId, actorId: viewer.id, summary: `Meeting confirmed: “${m.title}”`, visibility: 'client' });
+    await notifyMeeting(m.id, 'approved', viewer.id, [m.requestedBy]);
+    await notifyMeeting(m.id, 'scheduled', viewer.id, attendeeIds.filter((uid) => uid !== m.requestedBy));
+    revalidatePath(`/portal/meetings/${m.id}`);
+    revalidatePath('/portal/meetings');
+    return { ok: true, message: 'Meeting confirmed and everyone notified.' };
   });
 }

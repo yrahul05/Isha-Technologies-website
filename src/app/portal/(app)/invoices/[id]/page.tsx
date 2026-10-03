@@ -6,10 +6,13 @@ import { ArrowLeft, Download, FileEdit, Pencil } from 'lucide-react';
 import { can, requireViewer } from '@/server/auth/viewer';
 import { getVisibleInvoice } from '@/server/queries/invoices';
 import { getSetting } from '@/server/settings';
+import { providerFor } from '@/server/payments/gateway';
+import { PayOnlineButton } from '@/components/portal/invoices/PayOnlineButton';
+import { paymentDetailRows } from '@/server/pdf/invoice';
 import { Button } from '@/components/ui/button';
-import { PageHeader, Panel, StatusBadge, Table, Td, Th, Tr } from '@/components/portal/ui';
+import { Badge, PageHeader, Panel, StatusBadge, Table, Td, Th, Tr } from '@/components/portal/ui';
 import { InvoiceStatusButtons, RecordPaymentButton } from '@/components/portal/invoices/InvoiceActions';
-import { computeLine, formatINR, gstSplit, GST_STATES } from '@/lib/portal/invoice-math';
+import { computeLine, CURRENCIES, formatMoney, GST_STATES, isCurrency, taxBreakdown } from '@/lib/portal/invoice-math';
 import { fmtDate, humanize } from '@/lib/portal/format';
 
 export const metadata: Metadata = { title: 'Invoice' };
@@ -20,11 +23,17 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
   const data = await getVisibleInvoice(viewer, id);
   if (!data) notFound();
   const { inv, status, items, payments } = data;
-  const [company, tax] = await Promise.all([getSetting('company'), getSetting('tax')]);
-  const split = gstSplit(inv.taxPaise, tax.stateCode, inv.placeOfSupply);
+  const [company, tax, invoiceSettings, currencies, payment] = await Promise.all([getSetting('company'), getSetting('tax'), getSetting('invoice'), getSetting('currencies'), getSetting('payment')]);
+  const currency = isCurrency(inv.currency) ? inv.currency : 'INR';
+  const money = (v: number) => formatMoney(v, currency, { symbol: currencies[currency] });
+  const isGst = currency === 'INR' && inv.taxMode.startsWith('gst');
+  const taxLines = taxBreakdown(inv.taxPaise, inv, tax.stateCode);
   const due = Math.max(0, inv.totalPaise - inv.paidPaise);
   const manage = can(viewer, 'invoices.manage');
   const pos = GST_STATES.find((s) => s.code === inv.placeOfSupply);
+  // Bank details only on this (scoped) invoice, and only while money is owed.
+  const bankRows = status === 'paid' || status === 'cancelled' ? [] : paymentDetailRows(inv.paymentProfile, currency, payment);
+  const companyAddress = [company.addressLine1, company.addressLine2, [company.city, company.state, company.postalCode].filter(Boolean).join(', '), company.country].filter(Boolean).join(', ');
 
   return (
     <>
@@ -33,8 +42,14 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       </Link>
       <PageHeader
         eyebrow={viewer.isInternal ? data.clientName : 'Invoice'}
-        title={inv.number}
-        description={<StatusBadge status={status} />}
+        title={status === 'draft' ? 'Draft invoice' : inv.number}
+        description={
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <StatusBadge status={status} />
+            <Badge tone="slate">{currency}</Badge>
+            {status === 'draft' && <span>A permanent invoice number is assigned when it’s issued.</span>}
+          </span>
+        }
         actions={
           <>
             {status !== 'draft' && (
@@ -52,8 +67,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
               </Button>
             )}
             {can(viewer, 'payments.record') && due > 0 && status !== 'draft' && status !== 'cancelled' && (
-              <RecordPaymentButton invoiceId={inv.id} dueLabel={formatINR(due)} dueRupees={String(due / 100)} />
+              <RecordPaymentButton invoiceId={inv.id} dueLabel={money(due)} dueRupees={String(due / 100)} currencySymbol={currencies[currency]} />
             )}
+            {due > 0 && ['sent', 'partially_paid', 'overdue'].includes(status) && providerFor(inv.currency) && <PayOnlineButton invoiceId={inv.id} amountLabel={money(due)} />}
             {!viewer.isInternal && (
               <Button asChild variant="secondary" className="h-10 rounded-lg px-4 text-sm">
                 <Link href={`/portal/change-requests?entity=invoice&id=${inv.id}`}>
@@ -75,30 +91,37 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           <div className="h-1.5 bg-brand" />
           <div className="p-6 md:p-8">
             <div className="flex flex-col justify-between gap-6 sm:flex-row">
-              <Image src="/ISHA-TECHNO-LG.png" alt="Isha Technologies" width={180} height={60} className="h-12 w-auto" />
-              <div className="sm:text-right">
-                <p className="text-xl font-bold tracking-tight text-slate-900">TAX INVOICE</p>
-                <p className="font-semibold text-brand">{inv.number}</p>
-              </div>
-            </div>
-            <div className="mt-8 grid gap-6 text-sm sm:grid-cols-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">From</p>
-                <p className="mt-1 font-semibold text-slate-900">{company.legalName || company.name}</p>
-                <p className="text-slate-500">{[company.city, company.state].filter(Boolean).join(', ')}</p>
+                <Image src="/ISHA-TECHNO-LG.png" alt="Isha Technologies" width={180} height={60} className="h-12 w-auto" />
+                <p className="mt-3 text-sm font-semibold text-slate-900">{company.legalName || company.name}</p>
+                <p className="text-xs text-slate-500">{companyAddress}</p>
+                <p className="text-xs text-slate-500">{[company.email, company.phone, company.website].filter(Boolean).join(' · ')}</p>
                 {tax.gstin && <p className="font-mono text-xs text-slate-500">GSTIN {tax.gstin}</p>}
               </div>
+              <div className="sm:text-right">
+                <p className="text-xl font-bold tracking-tight text-slate-900">{isGst ? 'TAX INVOICE' : 'INVOICE'}</p>
+                <p className="font-semibold text-brand">{status === 'draft' ? 'Draft' : inv.number}</p>
+              </div>
+            </div>
+            <div className="mt-8 grid gap-6 text-sm sm:grid-cols-2">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">Bill to</p>
                 <p className="mt-1 font-semibold text-slate-900">{inv.billingName}</p>
                 <p className="whitespace-pre-line text-slate-500">{inv.billingAddress}</p>
-                {inv.billingGstin && <p className="font-mono text-xs text-slate-500">GSTIN {inv.billingGstin}</p>}
+                {inv.billingGstin && (
+                  <p className="font-mono text-xs text-slate-500">
+                    {currency === 'INR' ? 'GSTIN' : 'Tax ID'} {inv.billingGstin}
+                  </p>
+                )}
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">Details</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">Invoice details</p>
                 <p className="mt-1 text-slate-600">Issued {fmtDate(inv.issueDate)}</p>
                 <p className="text-slate-600">Due {fmtDate(inv.dueDate)}</p>
-                {pos && <p className="text-slate-600">Place of supply: {pos.name}</p>}
+                <p className="text-slate-600">
+                  Currency: {currency} ({CURRENCIES[currency].name})
+                </p>
+                {isGst && pos && <p className="text-slate-600">Place of supply: {pos.name}</p>}
                 {data.projectName && <p className="text-slate-600">Project: {data.projectName}</p>}
               </div>
             </div>
@@ -108,11 +131,11 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                 <thead>
                   <tr>
                     <Th>Description</Th>
-                    <Th>HSN/SAC</Th>
+                    {isGst && <Th>HSN/SAC</Th>}
                     <Th className="text-right">Qty</Th>
                     <Th className="text-right">Rate</Th>
                     <Th className="text-right">Disc.</Th>
-                    <Th className="text-right">GST</Th>
+                    {inv.taxMode !== 'none' && <Th className="text-right">{isGst ? 'GST' : inv.taxLabel || 'Tax'}</Th>}
                     <Th className="text-right">Amount</Th>
                   </tr>
                 </thead>
@@ -120,12 +143,12 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                   {items.map((it) => (
                     <Tr key={it.id}>
                       <Td className="font-medium text-slate-900">{it.description}</Td>
-                      <Td className="text-xs">{it.hsnSac ?? '—'}</Td>
+                      {isGst && <Td className="text-xs">{it.hsnSac ?? '—'}</Td>}
                       <Td className="text-right tabular-nums">{it.quantity}</Td>
-                      <Td className="text-right tabular-nums">{formatINR(it.unitPricePaise)}</Td>
+                      <Td className="text-right tabular-nums">{money(it.unitPricePaise)}</Td>
                       <Td className="text-right tabular-nums">{it.discountPct ? `${it.discountPct}%` : '—'}</Td>
-                      <Td className="text-right tabular-nums">{it.taxRatePct}%</Td>
-                      <Td className="text-right font-semibold tabular-nums">{formatINR(computeLine(it).taxablePaise)}</Td>
+                      {inv.taxMode !== 'none' && <Td className="text-right tabular-nums">{it.taxRatePct}%</Td>}
+                      <Td className="text-right font-semibold tabular-nums">{money(computeLine(it).taxablePaise)}</Td>
                     </Tr>
                   ))}
                 </tbody>
@@ -133,44 +156,60 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             </div>
 
             <dl className="ml-auto mt-6 max-w-xs space-y-1.5 text-sm">
-              <Line label="Subtotal" value={formatINR(inv.subtotalPaise)} />
-              {inv.discountPaise > 0 && <Line label="Discount" value={`- ${formatINR(inv.discountPaise)}`} />}
-              {split.kind === 'intra' ? (
-                <>
-                  <Line label="CGST" value={formatINR(split.cgstPaise)} />
-                  <Line label="SGST" value={formatINR(split.sgstPaise)} />
-                </>
-              ) : (
-                <Line label="IGST" value={formatINR(split.igstPaise)} />
-              )}
-              <Line label="Total" value={formatINR(inv.totalPaise)} strong />
-              <Line label="Paid" value={formatINR(inv.paidPaise)} />
+              <Line label="Subtotal" value={money(inv.subtotalPaise)} />
+              {inv.discountPaise > 0 && <Line label="Discount" value={`- ${money(inv.discountPaise)}`} />}
+              {taxLines.map((t) => (
+                <Line key={t.label} label={t.label} value={money(t.amount)} />
+              ))}
+              <Line label={`Total (${currency})`} value={money(inv.totalPaise)} strong />
+              <Line label="Amount paid" value={money(inv.paidPaise)} />
               <div className="flex items-center justify-between rounded-xl bg-brand px-3 py-2 text-white">
-                <dt className="font-semibold">Balance due</dt>
-                <dd className="font-bold tabular-nums">{formatINR(due)}</dd>
+                <dt className="font-semibold">Amount due</dt>
+                <dd className="font-bold tabular-nums">{money(due)}</dd>
               </div>
             </dl>
-            {(inv.notes || inv.terms) && (
-              <div className="mt-8 grid gap-4 border-t border-gray-100 pt-5 text-sm sm:grid-cols-2">
-                {inv.notes && (
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">Notes</p>
-                    <p className="mt-1 whitespace-pre-wrap text-slate-600">{inv.notes}</p>
-                  </div>
-                )}
-                {inv.terms && (
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">Terms</p>
-                    <p className="mt-1 whitespace-pre-wrap text-slate-600">{inv.terms}</p>
-                  </div>
-                )}
+
+            <div className="mt-8 grid gap-4 border-t border-gray-100 pt-5 text-sm sm:grid-cols-2">
+              {bankRows.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">{inv.paymentProfile === 'international' ? 'International payment details' : 'Payment details'}</p>
+                  <dl className="mt-1 space-y-0.5">
+                    {bankRows.map(([k, v]) => (
+                      <div key={k} className="flex gap-2">
+                        <dt className="w-36 shrink-0 text-slate-500">{k}</dt>
+                        <dd className="whitespace-pre-line font-medium text-slate-800">{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+              {inv.notes && (
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">Notes</p>
+                  <p className="mt-1 whitespace-pre-wrap text-slate-600">{inv.notes}</p>
+                </div>
+              )}
+              {inv.terms && (
+                <div className="sm:col-span-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">Terms & conditions</p>
+                  <p className="mt-1 whitespace-pre-wrap text-slate-600">{inv.terms}</p>
+                </div>
+              )}
+            </div>
+            <div className="mt-8 flex justify-end">
+              <div className="w-56 text-sm">
+                <p className="font-semibold text-slate-900">For {company.legalName || company.name}</p>
+                <div className="mt-10 border-t border-slate-300 pt-1.5">
+                  {invoiceSettings.signatoryName && <p className="font-semibold text-slate-800">{invoiceSettings.signatoryName}</p>}
+                  <p className="text-xs text-slate-500">{invoiceSettings.signatoryTitle || 'Authorised Signatory'}</p>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </article>
 
         <div className="space-y-6">
-          <Panel title="Payments" description={`${formatINR(inv.paidPaise)} of ${formatINR(inv.totalPaise)} received`}>
+          <Panel title="Payments" description={`${money(inv.paidPaise)} of ${money(inv.totalPaise)} received`}>
             {payments.length === 0 ? (
               <p className="text-sm text-slate-500">No payments recorded yet.</p>
             ) : (
@@ -178,7 +217,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                 {payments.map(({ p, by }) => (
                   <li key={p.id} className="rounded-xl border border-gray-100 p-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold tabular-nums text-emerald-700">{formatINR(p.amountPaise)}</span>
+                      <span className="text-sm font-bold tabular-nums text-emerald-700">{money(p.amountPaise)}</span>
                       <span className="text-xs text-slate-500">{fmtDate(p.paidOn)}</span>
                     </div>
                     <p className="mt-0.5 text-xs text-slate-500">

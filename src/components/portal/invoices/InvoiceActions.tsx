@@ -7,7 +7,7 @@ import { ActionForm, SelectField, SubmitButton, TextField } from '../forms';
 import { cancelInvoiceAction, recordPaymentAction, sendInvoiceAction } from '@/server/actions/invoices';
 import type { ActionState } from '@/server/actions/types';
 
-export function RecordPaymentButton({ invoiceId, dueLabel, dueRupees }: { invoiceId: string; dueLabel: string; dueRupees: string }) {
+export function RecordPaymentButton({ invoiceId, dueLabel, dueRupees, currencySymbol = '₹' }: { invoiceId: string; dueLabel: string; dueRupees: string; currencySymbol?: string }) {
   const today = new Date(Date.now() + 5.5 * 3_600_000).toISOString().slice(0, 10);
   return (
     <Modal trigger={<><CircleDollarSign className="h-4 w-4" /> Record payment</>} title="Record payment" description={`Balance due: ${dueLabel}`}>
@@ -15,7 +15,7 @@ export function RecordPaymentButton({ invoiceId, dueLabel, dueRupees }: { invoic
         <ActionForm action={recordPaymentAction} onSuccess={close}>
           <input type="hidden" name="invoiceId" value={invoiceId} />
           <div className="grid gap-4 sm:grid-cols-2">
-            <TextField label="Amount (₹)" name="amount" required inputMode="decimal" defaultValue={dueRupees} />
+            <TextField label={`Amount (${currencySymbol})`} name="amount" required inputMode="decimal" defaultValue={dueRupees} />
             <TextField label="Payment date" name="paidOn" type="date" required defaultValue={today} max={today} />
             <SelectField
               label="Method"

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { and, asc, eq, inArray, ne } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm';
 import { CalendarRange, FolderKanban } from 'lucide-react';
 import { db } from '@/server/db';
 import { clients, projects } from '@/server/db/schema';
@@ -20,6 +20,7 @@ const FILTERS = [
   { key: 'at_risk', label: 'At risk', statuses: ['at_risk'] },
   { key: 'completed', label: 'Completed', statuses: ['completed'] },
   { key: 'all', label: 'All', statuses: ['planning', 'active', 'on_hold', 'at_risk', 'completed', 'cancelled'] },
+  { key: 'archived', label: 'Archived', statuses: ['completed', 'cancelled'] },
 ] as const;
 
 export default async function ProjectsPage({ searchParams }: { searchParams: Promise<{ filter?: string; client?: string; new?: string }> }) {
@@ -31,7 +32,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
     .select({ p: projects, clientName: clients.companyName })
     .from(projects)
     .innerJoin(clients, eq(clients.id, projects.clientId))
-    .where(and(projectScope(viewer), inArray(projects.status, [...filter.statuses])))
+    .where(and(projectScope(viewer), inArray(projects.status, [...filter.statuses]), filter.key === 'archived' ? isNotNull(projects.archivedAt) : isNull(projects.archivedAt)))
     .orderBy(asc(projects.dueDate));
   const ids = rows.map((r) => r.p.id);
   const [progress, teams] = await Promise.all([projectProgress(ids), projectTeams(ids)]);

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { and, asc, eq, inArray, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm';
 import { ClipboardCheck, Columns3, List } from 'lucide-react';
 import { db } from '@/server/db';
 import { projects, tasks } from '@/server/db/schema';
@@ -11,12 +11,13 @@ import { internalPeople } from '@/server/queries/people';
 import { EmptyState, PageHeader, Panel, StatusBadge, Table, Td, Th, Tr, Avatar, Badge } from '@/components/portal/ui';
 import { KanbanBoard } from '@/components/portal/tasks/KanbanBoard';
 import { NewTaskButton } from '@/components/portal/tasks/TaskForm';
-import { daysUntil, fmtDate } from '@/lib/portal/format';
+import { PurgeTaskButton, RestoreDeletedTaskButton } from '@/components/portal/tasks/TaskLifecycle';
+import { daysUntil, fmtDate, fmtDateTime } from '@/lib/portal/format';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = { title: 'Tasks' };
 
-type Search = { view?: string; mine?: string; project?: string; status?: string; new?: string };
+type Search = { view?: string; mine?: string; project?: string; status?: string; new?: string; show?: string };
 
 export default async function TasksPage({ searchParams }: { searchParams: Promise<Search> }) {
   const viewer = await requireViewer();
@@ -26,10 +27,27 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   const projectId = isUuid(sp.project) ? sp.project : undefined;
   const statuses = ['todo', 'in_progress', 'review', 'completed', 'blocked'] as const;
   const status = statuses.find((s) => s === sp.status);
+  // Active (default) → Archived (completed work kept for history) → Recently deleted (Super Admin).
+  const show = sp.show === 'archived' && viewer.isInternal ? 'archived' : sp.show === 'deleted' && viewer.isSuperAdmin ? 'deleted' : 'active';
+  const deleted =
+    show === 'deleted'
+      ? await db
+          .select({ t: tasks, project: projects.name })
+          .from(tasks)
+          .innerJoin(projects, eq(projects.id, tasks.projectId))
+          .where(isNotNull(tasks.deletedAt))
+          .orderBy(desc(tasks.deletedAt))
+          .limit(200)
+      : [];
 
   const items = await boardTasks(
     viewer,
-    and(mine ? eq(tasks.assigneeId, viewer.id) : undefined, projectId ? eq(tasks.projectId, projectId) : undefined, status ? eq(tasks.status, status) : undefined)
+    and(
+      mine ? eq(tasks.assigneeId, viewer.id) : undefined,
+      projectId ? eq(tasks.projectId, projectId) : undefined,
+      status ? eq(tasks.status, status) : undefined,
+      show === 'archived' ? isNotNull(tasks.archivedAt) : isNull(tasks.archivedAt)
+    )
   );
 
   const projectOptions = await db
@@ -64,12 +82,20 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         <div className="flex flex-wrap items-center gap-2">
           {viewer.isInternal && (
             <>
-              <FilterLink href={qs({ mine: undefined })} active={!mine}>
+              <FilterLink href={qs({ mine: undefined, show: undefined })} active={!mine && show === 'active'}>
                 All visible
               </FilterLink>
-              <FilterLink href={qs({ mine: '1' })} active={mine}>
+              <FilterLink href={qs({ mine: '1', show: undefined })} active={mine && show === 'active'}>
                 Assigned to me
               </FilterLink>
+              <FilterLink href={qs({ show: 'archived', view: 'list' })} active={show === 'archived'}>
+                Archived
+              </FilterLink>
+              {viewer.isSuperAdmin && (
+                <FilterLink href={qs({ show: 'deleted' })} active={show === 'deleted'}>
+                  Recently deleted
+                </FilterLink>
+              )}
               <span className="mx-1 h-5 w-px bg-gray-200" />
             </>
           )}
@@ -100,7 +126,40 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         </div>
       </div>
 
-      {items.length === 0 ? (
+      {show === 'deleted' ? (
+        <Panel title="Recently deleted" description="Deleted tasks are hidden everywhere. Restore them, or delete permanently (cannot be undone).">
+          {deleted.length === 0 ? (
+            <EmptyState icon={ClipboardCheck} title="Nothing deleted" />
+          ) : (
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Task</Th>
+                  <Th>Deleted</Th>
+                  <Th className="text-right">Actions</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {deleted.map(({ t, project }) => (
+                  <Tr key={t.id}>
+                    <Td>
+                      <span className="block font-medium text-slate-900">{t.title}</span>
+                      <span className="block text-xs text-slate-500">{project}</span>
+                    </Td>
+                    <Td>{fmtDateTime(t.deletedAt)}</Td>
+                    <Td>
+                      <div className="flex items-center justify-end gap-2">
+                        <RestoreDeletedTaskButton id={t.id} />
+                        <PurgeTaskButton id={t.id} title={t.title} />
+                      </div>
+                    </Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </Panel>
+      ) : items.length === 0 ? (
         <Panel>
           <EmptyState icon={ClipboardCheck} title="No tasks match" description={viewer.isInternal ? 'Create a task or change the filters.' : 'Nothing has been shared with you yet.'} />
         </Panel>

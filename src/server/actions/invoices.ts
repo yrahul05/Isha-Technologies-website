@@ -1,16 +1,17 @@
 'use server';
 
+import { randomBytes } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { db } from '@/server/db';
+import { db, type Database } from '@/server/db';
 import { clients, invoiceItems, invoices, payments, projects } from '@/server/db/schema';
 import { assertCan, ForbiddenError, requireViewerOrThrow, type Viewer } from '@/server/auth/viewer';
 import { audit, recordActivity } from '@/server/audit';
 import { clientUserIds, notifyUsers } from '@/server/notify';
 import { getSetting, nextCounter } from '@/server/settings';
-import { computeLine, computeTotals, deriveInvoiceStatus, formatINR, isValidGstin, rupeesToPaise } from '@/lib/portal/invoice-math';
+import { computeLine, computeTotals, CURRENCY_CODES, deriveInvoiceStatus, formatMoney, isValidGstin, rupeesToPaise } from '@/lib/portal/invoice-math';
 import { guarded, parseForm } from './helpers';
 import type { ActionState } from './types';
 
@@ -20,7 +21,7 @@ const itemSchema = z.object({
   quantity: z.coerce.number().positive('Quantity must be positive.').max(1_000_000),
   unitPrice: z.union([z.string(), z.number()]).transform((v) => rupeesToPaise(v)),
   discountPct: z.coerce.number().min(0).max(100).default(0),
-  taxRatePct: z.coerce.number().min(0).max(28).default(18),
+  taxRatePct: z.coerce.number().min(0).max(100).default(0),
 });
 
 const invoiceSchema = z
@@ -32,6 +33,15 @@ const invoiceSchema = z
       .union([z.literal(''), z.uuid()])
       .optional()
       .transform((v) => v || null),
+    currency: z.enum(CURRENCY_CODES as [string, ...string[]]).default('INR'),
+    taxMode: z.enum(['gst_auto', 'gst_intra', 'gst_inter', 'custom', 'none']),
+    taxLabel: z
+      .string()
+      .trim()
+      .max(40)
+      .optional()
+      .transform((v) => v || null),
+    paymentProfile: z.enum(['domestic', 'international', 'none']),
     issueDate: z.iso.date('Choose the invoice date.'),
     dueDate: z.iso.date('Choose the due date.'),
     billingName: z.string().trim().min(2, 'Enter the billing name.').max(200),
@@ -39,10 +49,9 @@ const invoiceSchema = z
     billingGstin: z
       .string()
       .trim()
-      .max(15)
+      .max(30)
       .optional()
-      .transform((v) => (v ? v.toUpperCase() : null))
-      .refine((v) => !v || isValidGstin(v), 'That GSTIN doesn’t look valid.'),
+      .transform((v) => (v ? v.toUpperCase() : null)),
     placeOfSupply: z
       .string()
       .regex(/^\d{2}$/)
@@ -50,7 +59,7 @@ const invoiceSchema = z
       .or(z.literal(''))
       .transform((v) => v || null),
     notes: z.string().max(2000).default(''),
-    terms: z.string().max(2000).default(''),
+    terms: z.string().max(4000).default(''),
     items: z
       .string()
       .transform((s, ctx) => {
@@ -63,7 +72,25 @@ const invoiceSchema = z
       })
       .pipe(z.array(itemSchema).min(1, 'Add at least one line item.').max(100)),
   })
-  .refine((d) => d.dueDate >= d.issueDate, { path: ['dueDate'], message: 'Due date must be on or after the invoice date.' });
+  .refine((d) => d.dueDate >= d.issueDate, { path: ['dueDate'], message: 'Due date must be on or after the invoice date.' })
+  // Indian GST applies to INR invoices only; USD/CAD use a custom tax or none.
+  .refine((d) => d.currency === 'INR' || !d.taxMode.startsWith('gst'), { path: ['taxMode'], message: 'GST applies to INR invoices. Choose custom tax or no tax for USD/CAD.' })
+  .refine((d) => d.currency !== 'INR' || !d.taxMode.startsWith('gst') || !d.billingGstin || isValidGstin(d.billingGstin), { path: ['billingGstin'], message: 'That GSTIN doesn’t look valid.' });
+
+type InvoiceInput = z.infer<typeof invoiceSchema>;
+
+/**
+ * Permanent, sequential number (e.g. ISH-2026-0001), assigned atomically
+ * when an invoice is first issued. Drafts carry a DRAFT- placeholder so
+ * they never consume a number; a database trigger forbids changing a
+ * number once issued, and a unique index forbids duplicates.
+ */
+async function assignInvoiceNumber(tx: Pick<Database, 'insert'>, issueDate: string): Promise<string> {
+  const { prefix } = await getSetting('invoice');
+  const year = issueDate.slice(0, 4);
+  const seq = await nextCounter(`invoice:${prefix}:${year}`, tx);
+  return `${prefix}-${year}-${String(seq).padStart(4, '0')}`;
+}
 
 export async function saveInvoiceAction(_prev: ActionState, form: FormData): Promise<ActionState> {
   let target: string | undefined;
@@ -80,44 +107,56 @@ export async function saveInvoiceAction(_prev: ActionState, form: FormData): Pro
       const [p] = await db.select({ clientId: projects.clientId }).from(projects).where(eq(projects.id, d.projectId));
       if (!p || p.clientId !== d.clientId) return { fieldErrors: { projectId: 'That project belongs to a different client.' } };
     }
-
-    const lines = d.items.map((it, i) => ({ ...it, unitPricePaise: it.unitPrice, position: i }));
+    // Tax rates come from Admin Settings — GST slabs for INR, free rate for custom tax, none otherwise.
+    const tax = await getSetting('tax');
+    const lines = d.items.map((it, i) => ({ ...it, unitPricePaise: it.unitPrice, position: i, taxRatePct: d.taxMode === 'none' ? 0 : it.taxRatePct }));
+    if (d.taxMode.startsWith('gst') && lines.some((l) => !tax.gstRates.includes(l.taxRatePct))) {
+      return { error: `GST rates must be one of the configured slabs: ${tax.gstRates.join('%, ')}%.` };
+    }
     const totals = computeTotals(lines);
     if (totals.totalPaise <= 0) return { error: 'The invoice total must be greater than zero.' };
 
     let invoiceId = d.id || null;
-    let wasDraft = true;
+    let newlyIssued = false;
     await db.transaction(async (tx) => {
       if (invoiceId) {
-        const [existing] = await tx.select().from(invoices).where(eq(invoices.id, invoiceId));
+        const [existing] = await tx.select().from(invoices).where(eq(invoices.id, invoiceId)).for('update');
         if (!existing) throw new ForbiddenError('Invoice not found.');
         if (existing.status === 'cancelled') throw new ForbiddenError('Cancelled invoices can’t be edited.');
         if (existing.clientId !== d.clientId) throw new ForbiddenError('An invoice cannot be moved to another client.');
-        if (totals.totalPaise < existing.paidPaise) throw new ForbiddenError(`The total can’t be less than the ${formatINR(existing.paidPaise)} already paid.`);
-        wasDraft = existing.status === 'draft';
-        const status = d.intent === 'send' || !wasDraft ? deriveInvoiceStatus({ status: 'sent', totalPaise: totals.totalPaise, paidPaise: existing.paidPaise, dueDate: d.dueDate }) : 'draft';
+        if (existing.status !== 'draft' && existing.currency !== d.currency) throw new ForbiddenError('The currency of an issued invoice can’t be changed.');
+        if (totals.totalPaise < existing.paidPaise) throw new ForbiddenError(`The total can’t be less than the ${formatMoney(existing.paidPaise, existing.currency)} already paid.`);
+        const issuing = existing.status === 'draft' && d.intent === 'send';
+        const stays = existing.status === 'draft' && !issuing;
+        const status = stays ? 'draft' : deriveInvoiceStatus({ status: 'sent', totalPaise: totals.totalPaise, paidPaise: existing.paidPaise, dueDate: d.dueDate });
         await tx
           .update(invoices)
-          .set({ ...pick(d), ...totals, status, sentAt: status !== 'draft' ? (existing.sentAt ?? new Date()) : null })
+          .set({
+            ...pick(d),
+            ...totals,
+            status,
+            // An issued number is never touched; a draft gets its number exactly once, on issue.
+            ...(issuing ? { number: await assignInvoiceNumber(tx, d.issueDate), sentAt: new Date() } : {}),
+          })
           .where(eq(invoices.id, invoiceId));
         await tx.delete(invoiceItems).where(eq(invoiceItems.invoiceId, invoiceId));
+        newlyIssued = issuing;
       } else {
-        const settings = await getSetting('invoice');
-        const year = d.issueDate.slice(0, 4);
-        const seq = await nextCounter(`invoice:${year}`, tx);
+        const issuing = d.intent === 'send';
         const [row] = await tx
           .insert(invoices)
           .values({
             ...pick(d),
             ...totals,
-            number: `${settings.prefix}-${year}-${String(seq).padStart(4, '0')}`,
+            number: issuing ? await assignInvoiceNumber(tx, d.issueDate) : `DRAFT-${randomBytes(4).toString('hex').toUpperCase()}`,
             clientId: d.clientId,
-            status: d.intent === 'send' ? 'sent' : 'draft',
-            sentAt: d.intent === 'send' ? new Date() : null,
+            status: issuing ? 'sent' : 'draft',
+            sentAt: issuing ? new Date() : null,
             createdBy: viewer.id,
           })
           .returning({ id: invoices.id });
         invoiceId = row.id;
+        newlyIssued = issuing;
       }
       await tx.insert(invoiceItems).values(
         lines.map((l) => ({
@@ -135,8 +174,8 @@ export async function saveInvoiceAction(_prev: ActionState, form: FormData): Pro
     });
 
     const [inv] = await db.select().from(invoices).where(eq(invoices.id, invoiceId!));
-    await audit(viewer, d.id ? 'invoice.updated' : 'invoice.created', { entityType: 'invoice', entityId: inv.id, metadata: { number: inv.number, totalPaise: inv.totalPaise, status: inv.status } });
-    if (inv.status !== 'draft' && wasDraft) await announceInvoice(viewer, inv);
+    await audit(viewer, d.id ? 'invoice.updated' : 'invoice.created', { entityType: 'invoice', entityId: inv.id, metadata: { number: inv.number, currency: inv.currency, totalMinor: inv.totalPaise, status: inv.status } });
+    if (newlyIssued) await announceInvoice(viewer, inv);
     target = inv.id;
     revalidatePath('/portal/invoices');
     return { ok: true };
@@ -145,37 +184,47 @@ export async function saveInvoiceAction(_prev: ActionState, form: FormData): Pro
   return result;
 }
 
-function pick(d: z.infer<typeof invoiceSchema>) {
+function pick(d: InvoiceInput) {
   return {
     projectId: d.projectId,
+    currency: d.currency,
+    taxMode: d.taxMode,
+    taxLabel: d.taxMode === 'custom' ? d.taxLabel || 'Tax' : null,
+    paymentProfile: d.paymentProfile,
     issueDate: d.issueDate,
     dueDate: d.dueDate,
     billingName: d.billingName,
     billingAddress: d.billingAddress,
     billingGstin: d.billingGstin,
-    placeOfSupply: d.placeOfSupply,
+    placeOfSupply: d.currency === 'INR' ? d.placeOfSupply : null,
     notes: d.notes,
     terms: d.terms,
   };
 }
 
 async function announceInvoice(viewer: Viewer, inv: typeof invoices.$inferSelect) {
+  const total = formatMoney(inv.totalPaise, inv.currency);
   await audit(viewer, 'invoice.sent', { entityType: 'invoice', entityId: inv.id, metadata: { number: inv.number } });
-  await recordActivity({ entityType: 'invoice', entityId: inv.id, clientId: inv.clientId, projectId: inv.projectId, actorId: viewer.id, summary: `Invoice ${inv.number} issued for ${formatINR(inv.totalPaise)}`, visibility: 'client' });
-  await notifyUsers(await clientUserIds(inv.clientId), { type: 'invoice.created', title: `Invoice ${inv.number} issued`, body: `${formatINR(inv.totalPaise)} due by ${inv.dueDate}`, link: `/portal/invoices/${inv.id}`, priority: 'high' }, { actorId: viewer.id });
+  await recordActivity({ entityType: 'invoice', entityId: inv.id, clientId: inv.clientId, projectId: inv.projectId, actorId: viewer.id, summary: `Invoice ${inv.number} issued for ${total}`, visibility: 'client' });
+  await notifyUsers(await clientUserIds(inv.clientId), { type: 'invoice.created', title: `Invoice ${inv.number} issued`, body: `${total} due by ${inv.dueDate}`, link: `/portal/invoices/${inv.id}`, priority: 'high' }, { actorId: viewer.id });
 }
 
 export async function sendInvoiceAction(id: string): Promise<ActionState> {
   return guarded(async () => {
     const viewer = await requireViewerOrThrow();
     assertCan(viewer, 'invoices.manage');
-    const [inv] = await db.select().from(invoices).where(eq(invoices.id, id));
-    if (!inv || inv.status !== 'draft') return { error: 'Only draft invoices can be sent.' };
-    const status = deriveInvoiceStatus({ ...inv, status: 'sent' });
-    await db.update(invoices).set({ status, sentAt: new Date() }).where(eq(invoices.id, id));
-    await announceInvoice(viewer, { ...inv, status });
+    const updated = await db.transaction(async (tx) => {
+      const [inv] = await tx.select().from(invoices).where(eq(invoices.id, id)).for('update');
+      if (!inv || inv.status !== 'draft') return null;
+      const status = deriveInvoiceStatus({ ...inv, status: 'sent' });
+      const number = await assignInvoiceNumber(tx, inv.issueDate);
+      const [row] = await tx.update(invoices).set({ status, number, sentAt: new Date() }).where(eq(invoices.id, id)).returning();
+      return row;
+    });
+    if (!updated) return { error: 'Only draft invoices can be sent.' };
+    await announceInvoice(viewer, updated);
     revalidatePath(`/portal/invoices/${id}`);
-    return { ok: true, message: 'Invoice sent to the client portal.' };
+    return { ok: true, message: `Issued as ${updated.number} and shared with the client.` };
   });
 }
 
@@ -186,6 +235,7 @@ export async function cancelInvoiceAction(id: string): Promise<ActionState> {
     const [inv] = await db.select().from(invoices).where(eq(invoices.id, id));
     if (!inv) return { error: 'Invoice not found.' };
     if (inv.paidPaise > 0) return { error: 'This invoice has payments recorded and can’t be cancelled. Issue a credit note instead.' };
+    // Invoices are never deleted (enforced by a database trigger) — cancelled ones stay in history.
     await db.update(invoices).set({ status: 'cancelled' }).where(eq(invoices.id, id));
     await audit(viewer, 'invoice.cancelled', { entityType: 'invoice', entityId: id, metadata: { number: inv.number } });
     if (inv.status !== 'draft') await recordActivity({ entityType: 'invoice', entityId: id, clientId: inv.clientId, actorId: viewer.id, summary: `Invoice ${inv.number} cancelled`, visibility: 'client' });
@@ -217,7 +267,7 @@ export async function recordPaymentAction(_prev: ActionState, form: FormData): P
       if (!inv) return { error: 'Invoice not found.' } as const;
       if (inv.status === 'draft' || inv.status === 'cancelled') return { error: 'Payments can only be recorded against issued invoices.' } as const;
       const due = inv.totalPaise - inv.paidPaise;
-      if (d.amount > due) return { error: `That’s more than the ${formatINR(due)} balance due.` } as const;
+      if (d.amount > due) return { error: `That’s more than the ${formatMoney(due, inv.currency)} balance due.` } as const;
       await tx.insert(payments).values({ invoiceId: inv.id, clientId: inv.clientId, amountPaise: d.amount, paidOn: d.paidOn, method: d.method, reference: d.reference, notes: d.notes, recordedBy: viewer.id });
       const paid = inv.paidPaise + d.amount;
       const status = deriveInvoiceStatus({ ...inv, paidPaise: paid });
@@ -227,8 +277,8 @@ export async function recordPaymentAction(_prev: ActionState, form: FormData): P
     if ('error' in outcome) return { error: outcome.error };
 
     const { inv, status } = outcome;
-    await audit(viewer, 'payment.recorded', { entityType: 'invoice', entityId: inv.id, metadata: { amountPaise: d.amount, method: d.method, reference: d.reference } });
-    const summary = `Payment of ${formatINR(d.amount)} received for ${inv.number}${status === 'paid' ? ' — paid in full' : ''}`;
+    await audit(viewer, 'payment.recorded', { entityType: 'invoice', entityId: inv.id, metadata: { amountMinor: d.amount, currency: inv.currency, method: d.method, reference: d.reference } });
+    const summary = `Payment of ${formatMoney(d.amount, inv.currency)} received for ${inv.number}${status === 'paid' ? ' — paid in full' : ''}`;
     await recordActivity({ entityType: 'invoice', entityId: inv.id, clientId: inv.clientId, projectId: inv.projectId, actorId: viewer.id, summary, visibility: 'client' });
     await notifyUsers(await clientUserIds(inv.clientId), { type: 'payment.recorded', title: 'Payment recorded', body: summary, link: `/portal/invoices/${inv.id}` }, { actorId: viewer.id });
     revalidatePath(`/portal/invoices/${inv.id}`);
@@ -236,4 +286,3 @@ export async function recordPaymentAction(_prev: ActionState, form: FormData): P
     return { ok: true, message: 'Payment recorded.' };
   });
 }
-

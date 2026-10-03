@@ -27,6 +27,10 @@ export type Viewer = {
   isSuperAdmin: boolean;
   sessionId: string;
   totpEnabled: boolean;
+  /** IANA timezone used for dates in the UI and emails. */
+  timezone: string;
+  /** Authenticated avatar URL (cache-busted by the stored key), or null for initials. */
+  avatarUrl: string | null;
 };
 
 export class ForbiddenError extends Error {
@@ -34,6 +38,10 @@ export class ForbiddenError extends Error {
     super(message);
     this.name = 'ForbiddenError';
   }
+}
+
+export function avatarUrlFor(userId: string, avatarKey: string | null): string | null {
+  return avatarKey ? `/api/portal/avatars/${userId}?v=${avatarKey.slice(-8)}` : null;
 }
 
 const loadViewer = cache(async (): Promise<{ viewer: Viewer | null; mfaPending: boolean }> => {
@@ -88,6 +96,8 @@ export async function buildViewer(user: typeof users.$inferSelect, sessionId: st
     name: user.name,
     role: user.role,
     title: user.title,
+    timezone: user.timezone,
+    avatarUrl: avatarUrlFor(user.id, user.avatarKey),
     clientId,
     clientName,
     clientRole,

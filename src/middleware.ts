@@ -14,8 +14,8 @@ import { SESSION_COOKIE } from '@/lib/portal/session-cookie';
  *    also carries `X-Robots-Tag: noindex` and `Cache-Control: private`
  *    so no private page is ever indexed or cached by a shared cache.
  */
-const PUBLIC_PORTAL_PATHS = ['/portal/login', '/portal/forgot-password', '/portal/reset-password', '/portal/accept-invite'];
-const PUBLIC_PORTAL_API = ['/api/portal/cron/', '/api/portal/google/callback'];
+const PUBLIC_PORTAL_PATHS = ['/portal/login', '/portal/forgot-password', '/portal/reset-password', '/portal/accept-invite', '/portal/offline', '/portal/sw.js'];
+const PUBLIC_PORTAL_API = ['/api/portal/cron/', '/api/portal/google/callback', '/api/portal/webhooks/'];
 
 function privateHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');

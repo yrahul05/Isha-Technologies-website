@@ -7,13 +7,14 @@ import { clientUsers, clients, users } from '@/server/db/schema';
 import { getDummyHash, hashPassword, needsRehash, passwordProblems, verifyPassword } from '@/server/auth/password';
 import { createSession, destroyCurrentSession, markSessionMfaVerified, readSession, revokeAllSessions } from '@/server/auth/session';
 import { consumeRateLimit, isLoginThrottled, recordLoginAttempt } from '@/server/auth/throttle';
-import { consumeAuthToken, issueAuthToken, peekAuthToken } from '@/server/auth/tokens';
+import { consumeAuthToken, peekAuthToken } from '@/server/auth/tokens';
 import { verifyTotp } from '@/server/auth/totp';
 import { decryptSecret } from '@/server/security/crypto';
 import { audit } from '@/server/audit';
-import { appUrl, getRequestMeta } from '@/server/request';
+import { getRequestMeta } from '@/server/request';
 import { isValidEmail } from '@/lib/email';
-import { deliverAuthEmail } from '@/server/auth/mail';
+import { issueOtp, OTP_ERRORS, verifyOtp } from '@/server/auth/otp';
+import { notifySecurity } from '@/server/auth/security-notice';
 import type { ActionState } from './types';
 
 const GENERIC_LOGIN_ERROR = 'Incorrect email/username or password.';
@@ -124,8 +125,7 @@ export async function logoutAction(): Promise<void> {
   redirect('/portal/login?signed_out=1');
 }
 
-const RESET_SENT_MESSAGE =
-  'If an active account exists for that email, a password reset link is on its way. It expires in 30 minutes.';
+const RESET_SENT_MESSAGE = 'If an active account exists for that email, we’ve sent a 6-digit code. It expires in 10 minutes.';
 
 export async function forgotPasswordAction(_prev: ActionState, form: FormData): Promise<ActionState> {
   const email = String(form.get('email') ?? '').trim().toLowerCase().slice(0, 254);
@@ -143,18 +143,37 @@ export async function forgotPasswordAction(_prev: ActionState, form: FormData): 
     .limit(1);
 
   if (user && user.isActive && user.passwordHash) {
-    const token = await issueAuthToken(user.id, 'password_reset');
-    const link = `${appUrl()}/portal/reset-password?token=${encodeURIComponent(token)}`;
-    await deliverAuthEmail(user.email, 'Reset your Isha Technologies portal password', link, 'Reset password',
-      'We received a request to reset your password. This link expires in 30 minutes. If you did not request it, you can ignore this email.');
-    await audit({ id: user.id, email: user.email }, 'auth.password_reset_requested', {
-      entityType: 'user',
-      entityId: user.id,
-      meta,
-    });
+    // Cooldown/limit outcomes are deliberately not surfaced here: the
+    // response must be identical whether or not the account exists.
+    const r = await issueOtp(user, 'password_reset', meta.ip);
+    await audit({ id: user.id, email: user.email }, 'auth.password_reset_requested', { entityType: 'user', entityId: user.id, metadata: { channel: 'email_otp', issued: r.ok }, meta });
   }
-  // Identical response whether or not the account exists.
-  return { ok: true, message: RESET_SENT_MESSAGE };
+  return { ok: true, message: RESET_SENT_MESSAGE, data: { email } };
+}
+
+/** Step 2 of forgot-password: email + code + new password. */
+export async function resetWithOtpAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const email = String(form.get('email') ?? '').trim().toLowerCase().slice(0, 254);
+  const code = String(form.get('code') ?? '');
+  const password = String(form.get('password') ?? '');
+  const confirm = String(form.get('confirm') ?? '');
+  const problem = passwordProblems(password);
+  if (problem) return { fieldErrors: { password: problem } };
+  if (password !== confirm) return { fieldErrors: { confirm: 'Passwords do not match.' } };
+
+  const meta = await getRequestMeta();
+  if (!(await consumeRateLimit('otp-verify', meta.ip, 30, 60 * 60 * 1000))) return { error: 'Too many attempts. Please try again later.' };
+  const [user] = await db.select().from(users).where(eq(sql`lower(${users.email})`, email)).limit(1);
+  // Unknown / inactive accounts get the same answer as a wrong code.
+  if (!user || !user.isActive || !user.passwordHash) return { fieldErrors: { code: OTP_ERRORS.invalid } };
+  const v = await verifyOtp(user.id, 'password_reset', code);
+  if (!v.ok) return { fieldErrors: { code: OTP_ERRORS[v.reason] } };
+
+  await db.update(users).set({ passwordHash: await hashPassword(password), passwordChangedAt: new Date() }).where(eq(users.id, user.id));
+  await revokeAllSessions(user.id);
+  await audit({ id: user.id, email: user.email }, 'auth.password_reset', { entityType: 'user', entityId: user.id, metadata: { channel: 'email_otp' }, meta });
+  await notifySecurity(user, 'Your password was reset', 'Your portal password was reset and all devices were signed out. If this wasn’t you, contact Isha Technologies immediately.', meta);
+  redirect('/portal/login?reset=1');
 }
 
 export async function resetPasswordAction(_prev: ActionState, form: FormData): Promise<ActionState> {

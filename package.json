@@ -12,13 +12,15 @@
     "type-check": "tsc --noEmit",
     "seo:check": "node scripts/seo-check.mjs",
     "db:generate": "drizzle-kit generate",
+    "db:check": "tsx --env-file-if-exists=.env.local scripts/db-check.ts",
     "db:migrate": "tsx --env-file-if-exists=.env.local scripts/db-migrate.ts",
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/db-seed.ts",
     "db:setup": "npm run db:migrate && npm run db:seed -- --demo",
     "test:smoke": "node scripts/portal-smoke.mjs",
+    "test:logic": "tsx --conditions=react-server scripts/verify-business-logic.ts",
     "test:isolation": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/verify-isolation.ts",
     "check:actions": "node scripts/check-server-actions.mjs",
-    "test": "npm run check:actions && npm run db:migrate && npm run db:seed -- --demo && npm run test:isolation"
+    "test": "npm run check:actions && npm run db:migrate && npm run db:seed -- --demo && npm run test:logic && npm run test:isolation"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1143.0",
@@ -30,6 +32,7 @@
     "@radix-ui/react-navigation-menu": "^1.2.14",
     "@radix-ui/react-slot": "^1.2.3",
     "@tailwindcss/typography": "^0.5.19",
+    "@vercel/blob": "^2.8.0",
     "aos": "^2.3.4",
     "axios": "^1.12.2",
     "class-variance-authority": "^0.7.1",

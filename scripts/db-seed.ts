@@ -18,9 +18,11 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
+import { refuseOnRemoteDatabase } from './lib/remote-guard';
 
 const DEMO_PASSWORD = 'Isha@Demo2026!';
 const demo = process.argv.includes('--demo');
+if (demo) refuseOnRemoteDatabase('seed demo data');
 
 const day = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
 const at = (offsetDays: number, hour: number, minute = 0) => {
@@ -107,7 +109,21 @@ async function main() {
       postalCode: '302001', gstin: '08AAFFZ5678K1Z2', industry: 'Financial services', accountManagerId: kabir.id,
     })
     .returning();
-  await db.insert(s.counters).values({ key: 'client', value: 2 }).onConflictDoNothing();
+  // International clients (no Indian GST): one in the US (USD), one in Canada (CAD).
+  const [harbor, maple] = await db
+    .insert(s.clients)
+    .values([
+      {
+        code: 'CL-0003', companyName: 'Harbor Labs', legalName: 'Harbor Labs Inc.', contactName: 'Emily Carter', email: 'emily@harbor.example',
+        addressLine1: '500 Market Street', city: 'San Francisco', state: 'California', postalCode: '94105', country: 'United States', industry: 'SaaS', accountManagerId: meera.id,
+      },
+      {
+        code: 'CL-0004', companyName: 'Maple Analytics', legalName: 'Maple Analytics Ltd.', contactName: 'Liam Tremblay', email: 'liam@maple.example',
+        addressLine1: '100 King Street West', city: 'Toronto', state: 'Ontario', postalCode: 'M5X 1A9', country: 'Canada', industry: 'Data & analytics', accountManagerId: kabir.id,
+      },
+    ])
+    .returning();
+  await db.insert(s.counters).values({ key: 'client', value: 4 }).onConflictDoNothing();
 
   const rohan = await mkUser({ email: 'rohan@northwind.example', username: 'rohan', name: 'Rohan Kapoor', title: 'VP Engineering', role: 'client' });
   const nisha = await mkUser({ email: 'nisha@northwind.example', username: 'nisha', name: 'Nisha Verma', title: 'Engineering Manager', role: 'client' });
@@ -117,6 +133,8 @@ async function main() {
     { clientId: northwind.id, userId: nisha.id, role: 'member' },
     { clientId: zenith.id, userId: ananya.id, role: 'owner' },
   ]);
+  const liam = await mkUser({ email: 'liam@maple.example', username: 'liam', name: 'Liam Tremblay', title: 'Head of Data Platform', role: 'client' });
+  await db.insert(s.clientUsers).values({ clientId: maple.id, userId: liam.id, role: 'owner' });
 
   const [eks, cicd, zsec] = await db
     .insert(s.projects)
@@ -188,11 +206,15 @@ async function main() {
     dueIn: number,
     lines: { description: string; quantity: number; rupees: number; taxRatePct?: number; discountPct?: number }[],
     status: 'draft' | 'sent' | 'cancelled',
-    paid: { rupees: number; on: number; method: 'bank_transfer' | 'upi'; reference: string }[]
+    paid: { rupees: number; on: number; method: 'bank_transfer' | 'upi'; reference: string }[],
+    opts: { currency?: 'INR' | 'USD' | 'CAD'; taxMode?: string; taxLabel?: string } = {}
   ) => {
+    // Amounts are given in major units (₹ / $) and stored in minor units.
+    const currency = opts.currency ?? 'INR';
+    const gst = currency === 'INR' && (opts.taxMode ?? 'gst_auto').startsWith('gst');
     const items = lines.map((l, i) => ({
-      description: l.description, hsnSac: sac, quantity: l.quantity, unitPricePaise: l.rupees * 100,
-      discountPct: l.discountPct ?? 0, taxRatePct: l.taxRatePct ?? 18, position: i,
+      description: l.description, hsnSac: gst ? sac : null, quantity: l.quantity, unitPricePaise: l.rupees * 100,
+      discountPct: l.discountPct ?? 0, taxRatePct: l.taxRatePct ?? (gst ? 18 : 0), position: i,
     }));
     const totals = computeTotals(items);
     const paidPaise = paid.reduce((sum, p) => sum + p.rupees * 100, 0);
@@ -202,9 +224,11 @@ async function main() {
         number, clientId: client.id, projectId, status, issueDate: day(issue), dueDate: day(issue + dueIn),
         billingName: client.legalName ?? client.companyName,
         billingAddress: [client.addressLine1, `${client.city}, ${client.state} ${client.postalCode}`, client.country].filter(Boolean).join('\n'),
-        billingGstin: client.gstin, placeOfSupply: client.gstin?.slice(0, 2),
+        billingGstin: gst ? client.gstin : null, placeOfSupply: gst ? client.gstin?.slice(0, 2) : null,
+        currency, taxMode: opts.taxMode ?? (gst ? 'gst_auto' : 'none'), taxLabel: opts.taxLabel ?? null, paymentProfile: currency === 'INR' ? 'domestic' : 'international',
         ...totals, paidPaise,
-        terms: 'Payment due within 15 days of the invoice date.', notes: 'Thank you for your business.',
+        terms: currency === 'INR' ? 'Payment due within 15 days of the invoice date.' : 'Payment due within 15 days by international wire transfer. Bank charges are borne by the remitter.',
+        notes: 'Thank you for your business.',
         sentAt: status === 'draft' ? null : new Date(Date.now() + issue * 86_400_000), createdBy: superAdminId,
       })
       .returning();
@@ -215,17 +239,20 @@ async function main() {
     return inv;
   };
 
-  await mkInvoice('INV-2026-0001', northwind, eks.id, -170, 15, [{ description: 'AWS Well-Architected review & migration plan', quantity: 1, rupees: 120000 }], 'sent', [{ rupees: 141600, on: -160, method: 'bank_transfer', reference: 'UTR 4481920011' }]);
-  await mkInvoice('INV-2026-0002', northwind, eks.id, -60, 15, [
+  // Issued invoices use the server-side sequence ISH-<year>-<nnnn>; drafts have no number yet.
+  await mkInvoice('ISH-2026-0001', northwind, eks.id, -170, 15, [{ description: 'AWS Well-Architected review & migration plan', quantity: 1, rupees: 120000 }], 'sent', [{ rupees: 141600, on: -160, method: 'bank_transfer', reference: 'UTR 4481920011' }]);
+  await mkInvoice('ISH-2026-0002', northwind, eks.id, -60, 15, [
     { description: 'EKS platform engineering — Phase 1 (fixed fee)', quantity: 1, rupees: 350000 },
     { description: 'Terraform module library', quantity: 1, rupees: 90000, discountPct: 10 },
   ], 'sent', [{ rupees: 250000, on: -40, method: 'bank_transfer', reference: 'UTR 5520019932' }]);
-  await mkInvoice('INV-2026-0003', northwind, cicd.id, -5, 15, [{ description: 'CI/CD modernisation — milestone 1', quantity: 40, rupees: 3500 }], 'sent', []);
-  await mkInvoice('INV-2026-0004', zenith, zsec.id, -25, 15, [
+  await mkInvoice('ISH-2026-0003', northwind, cicd.id, -5, 15, [{ description: 'CI/CD modernisation — milestone 1', quantity: 40, rupees: 3500 }], 'sent', []);
+  await mkInvoice('ISH-2026-0004', zenith, zsec.id, -25, 15, [
     { description: 'Cloud security posture assessment', quantity: 1, rupees: 42373 },
   ], 'sent', [{ rupees: 30000, on: -12, method: 'upi', reference: 'zenith@hdfcbank' }]);
-  await mkInvoice('INV-2026-0005', zenith, zsec.id, 0, 15, [{ description: 'IAM remediation sprint', quantity: 1, rupees: 180000 }], 'draft', []);
-  await db.insert(s.counters).values({ key: 'invoice:2026', value: 5 }).onConflictDoNothing();
+  await mkInvoice('ISH-2026-0005', harbor, null, -20, 15, [{ description: 'Kubernetes platform assessment (remote)', quantity: 1, rupees: 4800 }, { description: 'SRE advisory hours', quantity: 10, rupees: 120 }], 'sent', [], { currency: 'USD' });
+  await mkInvoice('ISH-2026-0006', maple, null, -3, 15, [{ description: 'Data platform reliability review', quantity: 1, rupees: 6500, taxRatePct: 13 }], 'sent', [], { currency: 'CAD', taxMode: 'custom', taxLabel: 'HST' });
+  await mkInvoice('DRAFT-5EED0001', zenith, zsec.id, 0, 15, [{ description: 'IAM remediation sprint', quantity: 1, rupees: 180000 }], 'draft', []);
+  await db.insert(s.counters).values({ key: 'invoice:ISH:2026', value: 6 }).onConflictDoNothing();
 
   await db.insert(s.tickets).values([
     { number: 'TKT-00001', clientId: northwind.id, projectId: eks.id, subject: 'Staging ingress returns 502 intermittently', description: 'Since yesterday evening roughly 1 in 20 requests to staging returns 502.', priority: 'high', category: 'incident', status: 'in_progress', createdBy: rohan.id, assigneeId: aarav.id },
@@ -248,6 +275,18 @@ async function main() {
     { meetingId: byTitle('Internal: sprint planning'), userId: meera.id }, { meetingId: byTitle('Internal: sprint planning'), userId: kabir.id },
   ]);
 
+  // A pending client work request (Northwind) and a pending meeting request (Zenith).
+  const [workRequest] = await db
+    .insert(s.taskRequests)
+    .values({ clientId: northwind.id, projectId: eks.id, requestedBy: nisha.id, title: 'Add a staging cluster for the payments service', description: 'We need an isolated staging environment for payments before the November release, mirroring production network policies.', priority: 'high', desiredDueDate: day(21) })
+    .returning();
+  await db.insert(s.taskRequestComments).values({ requestId: workRequest.id, authorId: nisha.id, body: 'Happy to share the current Helm values if useful.' });
+  const [meetingRequest] = await db
+    .insert(s.meetings)
+    .values({ title: 'RBI audit evidence review', clientId: zenith.id, projectId: zsec.id, startsAt: at(4, 12), durationMinutes: 45, agenda: 'Walk through the evidence pack structure.', status: 'requested', requestedBy: ananya.id })
+    .returning();
+  await db.insert(s.meetingAttendees).values([{ meetingId: meetingRequest.id, userId: ananya.id }, { meetingId: meetingRequest.id, userId: kabir.id }]);
+
   await db.insert(s.calendarEvents).values([
     { title: 'Diwali', type: 'holiday', startsOn: '2026-11-08', endsOn: '2026-11-09', audience: 'all', createdBy: superAdminId },
     { title: 'Quarterly all-hands', type: 'event', startsOn: day(7), endsOn: day(7), audience: 'employees', createdBy: superAdminId },
@@ -266,6 +305,37 @@ async function main() {
     { userId: aarav.id, type: 'sick', startDate: day(-12), endDate: day(-11), reason: 'Fever', status: 'approved', reviewedBy: admin.id, reviewedAt: new Date() },
   ]);
 
+  // Sales & delivery business data: proposals, contracts, renewals and timesheets.
+  const [prpSent, prpDraft, prpZenith] = await db
+    .insert(s.proposals)
+    .values([
+      { number: 'PRP-2026-0001', title: 'Observability rollout — phase 2', clientId: northwind.id, status: 'sent', currency: 'INR', summary: 'Extend Prometheus/Grafana coverage to all services.', validUntil: day(14), subtotalPaise: 300_000_00, discountPaise: 0, taxPaise: 54_000_00, totalPaise: 354_000_00, sentAt: new Date(), ownerId: meera.id, createdBy: meera.id },
+      { number: 'DRAFT-PRP-NW', title: 'Internal draft: FinOps retainer', clientId: northwind.id, status: 'draft', currency: 'INR', subtotalPaise: 120_000_00, discountPaise: 0, taxPaise: 21_600_00, totalPaise: 141_600_00, ownerId: meera.id, createdBy: meera.id },
+      { number: 'PRP-2026-0002', title: 'PCI-DSS readiness assessment', clientId: zenith.id, status: 'sent', currency: 'INR', summary: 'Gap assessment against PCI-DSS 4.0.', validUntil: day(10), subtotalPaise: 250_000_00, discountPaise: 0, taxPaise: 45_000_00, totalPaise: 295_000_00, sentAt: new Date(), ownerId: kabir.id, createdBy: kabir.id },
+    ])
+    .returning();
+  await db.insert(s.proposalItems).values([
+    { proposalId: prpSent.id, description: 'Dashboards & alert rules', quantity: 1, unitPricePaise: 300_000_00, discountPct: 0, taxRatePct: 18, amountPaise: 300_000_00, position: 0 },
+    { proposalId: prpDraft.id, description: 'Monthly FinOps review', quantity: 6, unitPricePaise: 20_000_00, discountPct: 0, taxRatePct: 18, amountPaise: 120_000_00, position: 0 },
+    { proposalId: prpZenith.id, description: 'PCI-DSS gap assessment', quantity: 1, unitPricePaise: 250_000_00, discountPct: 0, taxRatePct: 18, amountPaise: 250_000_00, position: 0 },
+  ]);
+  await db.insert(s.contracts).values([
+    { number: 'CTR-2026-0001', title: 'Northwind managed cloud SOW', kind: 'sow', clientId: northwind.id, projectId: eks.id, status: 'active', currency: 'INR', valuePaise: 1_200_000_00, startDate: day(-90), endDate: day(25), autoRenew: false, renewalNoticeDays: 30, createdBy: meera.id },
+    { number: 'DRAFT-CTR-NW', title: 'Northwind NDA (draft)', kind: 'nda', clientId: northwind.id, status: 'draft', currency: 'INR', createdBy: meera.id },
+    { number: 'CTR-2026-0002', title: 'Zenith security MSA', kind: 'msa', clientId: zenith.id, projectId: zsec.id, status: 'active', currency: 'INR', valuePaise: 800_000_00, startDate: day(-60), endDate: day(300), autoRenew: true, renewalNoticeDays: 45, createdBy: kabir.id },
+  ]);
+  await db.insert(s.renewalItems).values([
+    { clientId: northwind.id, kind: 'domain', name: 'northwind.example', vendor: 'GoDaddy', expiresOn: day(12), costPaise: 1_500_00, ownerId: aarav.id },
+    { clientId: zenith.id, kind: 'ssl', name: 'api.zenith.example certificate', vendor: 'DigiCert', expiresOn: day(40), costPaise: 9_000_00, ownerId: kabir.id },
+    { clientId: null, kind: 'license', name: 'Internal monitoring licence', vendor: 'Grafana Labs', expiresOn: day(90), costPaise: 60_000_00, ownerId: admin.id },
+  ]);
+  await db.insert(s.timeEntries).values([
+    { userId: aarav.id, projectId: eks.id, workDate: day(-1), minutes: 240, billable: true, note: 'Argo CD app-of-apps' },
+    { userId: aarav.id, projectId: eks.id, workDate: day(-2), minutes: 180, billable: true, note: 'Karpenter node pools' },
+    { userId: kabir.id, projectId: zsec.id, workDate: day(-1), minutes: 300, billable: true, note: 'CIS benchmark run' },
+    { userId: meera.id, projectId: eks.id, workDate: day(-3), minutes: 120, billable: false, note: 'Architecture review (internal)' },
+  ]);
+
   const activity = (entityType: string, entityId: string, summary: string, extra: Partial<typeof s.activities.$inferInsert>) => ({ entityType, entityId, summary, ...extra });
   await db.insert(s.activities).values([
     activity('project', eks.id, 'Project EKS Platform Migration created', { clientId: northwind.id, projectId: eks.id, actorId: superAdminId, visibility: 'client' }),
@@ -278,7 +348,7 @@ async function main() {
   const note = (userId: string, title: string, body: string, type: string, link: string, priority: 'normal' | 'high' = 'normal') => ({ userId, title, body, type, link, priority });
   await db.insert(s.notifications).values([
     note(aarav.id, 'New task assigned', 'Karpenter node pools & consolidation', 'task.assigned', `/portal/tasks/${insertedTasks[3].id}`, 'high'),
-    note(rohan.id, 'Invoice INV-2026-0003 issued', 'CI/CD modernisation — milestone 1', 'invoice.created', '/portal/invoices'),
+    note(rohan.id, 'Invoice ISH-2026-0003 issued', 'CI/CD modernisation — milestone 1', 'invoice.created', '/portal/invoices'),
     note(ananya.id, 'Meeting scheduled', 'Security findings walkthrough', 'meeting.scheduled', '/portal/meetings'),
     note(superAdminId!, 'New assessment lead', 'Vikram Joshi · Kite Retail', 'lead.created', '/portal/leads', 'high'),
   ]);

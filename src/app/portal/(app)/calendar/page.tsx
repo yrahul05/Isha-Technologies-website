@@ -51,7 +51,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     db
       .select({ id: meetings.id, title: meetings.title, startsAt: meetings.startsAt })
       .from(meetings)
-      .where(and(meetingScope(viewer), ne(meetings.status, 'cancelled'), gte(meetings.startsAt, rangeStart), lte(meetings.startsAt, rangeEnd), mineMeeting, clientId ? eq(meetings.clientId, clientId) : undefined, projectId ? eq(meetings.projectId, projectId) : undefined)),
+      .where(and(meetingScope(viewer), eq(meetings.status, 'scheduled'), gte(meetings.startsAt, rangeStart), lte(meetings.startsAt, rangeEnd), mineMeeting, clientId ? eq(meetings.clientId, clientId) : undefined, projectId ? eq(meetings.projectId, projectId) : undefined)),
     db
       .select({ id: tasks.id, title: tasks.title, dueDate: tasks.dueDate })
       .from(tasks)

@@ -7,6 +7,7 @@ import {
   changeRequests,
   clientUsers,
   clients,
+  contracts,
   documents,
   invoices,
   leads,
@@ -16,8 +17,11 @@ import {
   payments,
   projectMembers,
   projects,
+  proposals,
+  taskRequests,
   tasks,
   tickets,
+  timeEntries,
   users,
 } from '@/server/db/schema';
 import { can, type Viewer } from '@/server/auth/viewer';
@@ -71,13 +75,26 @@ export function projectScope(v: Viewer): SQL {
   return inArray(projects.id, memberProjectIds(v));
 }
 
-export function taskScope(v: Viewer): SQL {
-  if (can(v, 'tasks.view_all')) return TRUE;
+/** Soft-deleted tasks are invisible everywhere except the Super Admin's recycle view. */
+export function taskScope(v: Viewer, opts: { includeDeleted?: boolean } = {}): SQL {
+  const live = opts.includeDeleted && v.isSuperAdmin ? TRUE : isNull(tasks.deletedAt);
+  if (can(v, 'tasks.view_all')) return live;
   if (!v.isInternal) {
     if (!v.clientId) return FALSE;
-    return and(eq(tasks.visibility, 'client'), inArray(tasks.projectId, clientProjectIds(v.clientId)))!;
+    return and(live, eq(tasks.visibility, 'client'), inArray(tasks.projectId, clientProjectIds(v.clientId)))!;
   }
-  return or(eq(tasks.assigneeId, v.id), inArray(tasks.projectId, memberProjectIds(v)))!;
+  return and(live, or(eq(tasks.assigneeId, v.id), inArray(tasks.projectId, memberProjectIds(v))))!;
+}
+
+/**
+ * Client work requests: the requesting client's users, reviewers
+ * (task_requests.review) and task managers. Other employees see the
+ * resulting task only once it's approved and assigned.
+ */
+export function taskRequestScope(v: Viewer): SQL {
+  if (can(v, 'task_requests.review') || can(v, 'tasks.manage')) return TRUE;
+  if (!v.isInternal) return v.clientId ? eq(taskRequests.clientId, v.clientId) : FALSE;
+  return FALSE;
 }
 
 export function documentScope(v: Viewer): SQL {
@@ -133,7 +150,13 @@ export function meetingScope(v: Viewer): SQL {
       ? eq(meetings.clientId, v.clientId)
       : and(eq(meetings.clientId, v.clientId), isAttendee)!;
   }
-  return or(isAttendee, eq(meetings.organizerId, v.id), inArray(meetings.projectId, memberProjectIds(v)))!;
+  return or(
+    isAttendee,
+    eq(meetings.organizerId, v.id),
+    inArray(meetings.projectId, memberProjectIds(v)),
+    // Meeting managers review client requests, so pending requests are visible to them.
+    can(v, 'meetings.manage') ? eq(meetings.status, 'requested') : FALSE
+  )!;
 }
 
 export function activityScope(v: Viewer): SQL {
@@ -149,6 +172,34 @@ export function leadScope(v: Viewer): SQL {
   if (can(v, 'leads.view')) return TRUE;
   if (v.isInternal) return eq(leads.assignedTo, v.id);
   return FALSE;
+}
+
+/** Clients see only proposals that were actually sent to their own account — never drafts or lead-stage ones. */
+export function proposalScope(v: Viewer): SQL {
+  if (can(v, 'proposals.view')) return TRUE;
+  if (v.isInternal) return or(eq(proposals.ownerId, v.id), eq(proposals.createdBy, v.id))!;
+  if (!v.clientId) return FALSE;
+  return and(eq(proposals.clientId, v.clientId), ne(proposals.status, 'draft'))!;
+}
+
+/** Clients see only non-draft contracts of their own account. */
+export function contractScope(v: Viewer): SQL {
+  if (can(v, 'contracts.view')) return TRUE;
+  if (!v.isInternal && v.clientId) return and(eq(contracts.clientId, v.clientId), ne(contracts.status, 'draft'))!;
+  return FALSE;
+}
+
+/** Renewals are internal bookkeeping: only holders of renewals.view (everyone else sees nothing). */
+export function renewalScope(v: Viewer): SQL {
+  return v.isInternal && can(v, 'renewals.view') ? TRUE : FALSE;
+}
+
+
+/** Own entries always; everyone's with time.view_all. Clients never see time entries. */
+export function timeEntryScope(v: Viewer): SQL {
+  if (!v.isInternal) return FALSE;
+  if (can(v, 'time.view_all')) return TRUE;
+  return can(v, 'time.log') ? eq(timeEntries.userId, v.id) : FALSE;
 }
 
 export function changeRequestScope(v: Viewer): SQL {
