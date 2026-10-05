@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { cache } from 'react';
 import { db } from '@/server/db';
 import { clientUsers, clients, rolePermissions, users } from '@/server/db/schema';
-import { readSession } from './session';
+import { readSession, type SessionPrefetch } from './session';
 import { INTERNAL_ONLY_PERMISSIONS, type Permission, type RoleKey } from '@/lib/portal/permissions';
 
 /**
@@ -50,31 +50,36 @@ export const CHANGE_PASSWORD_PATH = '/portal/settings/security/change-password';
 const loadViewer = cache(async (): Promise<{ viewer: Viewer | null; mfaPending: boolean; mustChangePassword: boolean }> => {
   const session = await readSession();
   if (!session) return { viewer: null, mfaPending: false, mustChangePassword: false };
-  const viewer = await buildViewer(session.user, session.sessionId);
+  const viewer = await buildViewer(session.user, session.sessionId, session.prefetch);
   if (!viewer) return { viewer: null, mfaPending: false, mustChangePassword: false };
   if (!session.mfaVerified) return { viewer: null, mfaPending: true, mustChangePassword: false };
   return { viewer, mfaPending: false, mustChangePassword: session.user.forcePasswordChange };
 });
 
 /** Resolves role permissions and tenant membership for a user. Null = no access. */
-export async function buildViewer(user: typeof users.$inferSelect, sessionId: string): Promise<Viewer | null> {
+export async function buildViewer(user: typeof users.$inferSelect, sessionId: string, prefetch?: SessionPrefetch): Promise<Viewer | null> {
   if (!user.isActive) return null;
 
-  const granted = await db
-    .select({ permission: rolePermissions.permission })
-    .from(rolePermissions)
-    .where(eq(rolePermissions.role, user.role));
+  // Request path: grants + membership arrive with the session query (one round-trip).
+  // Scripts/tests call this without `prefetch` and get the standalone queries.
+  const granted = prefetch
+    ? prefetch.permissions.map((permission) => ({ permission }))
+    : await db.select({ permission: rolePermissions.permission }).from(rolePermissions).where(eq(rolePermissions.role, user.role));
 
   let clientId: string | null = null;
   let clientName: string | null = null;
   let clientRole: Viewer['clientRole'] = null;
   if (user.role === 'client') {
-    const [membership] = await db
-      .select({ clientId: clientUsers.clientId, role: clientUsers.role, name: clients.companyName, status: clients.status })
-      .from(clientUsers)
-      .innerJoin(clients, eq(clients.id, clientUsers.clientId))
-      .where(eq(clientUsers.userId, user.id))
-      .limit(1);
+    const membership = prefetch
+      ? prefetch.membership
+      : (
+          await db
+            .select({ clientId: clientUsers.clientId, role: clientUsers.role, name: clients.companyName, status: clients.status })
+            .from(clientUsers)
+            .innerJoin(clients, eq(clients.id, clientUsers.clientId))
+            .where(eq(clientUsers.userId, user.id))
+            .limit(1)
+        )[0];
     // A deactivated client account locks out all of its users.
     if (membership && membership.status !== 'inactive') {
       clientId = membership.clientId;

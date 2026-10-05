@@ -25,7 +25,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
     .leftJoin(clients, eq(clients.id, meetings.clientId))
     .leftJoin(projects, eq(projects.id, meetings.projectId))
     .leftJoin(users, eq(users.id, meetings.organizerId));
-  const [upcoming, past, requests] = await Promise.all([
+  const [upcoming, past, requests, requestForm, form] = await Promise.all([
     base.where(and(meetingScope(viewer), gte(meetings.startsAt, now), eq(meetings.status, 'scheduled'))).orderBy(asc(meetings.startsAt)).limit(100),
     db
       .select({ id: meetings.id, title: meetings.title, startsAt: meetings.startsAt, status: meetings.status, clientName: clients.companyName })
@@ -42,10 +42,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
       .where(and(meetingScope(viewer), viewer.isInternal ? eq(meetings.status, 'requested') : inArray(meetings.status, ['requested', 'rejected'])))
       .orderBy(desc(meetings.createdAt))
       .limit(50),
-  ]);
-  const requestForm =
     !viewer.isInternal && viewer.clientId
-      ? await Promise.all([
+      ? Promise.all([
           db.select({ id: projects.id, name: projects.name }).from(projects).where(and(projectScope(viewer), isNull(projects.archivedAt))).orderBy(asc(projects.name)),
           db
             .select({ id: users.id, name: users.name, role: users.role })
@@ -53,8 +51,9 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
             .where(and(userScope(viewer), eq(users.isActive, true), ne(users.id, viewer.id)))
             .orderBy(asc(users.name)),
         ])
-      : null;
-  const form = viewer.isInternal ? await meetingFormData(viewer) : null;
+      : Promise.resolve(null),
+    viewer.isInternal ? meetingFormData(viewer) : Promise.resolve(null),
+  ]);
 
   return (
     <>

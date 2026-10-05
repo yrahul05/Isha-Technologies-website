@@ -1,40 +1,54 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { and, asc, desc, eq, inArray, ne } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { LifeBuoy } from 'lucide-react';
 import { db } from '@/server/db';
 import { clients, projects, tickets, users } from '@/server/db/schema';
 import { can, requireViewer } from '@/server/auth/viewer';
 import { clientScope, memberProjectIds, projectScope, ticketScope } from '@/server/scope';
 import { internalPeople } from '@/server/queries/people';
-import { Avatar, EmptyState, PageHeader, Panel, StatCard, StatusBadge, Table, Td, Th, Tr } from '@/components/portal/ui';
+import { Avatar, EmptyState, PageHeader, Pagination, Panel, StatCard, StatusBadge, Table, Td, Th, Tr } from '@/components/portal/ui';
 import { NewTicketButton } from '@/components/portal/tickets/TicketForms';
 import { humanize, relativeTime } from '@/lib/portal/format';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = { title: 'Support tickets' };
 
+const PAGE = 25;
 const VIEWS = { open: ['open', 'in_progress', 'waiting_for_client'], resolved: ['resolved', 'closed'], all: ['open', 'in_progress', 'waiting_for_client', 'resolved', 'closed'] } as const;
 
-export default async function TicketsPage({ searchParams }: { searchParams: Promise<{ view?: string; new?: string; client?: string; mine?: string }> }) {
+export default async function TicketsPage({ searchParams }: { searchParams: Promise<{ view?: string; new?: string; client?: string; mine?: string; page?: string }> }) {
   const viewer = await requireViewer();
   const sp = await searchParams;
   const view = (Object.keys(VIEWS) as (keyof typeof VIEWS)[]).find((k) => k === sp.view) ?? 'open';
   const mine = viewer.isInternal && sp.mine === '1';
 
-  const rows = await db
-    .select({ t: tickets, clientName: clients.companyName, projectName: projects.name, assignee: users.name })
-    .from(tickets)
-    .innerJoin(clients, eq(clients.id, tickets.clientId))
-    .leftJoin(projects, eq(projects.id, tickets.projectId))
-    .leftJoin(users, eq(users.id, tickets.assigneeId))
-    .where(and(ticketScope(viewer), inArray(tickets.status, [...VIEWS[view]]), mine ? eq(tickets.assigneeId, viewer.id) : undefined))
-    .orderBy(desc(tickets.lastActivityAt))
-    .limit(300);
-
-  const [allOpen] = await Promise.all([db.select({ status: tickets.status, priority: tickets.priority }).from(tickets).where(and(ticketScope(viewer), inArray(tickets.status, [...VIEWS.open])))]);
+  const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
+  const listWhere = and(ticketScope(viewer), inArray(tickets.status, [...VIEWS[view]]), mine ? eq(tickets.assigneeId, viewer.id) : undefined);
   const canCreate = !viewer.isInternal || can(viewer, 'tickets.manage') || viewer.role === 'employee';
-  const [clientOptions, projectOptions, people] = await Promise.all([
+  // One parallel batch: the page of tickets, its total, the summary-card counts (aggregated in SQL instead of
+  // pulling every open ticket) and the "new ticket" pickers — previously three sequential stages.
+  const [rows, [{ total }], [openStats], clientOptions, projectOptions, people] = await Promise.all([
+    db
+      .select({ t: tickets, clientName: clients.companyName, projectName: projects.name, assignee: users.name })
+      .from(tickets)
+      .innerJoin(clients, eq(clients.id, tickets.clientId))
+      .leftJoin(projects, eq(projects.id, tickets.projectId))
+      .leftJoin(users, eq(users.id, tickets.assigneeId))
+      .where(listWhere)
+      .orderBy(desc(tickets.lastActivityAt), desc(tickets.id))
+      .limit(PAGE)
+      .offset((page - 1) * PAGE),
+    db.select({ total: count() }).from(tickets).where(listWhere),
+    db
+      .select({
+        open: sql<number>`(count(*) filter (where ${tickets.status} = 'open'))::int`,
+        inProgress: sql<number>`(count(*) filter (where ${tickets.status} = 'in_progress'))::int`,
+        waiting: sql<number>`(count(*) filter (where ${tickets.status} = 'waiting_for_client'))::int`,
+        urgent: sql<number>`(count(*) filter (where ${tickets.priority} in ('urgent','high')))::int`,
+      })
+      .from(tickets)
+      .where(and(ticketScope(viewer), inArray(tickets.status, [...VIEWS.open]))),
     viewer.isInternal ? db.select({ id: clients.id, name: clients.companyName }).from(clients).where(and(clientScope(viewer), ne(clients.status, 'inactive'))).orderBy(asc(clients.companyName)) : Promise.resolve([]),
     db
       .select({ id: projects.id, name: projects.name, clientId: projects.clientId })
@@ -52,10 +66,10 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
         actions={canCreate ? <NewTicketButton isInternal={viewer.isInternal} clients={clientOptions} projects={projectOptions} people={people} defaultClientId={sp.client} autoOpen={sp.new === '1'} /> : null}
       />
       <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <StatCard label="Open" value={allOpen.filter((t) => t.status === 'open').length} icon={LifeBuoy} tone="sky" />
-        <StatCard label="In progress" value={allOpen.filter((t) => t.status === 'in_progress').length} icon={LifeBuoy} />
-        <StatCard label="Waiting for client" value={allOpen.filter((t) => t.status === 'waiting_for_client').length} icon={LifeBuoy} tone="amber" />
-        <StatCard label="Urgent / high" value={allOpen.filter((t) => t.priority === 'urgent' || t.priority === 'high').length} icon={LifeBuoy} tone="red" />
+        <StatCard label="Open" value={openStats?.open ?? 0} icon={LifeBuoy} tone="sky" />
+        <StatCard label="In progress" value={openStats?.inProgress ?? 0} icon={LifeBuoy} />
+        <StatCard label="Waiting for client" value={openStats?.waiting ?? 0} icon={LifeBuoy} tone="amber" />
+        <StatCard label="Urgent / high" value={openStats?.urgent ?? 0} icon={LifeBuoy} tone="red" />
       </div>
       <div className="mb-4 flex flex-wrap gap-1">
         {(['open', 'resolved', 'all'] as const).map((k) => (
@@ -119,6 +133,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
             </tbody>
           </Table>
         )}
+        <Pagination page={page} pageSize={PAGE} total={total} hrefFor={(p) => `/portal/tickets?${new URLSearchParams({ view, ...(mine ? { mine: '1' } : {}), page: String(p) })}`} />
       </Panel>
     </>
   );

@@ -43,6 +43,13 @@
       "when": 1790997020330,
       "tag": "0005_admin_managed_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791176724251,
+      "tag": "0006_perf_indexes",
+      "breakpoints": true
     }
   ]
 }

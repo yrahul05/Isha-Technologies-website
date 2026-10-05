@@ -20,15 +20,18 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const viewer = await requireViewer();
   if (!viewer.isInternal) notFound();
   const { view } = await searchParams;
-  const rows = await db
-    .select({ l: leads, owner: users.name })
-    .from(leads)
-    .leftJoin(users, eq(users.id, leads.assignedTo))
-    .where(leadScope(viewer))
-    .orderBy(desc(leads.createdAt))
-    .limit(500);
   const manage = can(viewer, 'leads.manage');
-  const people = manage ? await internalPeople(viewer) : [];
+  // The pipeline board needs the whole (capped) set; the owner picker no longer waits behind it.
+  const [rows, people] = await Promise.all([
+    db
+      .select({ l: leads, owner: users.name })
+      .from(leads)
+      .leftJoin(users, eq(users.id, leads.assignedTo))
+      .where(leadScope(viewer))
+      .orderBy(desc(leads.createdAt))
+      .limit(500),
+    manage ? internalPeople(viewer) : Promise.resolve([]),
+  ]);
   const now = Date.now();
 
   const open = rows.filter((r) => !['won', 'lost'].includes(r.l.status));

@@ -23,23 +23,25 @@ export default async function TimePage({ searchParams }: { searchParams: Promise
   const end = addDays(start, 6);
   const team = sp.scope === 'team' && can(viewer, 'time.view_all');
 
-  const rows = await db
-    .select({ e: timeEntries, project: projects.name, task: tasks.title, person: users.name })
-    .from(timeEntries)
-    .innerJoin(projects, eq(projects.id, timeEntries.projectId))
-    .innerJoin(users, eq(users.id, timeEntries.userId))
-    .leftJoin(tasks, eq(tasks.id, timeEntries.taskId))
-    .where(and(timeEntryScope(viewer), gte(timeEntries.workDate, start), lte(timeEntries.workDate, end), team ? undefined : eq(timeEntries.userId, viewer.id)))
-    .orderBy(desc(timeEntries.workDate), desc(timeEntries.createdAt));
-
   const logging = can(viewer, 'time.log');
-  const [projectRows, taskRows, [self]] = logging
-    ? await Promise.all([
+  // The week's entries and the logging pickers are independent: one parallel batch.
+  const [rows, [projectRows, taskRows, [self]]] = await Promise.all([
+    db
+      .select({ e: timeEntries, project: projects.name, task: tasks.title, person: users.name })
+      .from(timeEntries)
+      .innerJoin(projects, eq(projects.id, timeEntries.projectId))
+      .innerJoin(users, eq(users.id, timeEntries.userId))
+      .leftJoin(tasks, eq(tasks.id, timeEntries.taskId))
+      .where(and(timeEntryScope(viewer), gte(timeEntries.workDate, start), lte(timeEntries.workDate, end), team ? undefined : eq(timeEntries.userId, viewer.id)))
+      .orderBy(desc(timeEntries.workDate), desc(timeEntries.createdAt)),
+    logging
+    ? Promise.all([
         db.select({ id: projects.id, name: projects.name }).from(projects).where(and(projectScope(viewer), ne(projects.status, 'cancelled'), ne(projects.status, 'completed'))).orderBy(asc(projects.name)),
         db.select({ id: tasks.id, title: tasks.title, projectId: tasks.projectId }).from(tasks).where(and(taskScope(viewer), ne(tasks.status, 'completed'))).orderBy(asc(tasks.title)).limit(400),
         db.select({ cap: employees.weeklyCapacityHours }).from(employees).where(eq(employees.userId, viewer.id)),
       ])
-    : [[], [], []];
+    : Promise.resolve([[], [], []] as [{ id: string; name: string }[], { id: string; title: string; projectId: string }[], { cap: number }[]]),
+  ]);
 
   const total = rows.reduce((s, r) => s + r.e.minutes, 0);
   const billable = rows.reduce((s, r) => s + (r.e.billable ? r.e.minutes : 0), 0);

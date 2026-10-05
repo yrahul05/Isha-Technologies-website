@@ -39,6 +39,20 @@ export async function loginAction(_prev: ActionState, form: FormData): Promise<A
     .where(or(eq(sql`lower(${users.email})`, identifier), eq(sql`lower(${users.username})`, identifier)))
     .limit(1);
 
+  // Client-tenant lookup overlaps the (CPU-bound) password hash instead of following it. Fail-closed: a
+  // lookup error is treated as "no active membership".
+  const membershipLookup =
+    user?.role === 'client'
+      ? db
+          .select({ status: clients.status })
+          .from(clientUsers)
+          .innerJoin(clients, eq(clients.id, clientUsers.clientId))
+          .where(eq(clientUsers.userId, user.id))
+          .limit(1)
+          .then((rows) => rows[0])
+          .catch(() => undefined)
+      : null;
+
   // Always run a hash comparison so response time doesn't reveal whether the account exists.
   const passwordOk = await verifyPassword(password, user?.passwordHash ?? (await getDummyHash()));
 
@@ -58,25 +72,22 @@ export async function loginAction(_prev: ActionState, form: FormData): Promise<A
     return { error: 'This account has been deactivated. Please contact Isha Technologies.' };
   }
 
-  if (user.role === 'client') {
-    const [membership] = await db
-      .select({ status: clients.status })
-      .from(clientUsers)
-      .innerJoin(clients, eq(clients.id, clientUsers.clientId))
-      .where(eq(clientUsers.userId, user.id))
-      .limit(1);
+  if (membershipLookup) {
+    const membership = await membershipLookup;
     if (!membership || membership.status === 'inactive') {
       await recordLoginAttempt(identifier, meta.ip, false);
       return { error: 'This client account is not active. Please contact Isha Technologies.' };
     }
   }
 
-  await recordLoginAttempt(identifier, meta.ip, true);
   const updates: Partial<typeof users.$inferInsert> = { lastLoginAt: new Date() };
   if (needsRehash(user.passwordHash!)) updates.passwordHash = await hashPassword(password);
-  await db.update(users).set(updates).where(eq(users.id, user.id));
-
-  await createSession(user.id, meta, { mfaVerified: !user.totpEnabled });
+  // Independent writes: attempt log, last-login stamp and the session row go out together.
+  await Promise.all([
+    recordLoginAttempt(identifier, meta.ip, true),
+    db.update(users).set(updates).where(eq(users.id, user.id)),
+    createSession(user.id, meta, { mfaVerified: !user.totpEnabled }),
+  ]);
   await audit({ id: user.id, email: user.email }, 'auth.login', {
     entityType: 'user',
     entityId: user.id,

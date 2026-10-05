@@ -25,9 +25,11 @@ const URGENCY: Record<Urgency, { label: string; tone: Tone }> = {
 
 export default async function RenewalsPage() {
   const viewer = await requirePermission('renewals.view');
-  const rows = await renewalCenter(viewer);
   const manage = can(viewer, 'renewals.manage');
-  const clientRows = manage ? await db.select({ id: clients.id, name: clients.companyName }).from(clients).where(ne(clients.status, 'inactive')).orderBy(asc(clients.companyName)) : [];
+  const [rows, clientRows] = await Promise.all([
+    renewalCenter(viewer),
+    manage ? db.select({ id: clients.id, name: clients.companyName }).from(clients).where(ne(clients.status, 'inactive')).orderBy(asc(clients.companyName)) : Promise.resolve([]),
+  ]);
   const due30 = rows.filter((r) => r.daysLeft <= 30);
   const expired = rows.filter((r) => r.daysLeft < 0);
   const suggested = (r: (typeof rows)[number]) => addDays(r.expiresOn > todayIST() ? r.expiresOn : todayIST(), 365);

@@ -414,6 +414,7 @@ export const tasks = pgTable(
     index('tasks_assignee_idx').on(t.assigneeId),
     index('tasks_due_idx').on(t.dueDate),
     index('tasks_status_idx').on(t.status),
+    index('tasks_assignee_status_idx').on(t.assigneeId, t.status),
   ]
 );
 
@@ -474,6 +475,7 @@ export const documents = pgTable(
     index('documents_project_idx').on(t.projectId),
     index('documents_task_idx').on(t.taskId),
     index('documents_ticket_idx').on(t.ticketId),
+    index('documents_updated_idx').on(t.updatedAt),
   ]
 );
 
@@ -559,6 +561,7 @@ export const invoices = pgTable(
     index('invoices_client_idx').on(t.clientId),
     index('invoices_status_idx').on(t.status),
     index('invoices_due_idx').on(t.dueDate),
+    index('invoices_issue_idx').on(t.issueDate),
   ]
 );
 
@@ -599,7 +602,7 @@ export const payments = pgTable(
     recordedBy: uuid('recorded_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
   },
-  (t) => [index('payments_invoice_idx').on(t.invoiceId), index('payments_client_idx').on(t.clientId)]
+  (t) => [index('payments_invoice_idx').on(t.invoiceId), index('payments_client_idx').on(t.clientId), index('payments_paid_on_idx').on(t.paidOn)]
 );
 
 // ---------------------------------------------------------------------------
@@ -631,6 +634,7 @@ export const tickets = pgTable(
     index('tickets_client_idx').on(t.clientId),
     index('tickets_assignee_idx').on(t.assigneeId),
     index('tickets_status_idx').on(t.status),
+    index('tickets_status_activity_idx').on(t.status, t.lastActivityAt),
   ]
 );
 
@@ -681,6 +685,7 @@ export const meetings = pgTable(
     index('meetings_client_idx').on(t.clientId),
     index('meetings_project_idx').on(t.projectId),
     index('meetings_starts_idx').on(t.startsAt),
+    index('meetings_status_starts_idx').on(t.status, t.startsAt),
   ]
 );
 
@@ -786,6 +791,7 @@ export const leads = pgTable(
     index('leads_status_idx').on(t.status),
     index('leads_assigned_idx').on(t.assignedTo),
     index('leads_follow_up_idx').on(t.followUpAt),
+    index('leads_created_idx').on(t.createdAt),
   ]
 );
 

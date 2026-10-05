@@ -1,28 +1,37 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { and, asc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, asc, count, eq, ilike, or, sql } from 'drizzle-orm';
 import { Building2, Search } from 'lucide-react';
 import { db } from '@/server/db';
 import { clients, users } from '@/server/db/schema';
 import { can, requirePermission } from '@/server/auth/viewer';
 import { clientScope } from '@/server/scope';
 import { internalPeople } from '@/server/queries/people';
-import { EmptyState, PageHeader, Panel, StatusBadge, Table, Td, Th, Tr } from '@/components/portal/ui';
+import { EmptyState, PageHeader, Pagination, Panel, StatusBadge, Table, Td, Th, Tr } from '@/components/portal/ui';
 import { NewClientButton } from '@/components/portal/clients/ClientDialogs';
 import { formatMulti, type CurrencyCode } from '@/lib/portal/invoice-math';
 import { inputClass } from '@/components/portal/forms';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = { title: 'Clients' };
+const PAGE = 25;
 
-export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
+export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; page?: string }> }) {
   const viewer = await requirePermission('clients.view');
-  const { q = '', status = '' } = await searchParams;
+  const { q = '', status = '', page: rawPage } = await searchParams;
+  const page = Math.max(1, Math.floor(Number(rawPage)) || 1);
   const term = q.trim().slice(0, 80);
   const statusFilter = ['active', 'inactive', 'onboarding'].includes(status) ? (status as 'active') : null;
   const finance = can(viewer, 'invoices.view');
 
-  const rows = await db
+  const where = and(
+    clientScope(viewer),
+    statusFilter ? eq(clients.status, statusFilter) : undefined,
+    term ? or(ilike(clients.companyName, `%${term}%`), ilike(clients.contactName, `%${term}%`), ilike(clients.email, `%${term}%`), ilike(clients.code, `%${term}%`)) : undefined
+  );
+  // Page + total + manager picker in one parallel batch (the picker used to be a second, sequential stage).
+  const [rows, [{ total }], managers] = await Promise.all([
+    db
     .select({
       id: clients.id,
       code: clients.code,
@@ -39,16 +48,13 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
     })
     .from(clients)
     .leftJoin(users, eq(users.id, clients.accountManagerId))
-    .where(
-      and(
-        clientScope(viewer),
-        statusFilter ? eq(clients.status, statusFilter) : undefined,
-        term ? or(ilike(clients.companyName, `%${term}%`), ilike(clients.contactName, `%${term}%`), ilike(clients.email, `%${term}%`), ilike(clients.code, `%${term}%`)) : undefined
-      )
-    )
-    .orderBy(asc(clients.companyName));
-
-  const managers = can(viewer, 'clients.manage') ? await internalPeople(viewer) : [];
+    .where(where)
+    .orderBy(asc(clients.companyName), asc(clients.id))
+    .limit(PAGE)
+    .offset((page - 1) * PAGE),
+    db.select({ total: count() }).from(clients).where(where),
+    can(viewer, 'clients.manage') ? internalPeople(viewer) : Promise.resolve([]),
+  ]);
   const filters = [
     { key: '', label: 'All' },
     { key: 'active', label: 'Active' },
@@ -133,6 +139,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             </tbody>
           </Table>
         )}
+        <Pagination page={page} pageSize={PAGE} total={total} hrefFor={(p) => `/portal/clients?${new URLSearchParams({ ...(term ? { q: term } : {}), ...(statusFilter ? { status: statusFilter } : {}), page: String(p) })}`} />
       </Panel>
     </>
   );

@@ -15,15 +15,17 @@ export const metadata: Metadata = { title: 'Project profitability' };
 
 export default async function ProfitabilityPage() {
   const viewer = await requirePermission('time.view_all');
-  const rows = await projectProfitability(viewer);
-  const people = can(viewer, 'team.manage')
-    ? await db
-        .select({ id: users.id, name: users.name, rate: employees.hourlyCostPaise })
-        .from(users)
-        .leftJoin(employees, eq(employees.userId, users.id))
-        .where(and(ne(users.role, 'client'), eq(users.isActive, true)))
-        .orderBy(asc(users.name))
-    : [];
+  const [rows, people] = await Promise.all([
+    projectProfitability(viewer),
+    can(viewer, 'team.manage')
+      ? db
+          .select({ id: users.id, name: users.name, rate: employees.hourlyCostPaise })
+          .from(users)
+          .leftJoin(employees, eq(employees.userId, users.id))
+          .where(and(ne(users.role, 'client'), eq(users.isActive, true)))
+          .orderBy(asc(users.name))
+      : Promise.resolve([]),
+  ]);
 
   const revenue = rows.reduce((s, r) => s + r.revenuePaise, 0);
   const cost = rows.reduce((s, r) => s + r.costPaise, 0);

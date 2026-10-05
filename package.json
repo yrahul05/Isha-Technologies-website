@@ -10,6 +10,7 @@
     "lint": "eslint",
     "format": "prettier --write .",
     "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "seo:check": "node scripts/seo-check.mjs",
     "db:generate": "drizzle-kit generate",
     "db:check": "tsx --env-file-if-exists=.env.local scripts/db-check.ts",

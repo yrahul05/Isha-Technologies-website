@@ -20,16 +20,19 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
   const canSend = can(viewer, 'notifications.send');
 
   // Announcements this viewer actually received — never anyone else's.
-  const received = await db
+  const receivedQuery = db
     .selectDistinctOn([announcements.id], { a: announcements })
     .from(notifications)
     .innerJoin(announcements, eq(announcements.id, notifications.announcementId))
     .where(eq(notifications.userId, viewer.id))
     .orderBy(announcements.id);
+  // Own inbox and (for senders) the sent list / pickers load in one parallel batch.
+  const [received, [sent, people, clientOptions]] = await Promise.all([receivedQuery, loadSenderData()]);
   received.sort((x, y) => y.a.createdAt.getTime() - x.a.createdAt.getTime());
 
-  const [sent, people, clientOptions] = canSend
-    ? await Promise.all([
+  function loadSenderData() {
+    return canSend
+    ? Promise.all([
         db
           .select({ a: announcements, by: users.name, recipients: sql<number>`(select count(*)::int from notifications n where n.announcement_id = ${announcements.id})`, reads: sql<number>`(select count(*)::int from notifications n where n.announcement_id = ${announcements.id} and n.read_at is not null)` })
           .from(announcements)
@@ -39,7 +42,8 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
         db.select({ id: users.id, name: users.name, role: users.role }).from(users).where(and(eq(users.isActive, true), inArray(users.role, ['admin', 'employee', 'super_admin']))).orderBy(asc(users.name)),
         db.select({ id: clients.id, name: clients.companyName }).from(clients).orderBy(asc(clients.companyName)),
       ])
-    : [[], [], []];
+    : Promise.resolve([[], [], []] as [never[], never[], never[]]);
+  }
 
   return (
     <>

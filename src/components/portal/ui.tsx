@@ -376,6 +376,16 @@ export function Tr({ children, className }: { children: ReactNode; className?: s
 
 export function Pagination({ page, pageSize, total, hrefFor }: { page: number; pageSize: number; total: number; hrefFor: (page: number) => string }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
+  // A stale/out-of-range ?page= (e.g. after deleting rows) must still offer a way back.
+  if (page > pages) {
+    return (
+      <div className="mt-4 text-xs text-slate-500">
+        <Link className="rounded-lg border border-gray-200 px-3 py-1.5 font-medium text-slate-700 hover:border-brand hover:text-brand" href={hrefFor(1)}>
+          Back to first page
+        </Link>
+      </div>
+    );
+  }
   if (pages <= 1) return null;
   return (
     <div className="mt-4 flex items-center justify-between text-xs text-slate-500">

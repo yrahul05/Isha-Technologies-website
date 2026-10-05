@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { alias } from 'drizzle-orm/pg-core';
-import { and, asc, desc, eq, ilike, isNotNull, isNull, ne } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, isNotNull, isNull, ne } from 'drizzle-orm';
 import { Download, Eye, FolderLock, Lock, Search } from 'lucide-react';
 import { db } from '@/server/db';
 import { clients, documentVersions, documents, projects, users } from '@/server/db/schema';
 import { can, requireViewer } from '@/server/auth/viewer';
-import { canManageDocument } from '@/server/documents';
+import { manageableDocumentIds } from '@/server/documents';
 import { clientScope, documentScope, isUuid, projectScope } from '@/server/scope';
-import { Badge, EmptyState, PageHeader, Panel, Table, Td, Th, Tr } from '@/components/portal/ui';
+import { Badge, EmptyState, PageHeader, Pagination, Panel, Table, Td, Th, Tr } from '@/components/portal/ui';
 import { DocIcon } from '@/components/portal/documents/DocumentRowList';
 import { ArchiveDocumentButton, DeleteDocumentButton, EditDocumentButton, PreviewButton, VersionsButton } from '@/components/portal/documents/DocumentActions';
 import { UploadPanel } from '@/components/portal/documents/UploadPanel';
@@ -19,8 +19,9 @@ import { cn } from '@/lib/utils';
 import { getSetting } from '@/server/settings';
 
 export const metadata: Metadata = { title: 'Documents' };
+const PAGE = 25;
 
-export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ q?: string; client?: string; project?: string; doc?: string; upload?: string; view?: string }> }) {
+export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ q?: string; client?: string; project?: string; doc?: string; upload?: string; view?: string; page?: string }> }) {
   const viewer = await requireViewer();
   const sp = await searchParams;
   const term = (sp.q ?? '').trim().slice(0, 80);
@@ -30,34 +31,36 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
   const archivedView = sp.view === 'archived';
 
   const latest = alias(documentVersions, 'latest');
-  const rows = await db
-    .select({ d: documents, clientName: clients.companyName, projectName: projects.name, uploader: users.name, size: latest.sizeBytes })
-    .from(documents)
-    .leftJoin(clients, eq(clients.id, documents.clientId))
-    .leftJoin(projects, eq(projects.id, documents.projectId))
-    .leftJoin(users, eq(users.id, documents.uploadedBy))
-    .leftJoin(latest, and(eq(latest.documentId, documents.id), eq(latest.version, documents.currentVersion)))
-    .where(
-      and(
-        documentScope(viewer),
-        focus ? undefined : archivedView ? isNotNull(documents.archivedAt) : isNull(documents.archivedAt),
-        focus ? eq(documents.id, focus) : undefined,
-        clientFilter ? eq(documents.clientId, clientFilter) : undefined,
-        projectFilter ? eq(documents.projectId, projectFilter) : undefined,
-        term ? ilike(documents.name, `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`) : undefined
-      )
-    )
-    .orderBy(desc(documents.updatedAt))
-    .limit(300);
+  const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
+  const where = and(
+    documentScope(viewer),
+    focus ? undefined : archivedView ? isNotNull(documents.archivedAt) : isNull(documents.archivedAt),
+    focus ? eq(documents.id, focus) : undefined,
+    clientFilter ? eq(documents.clientId, clientFilter) : undefined,
+    projectFilter ? eq(documents.projectId, projectFilter) : undefined,
+    term ? ilike(documents.name, `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`) : undefined
+  );
 
-  const manageable = new Set<string>();
-  for (const r of rows) if (await canManageDocument(viewer, r.d)) manageable.add(r.d.id);
-
-  const [clientOptions, projectOptions] = await Promise.all([
+  // Page, total, pickers and the upload limit in one parallel batch (they were three sequential stages,
+  // plus a permission query per row).
+  const [rows, [{ total }], clientOptions, projectOptions, { maxUploadMb }] = await Promise.all([
+    db
+      .select({ d: documents, clientName: clients.companyName, projectName: projects.name, uploader: users.name, size: latest.sizeBytes })
+      .from(documents)
+      .leftJoin(clients, eq(clients.id, documents.clientId))
+      .leftJoin(projects, eq(projects.id, documents.projectId))
+      .leftJoin(users, eq(users.id, documents.uploadedBy))
+      .leftJoin(latest, and(eq(latest.documentId, documents.id), eq(latest.version, documents.currentVersion)))
+      .where(where)
+      .orderBy(desc(documents.updatedAt), desc(documents.id))
+      .limit(PAGE)
+      .offset((page - 1) * PAGE),
+    db.select({ total: count() }).from(documents).where(where),
     viewer.isInternal ? db.select({ id: clients.id, name: clients.companyName }).from(clients).where(and(clientScope(viewer), ne(clients.status, 'inactive'))).orderBy(asc(clients.companyName)) : Promise.resolve([]),
     db.select({ id: projects.id, name: projects.name, clientId: projects.clientId }).from(projects).where(and(projectScope(viewer), ne(projects.status, 'cancelled'))).orderBy(asc(projects.name)),
+    getSetting('storage'),
   ]);
-  const { maxUploadMb } = await getSetting('storage');
+  const manageable = await manageableDocumentIds(viewer, rows.map((r) => r.d));
 
   return (
     <>
@@ -174,6 +177,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             </tbody>
           </Table>
         )}
+        <Pagination page={page} pageSize={PAGE} total={total} hrefFor={(p) => `/portal/documents?${new URLSearchParams({ ...(term ? { q: term } : {}), ...(clientFilter ? { client: clientFilter } : {}), ...(projectFilter ? { project: projectFilter } : {}), ...(archivedView ? { view: 'archived' } : {}), page: String(p) })}`} />
         {!viewer.isInternal && (
           <p className="mt-4 text-xs text-slate-500">
             Need a document renamed, replaced or removed? <Link href="/portal/change-requests" className="font-semibold text-brand">Submit a change request</Link>.
