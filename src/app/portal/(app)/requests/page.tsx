@@ -32,7 +32,8 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const filter = FILTERS.find((f) => f.key === sp.filter) ?? FILTERS[0];
 
-  const rows = await db
+  const [rows, clientProjects] = await Promise.all([
+    db
     .select({ r: taskRequests, clientName: clients.companyName, projectName: projects.name, requester: users.name, task: { status: tasks.status, assigneeId: tasks.assigneeId, deletedAt: tasks.deletedAt } })
     .from(taskRequests)
     .innerJoin(clients, eq(clients.id, taskRequests.clientId))
@@ -41,12 +42,11 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
     .leftJoin(tasks, eq(tasks.id, taskRequests.taskId))
     .where(and(taskRequestScope(viewer), inArray(taskRequests.status, [...filter.statuses])))
     .orderBy(desc(taskRequests.createdAt))
-    .limit(300);
-
-  const clientProjects =
+    .limit(300),
     !viewer.isInternal && viewer.clientId
-      ? await db.select({ id: projects.id, name: projects.name }).from(projects).where(and(projectScope(viewer), eq(projects.clientId, viewer.clientId), isNull(projects.archivedAt))).orderBy(asc(projects.name))
-      : [];
+      ? db.select({ id: projects.id, name: projects.name }).from(projects).where(and(projectScope(viewer), eq(projects.clientId, viewer.clientId), isNull(projects.archivedAt))).orderBy(asc(projects.name))
+      : Promise.resolve([] as { id: string; name: string }[]),
+  ]);
 
   return (
     <>

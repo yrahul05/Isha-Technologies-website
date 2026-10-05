@@ -1,5 +1,5 @@
 import 'server-only';
-import { eq, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { cache } from 'react';
 import { db, type Database } from '@/server/db';
 import { counters, settings } from '@/server/db/schema';
@@ -134,6 +134,15 @@ export const getSetting = cache(async <K extends keyof SettingsMap>(key: K): Pro
   const [row] = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
   return { ...DEFAULT_SETTINGS[key], ...((row?.value as Partial<SettingsMap[K]>) ?? {}) } as SettingsMap[K];
 });
+
+/** Several settings in ONE round-trip (the portal shell needs `notifications` + `security` on every page). */
+export async function getSettings<K extends keyof SettingsMap>(keys: readonly K[]): Promise<{ [P in K]: SettingsMap[P] }> {
+  const rows = await db.select().from(settings).where(inArray(settings.key, [...keys]));
+  const byKey = new Map(rows.map((r) => [r.key as string, r.value]));
+  const out = {} as { [P in K]: SettingsMap[P] };
+  for (const key of keys) out[key] = { ...DEFAULT_SETTINGS[key], ...((byKey.get(key) as Partial<SettingsMap[typeof key]>) ?? {}) } as SettingsMap[typeof key];
+  return out;
+}
 
 export async function saveSetting<K extends keyof SettingsMap>(key: K, value: SettingsMap[K], userId: string) {
   await db

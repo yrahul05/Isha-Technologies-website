@@ -24,22 +24,26 @@ export default async function ChangeRequestsPage({ searchParams }: { searchParam
 
   const requester = alias(users, 'requester');
   const reviewerUser = alias(users, 'reviewer');
-  const rows = await db
-    .select({ cr: changeRequests, clientName: clients.companyName, requester: requester.name, reviewer: reviewerUser.name })
-    .from(changeRequests)
-    .innerJoin(clients, eq(clients.id, changeRequests.clientId))
-    .leftJoin(requester, eq(requester.id, changeRequests.requestedBy))
-    .leftJoin(reviewerUser, eq(reviewerUser.id, changeRequests.reviewedBy))
-    .where(changeRequestScope(viewer))
-    .orderBy(desc(changeRequests.createdAt))
-    .limit(200);
+  const clientTenantId = !viewer.isInternal ? viewer.clientId : null;
+  const [rows, clientRow] = await Promise.all([
+    db
+      .select({ cr: changeRequests, clientName: clients.companyName, requester: requester.name, reviewer: reviewerUser.name })
+      .from(changeRequests)
+      .innerJoin(clients, eq(clients.id, changeRequests.clientId))
+      .leftJoin(requester, eq(requester.id, changeRequests.requestedBy))
+      .leftJoin(reviewerUser, eq(reviewerUser.id, changeRequests.reviewedBy))
+      .where(changeRequestScope(viewer))
+      .orderBy(desc(changeRequests.createdAt))
+      .limit(200),
+    clientTenantId ? db.select().from(clients).where(eq(clients.id, clientTenantId)) : Promise.resolve([]),
+  ]);
   const pending = rows.filter((r) => r.cr.status === 'pending');
   const history = rows.filter((r) => r.cr.status !== 'pending');
 
   // Everything a client may request changes to — only their own records.
   let targets: ChangeTarget[] = [];
   if (!viewer.isInternal && viewer.clientId) {
-    const [client] = await db.select().from(clients).where(eq(clients.id, viewer.clientId));
+    const [client] = clientRow;
     const [invs, projs, docs, clientTasks] = await Promise.all([
       db.select().from(invoices).where(and(eq(invoices.clientId, viewer.clientId), ne(invoices.status, 'draft'))).orderBy(desc(invoices.issueDate)),
       db.select().from(projects).where(eq(projects.clientId, viewer.clientId)),

@@ -113,18 +113,7 @@ export async function getExecutiveDashboard(v: Viewer) {
   const finance = can(v, 'invoices.view');
   const months = monthKeys(6);
 
-  const [
-    [clientCount],
-    projectCounts,
-    [taskCounts],
-    [openTickets],
-    [pendingLeads],
-    projectsLive,
-    meetingsSoon,
-    deadlines,
-    activity,
-    notes,
-  ] = await Promise.all([
+  const core = Promise.all([
     db.select({ n: count() }).from(clients).where(and(clientScope(v), ne(clients.status, 'inactive'))),
     db.select({ status: projects.status, n: count() }).from(projects).where(projectScope(v)).groupBy(projects.status),
     db
@@ -145,8 +134,8 @@ export async function getExecutiveDashboard(v: Viewer) {
     myNotifications(v),
   ]);
 
-  let financeData = null;
-  if (finance) {
+  const loadFinance = async () => {
+    if (!finance) return null;
     const since = `${months[0].key}-01`;
     // Every money aggregate is grouped by currency — rupees are never added to dollars.
     const [out, collected, monthly, overdueInv] = await Promise.all([
@@ -175,7 +164,7 @@ export async function getExecutiveDashboard(v: Viewer) {
     ]);
     const byMonth = new Map(monthly.map((m) => [m.month, Number(m.amount)]));
     const totals = (rows: { currency: string; amount: number }[]) => formatMulti(sumByCurrency(rows, (r) => r.currency, (r) => Number(r.amount)));
-    financeData = {
+    return {
       outstandingCount: out.reduce((s, r) => s + r.n, 0),
       outstandingLabel: totals(out),
       overdueCount: overdueInv.reduce((s, r) => s + r.n, 0),
@@ -183,10 +172,11 @@ export async function getExecutiveDashboard(v: Viewer) {
       collectedLabel: totals(collected),
       monthly: months.map((m) => ({ label: m.label, sublabel: m.sublabel, value: byMonth.get(m.key) ?? 0 })),
     };
-  }
+  };
 
-  const team = can(v, 'team.view')
-    ? await db
+  const loadTeam = async () =>
+    can(v, 'team.view')
+    ? db
         .select({
           id: users.id,
           name: users.name,
@@ -200,6 +190,9 @@ export async function getExecutiveDashboard(v: Viewer) {
         .where(and(ne(users.role, 'client'), eq(users.isActive, true)))
         .orderBy(asc(users.name))
     : [];
+
+  // Core cards, finance and team are independent: ONE parallel batch instead of three sequential stages.
+  const [[[clientCount], projectCounts, [taskCounts], [openTickets], [pendingLeads], projectsLive, meetingsSoon, deadlines, activity, notes], financeData, team] = await Promise.all([core, loadFinance(), loadTeam()]);
 
   const counts = Object.fromEntries(projectCounts.map((p) => [p.status, p.n])) as Record<string, number>;
   return {

@@ -1,7 +1,7 @@
 import 'server-only';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '@/server/db';
-import { clients, documents, projects, tickets } from '@/server/db/schema';
+import { clients, documents, projectMembers, projects, tickets } from '@/server/db/schema';
 import { can, type Viewer } from '@/server/auth/viewer';
 import { canEditTask, documentScope, findVisibleProject, findVisibleTask, isProjectMember, ticketScope } from '@/server/scope';
 
@@ -101,6 +101,25 @@ export async function findVisibleDocument(v: Viewer, id: string) {
  * documents directly (they submit a change request); internal users need
  * documents.manage, or to be the uploader, or to be on the project.
  */
+/**
+ * Batch form of canManageDocument for a list page: identical rules, but ONE query for project
+ * membership instead of one per row (the list used to await canManageDocument() in a loop).
+ */
+export async function manageableDocumentIds(v: Viewer, docs: Pick<typeof documents.$inferSelect, 'id' | 'uploadedBy' | 'projectId'>[]): Promise<Set<string>> {
+  if (!v.isInternal) return new Set();
+  if (can(v, 'documents.manage')) return new Set(docs.map((d) => d.id));
+  const projectIds = [...new Set(docs.filter((d) => d.uploadedBy !== v.id && d.projectId).map((d) => d.projectId as string))];
+  const member = new Set<string>();
+  if (projectIds.length) {
+    const rows = await db
+      .select({ id: projectMembers.projectId })
+      .from(projectMembers)
+      .where(and(eq(projectMembers.userId, v.id), inArray(projectMembers.projectId, projectIds)));
+    for (const r of rows) member.add(r.id);
+  }
+  return new Set(docs.filter((d) => d.uploadedBy === v.id || (d.projectId !== null && member.has(d.projectId))).map((d) => d.id));
+}
+
 export async function canManageDocument(v: Viewer, doc: typeof documents.$inferSelect): Promise<boolean> {
   if (!v.isInternal) return false;
   if (can(v, 'documents.manage')) return true;

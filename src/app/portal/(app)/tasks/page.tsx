@@ -29,40 +29,39 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   const status = statuses.find((s) => s === sp.status);
   // Active (default) → Archived (completed work kept for history) → Recently deleted (Super Admin).
   const show = sp.show === 'archived' && viewer.isInternal ? 'archived' : sp.show === 'deleted' && viewer.isSuperAdmin ? 'deleted' : 'active';
-  const deleted =
+  // Everything the page needs in one parallel batch (this was four sequential stages).
+  const manageTasks = can(viewer, 'tasks.manage');
+  const [deleted, items, projectOptions, memberProjects, people] = await Promise.all([
     show === 'deleted'
-      ? await db
+      ? db
           .select({ t: tasks, project: projects.name })
           .from(tasks)
           .innerJoin(projects, eq(projects.id, tasks.projectId))
           .where(isNotNull(tasks.deletedAt))
           .orderBy(desc(tasks.deletedAt))
           .limit(200)
-      : [];
-
-  const items = await boardTasks(
-    viewer,
-    and(
-      mine ? eq(tasks.assigneeId, viewer.id) : undefined,
-      projectId ? eq(tasks.projectId, projectId) : undefined,
-      status ? eq(tasks.status, status) : undefined,
-      show === 'archived' ? isNotNull(tasks.archivedAt) : isNull(tasks.archivedAt)
-    )
-  );
-
-  const projectOptions = await db
-    .select({ id: projects.id, name: projects.name })
-    .from(projects)
-    .where(and(projectScope(viewer), ne(projects.status, 'cancelled')))
-    .orderBy(asc(projects.name));
-
+      : Promise.resolve([]),
+    boardTasks(
+      viewer,
+      and(
+        mine ? eq(tasks.assigneeId, viewer.id) : undefined,
+        projectId ? eq(tasks.projectId, projectId) : undefined,
+        status ? eq(tasks.status, status) : undefined,
+        show === 'archived' ? isNotNull(tasks.archivedAt) : isNull(tasks.archivedAt)
+      )
+    ),
+    db
+      .select({ id: projects.id, name: projects.name })
+      .from(projects)
+      .where(and(projectScope(viewer), ne(projects.status, 'cancelled')))
+      .orderBy(asc(projects.name)),
+    viewer.isInternal && !manageTasks
+      ? db.select({ id: projects.id, name: projects.name }).from(projects).where(inArray(projects.id, memberProjectIds(viewer)))
+      : Promise.resolve([]),
+    viewer.isInternal ? internalPeople(viewer) : Promise.resolve([]),
+  ]);
   // Projects the viewer may create tasks in.
-  const creatable = !viewer.isInternal
-    ? []
-    : can(viewer, 'tasks.manage')
-      ? projectOptions
-      : await db.select({ id: projects.id, name: projects.name }).from(projects).where(inArray(projects.id, memberProjectIds(viewer)));
-  const people = viewer.isInternal ? await internalPeople(viewer) : [];
+  const creatable = !viewer.isInternal ? [] : manageTasks ? projectOptions : memberProjects;
 
   const qs = (patch: Partial<Search>) => {
     const next = { ...sp, ...patch, new: undefined };

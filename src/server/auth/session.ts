@@ -1,8 +1,8 @@
 import 'server-only';
-import { and, eq, gt, lt } from 'drizzle-orm';
+import { and, eq, gt, lt, ne, sql } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { db } from '@/server/db';
-import { sessions, users } from '@/server/db/schema';
+import { clientUsers, clients, sessions, users } from '@/server/db/schema';
 import { randomToken, sha256 } from '@/server/security/crypto';
 import { SESSION_COOKIE } from '@/lib/portal/session-cookie';
 import type { RequestMeta } from '@/server/request';
@@ -52,22 +52,46 @@ export async function createSession(
   });
 }
 
+/** Role grants and tenant membership fetched in the same round-trip as the session (see readSession). */
+export type SessionPrefetch = {
+  permissions: string[];
+  membership: { clientId: string; role: 'owner' | 'member'; name: string; status: string } | null;
+};
+
 export type SessionRecord = {
   sessionId: string;
   mfaVerified: boolean;
   user: typeof users.$inferSelect;
+  prefetch: SessionPrefetch;
 };
 
-/** Validates the cookie against the DB. Returns null for missing/expired/revoked sessions or inactive users. */
+/**
+ * Validates the cookie against the DB. Returns null for missing/expired/revoked sessions or inactive users.
+ *
+ * ONE round-trip returns everything the Viewer needs: the session row, the user, the role's permission
+ * grants (correlated subquery) and the client-tenant membership. It is always read fresh and never cached,
+ * so revocation, deactivation and permission edits apply on the very next request. (This used to be 2–3
+ * sequential queries on every page, action and API call.)
+ */
 export async function readSession(): Promise<SessionRecord | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token || token.length > 100) return null;
 
   const sessionId = sha256(token);
   const [row] = await db
-    .select({ session: sessions, user: users })
+    .select({
+      session: sessions,
+      user: users,
+      permissions: sql<string[] | null>`(select json_agg(rp.permission) from role_permissions rp where rp.role = ${users.role})`,
+      memberClientId: clientUsers.clientId,
+      memberRole: clientUsers.role,
+      memberName: clients.companyName,
+      memberStatus: clients.status,
+    })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
+    .leftJoin(clientUsers, eq(clientUsers.userId, users.id))
+    .leftJoin(clients, eq(clients.id, clientUsers.clientId))
     .where(and(eq(sessions.id, sessionId), gt(sessions.expiresAt, new Date())))
     .limit(1);
 
@@ -78,7 +102,16 @@ export async function readSession(): Promise<SessionRecord | null> {
     await db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, sessionId));
   }
 
-  return { sessionId, mfaVerified: row.session.mfaVerified, user: row.user };
+  const membership =
+    row.memberClientId && row.memberRole && row.memberName != null && row.memberStatus
+      ? { clientId: row.memberClientId, role: row.memberRole, name: row.memberName, status: row.memberStatus }
+      : null;
+  return {
+    sessionId,
+    mfaVerified: row.session.mfaVerified,
+    user: row.user,
+    prefetch: { permissions: Array.isArray(row.permissions) ? row.permissions : [], membership },
+  };
 }
 
 export async function markSessionMfaVerified(sessionId: string): Promise<void> {
@@ -93,10 +126,7 @@ export async function destroyCurrentSession(): Promise<void> {
 }
 
 export async function revokeAllSessions(userId: string, exceptSessionId?: string): Promise<void> {
-  const rows = await db.select({ id: sessions.id }).from(sessions).where(eq(sessions.userId, userId));
-  for (const row of rows) {
-    if (row.id !== exceptSessionId) await db.delete(sessions).where(eq(sessions.id, row.id));
-  }
+  await db.delete(sessions).where(and(eq(sessions.userId, userId), exceptSessionId ? ne(sessions.id, exceptSessionId) : undefined));
 }
 
 export async function purgeExpiredSessions(): Promise<void> {

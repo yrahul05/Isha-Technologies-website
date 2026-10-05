@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { and, asc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm';
 import { CalendarRange, FolderKanban } from 'lucide-react';
 import { db } from '@/server/db';
 import { clients, projects } from '@/server/db/schema';
@@ -8,7 +8,7 @@ import { can, requireViewer } from '@/server/auth/viewer';
 import { projectScope } from '@/server/scope';
 import { projectProgress, projectTeams } from '@/server/queries/common';
 import { clientPeople, internalPeople } from '@/server/queries/people';
-import { AvatarStack, EmptyState, PageHeader, ProgressBar, StatusBadge } from '@/components/portal/ui';
+import { AvatarStack, EmptyState, PageHeader, Pagination, ProgressBar, StatusBadge } from '@/components/portal/ui';
 import { NewProjectButton } from '@/components/portal/projects/ProjectForm';
 import { daysUntil, fmtDate } from '@/lib/portal/format';
 import { cn } from '@/lib/utils';
@@ -23,28 +23,43 @@ const FILTERS = [
   { key: 'archived', label: 'Archived', statuses: ['completed', 'cancelled'] },
 ] as const;
 
-export default async function ProjectsPage({ searchParams }: { searchParams: Promise<{ filter?: string; client?: string; new?: string }> }) {
+const PAGE = 24;
+
+export default async function ProjectsPage({ searchParams }: { searchParams: Promise<{ filter?: string; client?: string; new?: string; page?: string }> }) {
   const viewer = await requireViewer();
   const sp = await searchParams;
   const filter = FILTERS.find((f) => f.key === sp.filter) ?? FILTERS[0];
 
-  const rows = await db
-    .select({ p: projects, clientName: clients.companyName })
-    .from(projects)
-    .innerJoin(clients, eq(clients.id, projects.clientId))
-    .where(and(projectScope(viewer), inArray(projects.status, [...filter.statuses]), filter.key === 'archived' ? isNotNull(projects.archivedAt) : isNull(projects.archivedAt)))
-    .orderBy(asc(projects.dueDate));
-  const ids = rows.map((r) => r.p.id);
-  const [progress, teams] = await Promise.all([projectProgress(ids), projectTeams(ids)]);
-
+  const page = Math.max(1, Math.floor(Number(sp.page)) || 1);
+  const where = and(projectScope(viewer), inArray(projects.status, [...filter.statuses]), filter.key === 'archived' ? isNotNull(projects.archivedAt) : isNull(projects.archivedAt));
   const manage = can(viewer, 'projects.manage');
-  const [clientOptions, team, people] = manage
-    ? await Promise.all([
-        db.select({ id: clients.id, name: clients.companyName }).from(clients).where(ne(clients.status, 'inactive')).orderBy(asc(clients.companyName)),
-        internalPeople(viewer),
-        clientPeople(viewer),
-      ])
-    : [[], [], []];
+
+  // The page of projects (+ its progress/team lookups, which only need that page's ids) runs alongside the
+  // total and the "new project" pickers instead of after them.
+  const loadPage = async () => {
+    const pageRows = await db
+      .select({ p: projects, clientName: clients.companyName })
+      .from(projects)
+      .innerJoin(clients, eq(clients.id, projects.clientId))
+      .where(where)
+      .orderBy(asc(projects.dueDate), asc(projects.id))
+      .limit(PAGE)
+      .offset((page - 1) * PAGE);
+    const ids = pageRows.map((r) => r.p.id);
+    const [progress, teams] = await Promise.all([projectProgress(ids), projectTeams(ids)]);
+    return { rows: pageRows, progress, teams };
+  };
+  const [{ rows, progress, teams }, [{ total }], [clientOptions, team, people]] = await Promise.all([
+    loadPage(),
+    db.select({ total: count() }).from(projects).where(where),
+    manage
+      ? Promise.all([
+          db.select({ id: clients.id, name: clients.companyName }).from(clients).where(ne(clients.status, 'inactive')).orderBy(asc(clients.companyName)),
+          internalPeople(viewer),
+          clientPeople(viewer),
+        ])
+      : Promise.resolve([[], [], []] as [{ id: string; name: string }[], Awaited<ReturnType<typeof internalPeople>>, Awaited<ReturnType<typeof clientPeople>>]),
+  ]);
 
   return (
     <>
@@ -119,6 +134,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
           })}
         </div>
       )}
+      <Pagination page={page} pageSize={PAGE} total={total} hrefFor={(p) => `/portal/projects?${new URLSearchParams({ filter: filter.key, page: String(p) })}`} />
     </>
   );
 }
